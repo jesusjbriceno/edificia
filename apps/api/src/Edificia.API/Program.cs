@@ -1,5 +1,6 @@
 using Edificia.API.Middleware;
 using Edificia.Application;
+using Edificia.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +12,9 @@ builder.Services.AddProblemDetails();
 
 // Application Layer (MediatR + FluentValidation pipeline)
 builder.Services.AddApplication();
+
+// Infrastructure Layer (EF Core + Dapper)
+builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
