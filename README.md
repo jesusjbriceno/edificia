@@ -4,7 +4,7 @@
 
 ## **📖 Visión del Producto**
 
-**EDIFICIA** no es un simple editor de texto. Es un **Asistente Estratégico de Visado** diseñado para arquitectos españoles.
+**EDIFICIA** es un **Asistente Estratégico de Visado** diseñado para arquitectos españoles.
 
 A diferencia de soluciones genéricas, EDIFICIA entiende la escala de la obra:
 
@@ -12,6 +12,15 @@ A diferencia de soluciones genéricas, EDIFICIA entiende la escala de la obra:
 * **Gestiona** la exención de LOE (Art 2.2) para obras menores automáticamente.  
 * **Redacta** descripciones técnicas y justifica normativa usando IA soberana (vía Flux Gateway).  
 * **Garantiza** la persistencia offline ("Modo Túnel") para trabajar en obra.
+
+## **🌍 Entornos**
+
+| Entorno | Aplicación | URL |
+| :---- | :---- | :---- |
+| **Producción** | Web (Frontend) | [https://edificia.jesusjbriceno.dev](https://www.google.com/search?q=https://edificia.jesusjbriceno.dev) |
+|  | API (Swagger) | [https://api-edificia.jesusjbriceno.dev/swagger](https://www.google.com/search?q=https://api-edificia.jesusjbriceno.dev/swagger) |
+| **Local** | Web | http://localhost:4321 |
+|  | API | http://localhost:5000 |
 
 ## **🚀 Quick Start (Despliegue Local)**
 
@@ -35,10 +44,6 @@ Todo el entorno está contenerizado.
 3. **Levantar Infraestructura**  
    docker-compose up \-d
 
-   * **Frontend (Web):** http://localhost:4321  
-   * **Backend (Swagger):** http://localhost:5000/swagger  
-   * **Base de Datos:** localhost:5432
-
 ## **📂 Estructura del Monorepo**
 
 /  
@@ -60,4 +65,6 @@ Todo el entorno está contenerizado.
 
 Por favor, consulta [AGENTS.md](https://www.google.com/search?q=./AGENTS.md) para entender las reglas de arquitectura y estándares de código antes de contribuir.
 
-**Licencia:** Privada / Propietaria.
+## **📄 Licencia**
+
+Este proyecto está bajo la licencia **Apache 2.0**. Consulta el archivo LICENSE para más detalles.

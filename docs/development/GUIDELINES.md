@@ -2,17 +2,17 @@
 
 **Repositorio:** [https://github.com/jesusjbriceno/edificia](https://github.com/jesusjbriceno/edificia)
 
-**Versión:** 2.1 (Stack Estricto)
+**Versión:** 2.2 (Stack Estricto)
 
 Este documento define las reglas innegociables para el código de EDIFICIA.
 
-## **1\. Stack Tecnológico (Estricto)**
+## **1\. Stack Tecnológico**
 
 ### **Backend (.NET 8\)**
 
 * **API:** Web API (Controllers). **OpenAPI/Swagger** obligatorio.  
 * **Validación:** **FluentValidation**.  
-* **Mapeo:** **Manual** (Operators explicit/implicit). Prohibido AutoMapper.  
+* **Mapeo:** **Manual** (Operators explicit/implicit).  
 * **ORM (Comandos):** **EF Core** (Npgsql).  
 * **ORM (Consultas):** **Dapper** (SQL Raw optimizado).  
 * **Testing:** **xUnit** \+ **Moq**.
@@ -29,7 +29,8 @@ Este documento define las reglas innegociables para el código de EDIFICIA.
 ### **Infraestructura**
 
 * **DB:** **PostgreSQL 16**.  
-* **Cache:** **Redis** (StackExchange.Redis).
+* **Caché:** **Redis** (StackExchange.Redis).  
+* **IA Gateway:** Flux Gateway.
 
 ## **2\. Estándares de Backend (.NET)**
 
@@ -38,7 +39,7 @@ Este documento define las reglas innegociables para el código de EDIFICIA.
 PostgreSQL usa snake\_case. .NET usa PascalCase.
 
 * **Regla:** Configurar EF Core (EFCore.NamingConventions) para transformar automáticamente.  
-* **Tablas:** Plural, snake\_case (ej: projects, project\_memories).  
+* **Tablas:** Plural, snake\_case (ej: projects).  
 * **Columnas:** snake\_case (ej: created\_at, owner\_id).
 
 ### **2.2. Patrón de Mapeo (DTOs)**
@@ -48,15 +49,14 @@ PostgreSQL usa snake\_case. .NET usa PascalCase.
 **OBLIGATORIO:** Usar operadores de conversión en los DTOs o métodos de extensión.
 
 // Ejemplo: Explicit Operator  
-public class ProjectDto   
+public class ProjectResponse   
 {  
     public Guid Id { get; set; }  
     public string Title { get; set; }
 
-    // Uso: ProjectDto dto \= (ProjectDto)projectEntity;  
-    public static explicit operator ProjectDto(Project entity)   
+    public static explicit operator ProjectResponse(Project entity)   
     {  
-        return new ProjectDto {  
+        return new ProjectResponse {  
             Id \= entity.Id,  
             Title \= entity.Title  
         };  
@@ -99,7 +99,7 @@ export type ProjectForm \= z.infer\<typeof ProjectSchema\>;
 
 ### **3.2. Componentes y Tailwind v4**
 
-* Usar la sintaxis de **Tailwind v4** (variables CSS nativas si es necesario).  
+* Usar la sintaxis de **Tailwind v4**.  
 * **Diseño Atómico:** Crear componentes pequeños en /components/ui (Button, Input, Card) que encapsulen los estilos de Tailwind para evitar "sopa de clases" repetida.
 
 ### **3.3. Testing (Vitest)**
