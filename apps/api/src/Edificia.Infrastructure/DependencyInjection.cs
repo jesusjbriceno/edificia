@@ -1,5 +1,6 @@
 using Edificia.Application.Interfaces;
 using Edificia.Infrastructure.Persistence;
+using Edificia.Infrastructure.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,6 +25,9 @@ public static class DependencyInjection
 
         // ---------- Dapper (Read-side) ----------
         services.AddSingleton<IDbConnectionFactory, DapperConnectionFactory>();
+
+        // ---------- Repositories ----------
+        services.AddScoped<IProjectRepository, ProjectRepository>();
 
         return services;
     }
