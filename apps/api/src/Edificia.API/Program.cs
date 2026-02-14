@@ -1,3 +1,4 @@
+using Edificia.API.Configuration;
 using Edificia.API.Middleware;
 using Edificia.Application;
 using Edificia.Infrastructure;
@@ -16,8 +17,14 @@ builder.Services.AddApplication();
 // Infrastructure Layer (EF Core + Dapper)
 builder.Services.AddInfrastructure(builder.Configuration);
 
+// CORS
+builder.Services.AddCorsPolicy(builder.Configuration);
+
 builder.Services.AddControllers();
+
+// Swagger / OpenAPI
 builder.Services.AddOpenApi();
+builder.Services.AddSwaggerDocumentation();
 
 var app = builder.Build();
 
@@ -28,7 +35,10 @@ app.UseExceptionHandler();
 if (app.Environment.IsDevelopment() || app.Environment.EnvironmentName == "Local")
 {
     app.MapOpenApi();
+    app.UseSwaggerDocumentation();
 }
+
+app.UseCors(CorsConfiguration.PolicyName);
 
 app.UseHttpsRedirection();
 
