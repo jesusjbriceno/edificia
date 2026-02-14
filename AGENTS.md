@@ -117,3 +117,37 @@
 
 * La memoria del proyecto NO es una tabla. Es un árbol JSON guardado en Projects.ContentTreeJson.  
 * Usar PATCH endpoints para actualizaciones parciales y eficientes.
+
+## **7. Git Flow y Pull Requests (Obligatorio)**
+
+### **7.1. Ramas**
+
+* **main:** Producción. Solo se actualiza desde `develop` vía PR aprobada.
+* **develop:** Rama de integración. Todas las features convergen aquí.
+* **feature/\*:** Una rama por feature del Roadmap. Se crea desde `develop`.
+* **hotfix/\*:** Correcciones urgentes desde `main`.
+
+### **7.2. Flujo de Trabajo (Estricto)**
+
+1. **NUNCA** commitear directamente en `develop` ni `main`.
+2. Crear rama `feature/<nombre>` desde `develop`.
+3. Desarrollar, commitear con Conventional Commits.
+4. Hacer push y crear **Pull Request** hacia `develop`.
+5. La PR debe incluir: título descriptivo, descripción de cambios, y referencia al ID del Roadmap.
+6. Tras aprobación/revisión, merge a `develop` (squash o merge commit según tamaño).
+
+### **7.3. Conventional Commits**
+
+* `feat:` Nueva funcionalidad.
+* `fix:` Corrección de bugs.
+* `docs:` Solo documentación.
+* `refactor:` Refactorización sin cambio funcional.
+* `test:` Añadir o corregir tests.
+* `chore:` Tareas de mantenimiento (deps, configs).
+
+### **7.4. Regla para Agentes AI**
+
+* **PROHIBIDO** hacer cambios en `develop` directamente. Siempre crear rama feature.
+* Antes de empezar una feature, crear la rama con `git checkout -b feature/<nombre>`.
+* Al terminar, crear PR con `gh pr create` y esperar revisión.
+* Si hay dependencia entre features, esperar al merge de la anterior antes de continuar.
