@@ -1,3 +1,4 @@
+using Edificia.Domain.Entities;
 using Edificia.Domain.Primitives;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,6 +14,8 @@ public class EdificiaDbContext : DbContext
         : base(options)
     {
     }
+
+    public DbSet<Project> Projects => Set<Project>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
