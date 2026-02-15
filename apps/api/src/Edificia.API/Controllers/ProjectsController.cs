@@ -1,5 +1,6 @@
 using Edificia.Application.Common;
 using Edificia.Application.Projects.Commands.CreateProject;
+using Edificia.Application.Projects.Commands.PatchSectionContent;
 using Edificia.Application.Projects.Commands.UpdateProjectTree;
 using Edificia.Application.Projects.Queries;
 using Edificia.Application.Projects.Queries.GetProjectById;
@@ -125,6 +126,29 @@ public sealed class ProjectsController : BaseApiController
     public async Task<IActionResult> UpdateTree(Guid id, [FromBody] UpdateProjectTreeRequest request)
     {
         var command = new UpdateProjectTreeCommand(id, request.ContentTreeJson);
+        var result = await _sender.Send(command);
+
+        return HandleNoContent(result);
+    }
+
+    /// <summary>
+    /// Updates the content of a specific section within the project's content tree.
+    /// Performs a partial update on a single section (JSONB path update).
+    /// </summary>
+    /// <param name="id">The project ID.</param>
+    /// <param name="sectionId">The section ID within the content tree.</param>
+    /// <param name="request">The section content data.</param>
+    /// <response code="204">Section content updated successfully.</response>
+    /// <response code="400">Validation error in the request data.</response>
+    /// <response code="404">Project or section not found.</response>
+    [HttpPatch("{id:guid}/sections/{sectionId}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> PatchSectionContent(
+        Guid id, string sectionId, [FromBody] UpdateSectionRequest request)
+    {
+        var command = new PatchSectionContentCommand(id, sectionId, request.Content);
         var result = await _sender.Send(command);
 
         return HandleNoContent(result);
