@@ -1,4 +1,5 @@
 using Edificia.Application.Interfaces;
+using Edificia.Infrastructure.Ai;
 using Edificia.Infrastructure.Persistence;
 using Edificia.Infrastructure.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -28,6 +29,18 @@ public static class DependencyInjection
 
         // ---------- Repositories ----------
         services.AddScoped<IProjectRepository, ProjectRepository>();
+
+        // ---------- AI Service (Flux Gateway) ----------
+        services.Configure<FluxGatewaySettings>(
+            configuration.GetSection(FluxGatewaySettings.SectionName));
+
+        services.AddMemoryCache();
+
+        services.AddHttpClient<IAiService, FluxAiService>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(60);
+            client.DefaultRequestHeaders.Add("Accept", "application/json");
+        });
 
         return services;
     }
