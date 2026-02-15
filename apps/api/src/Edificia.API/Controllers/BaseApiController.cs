@@ -25,6 +25,18 @@ public abstract class BaseApiController : ControllerBase
     }
 
     /// <summary>
+    /// Converts a Result to a 204 No Content response on success.
+    /// Use for PUT/PATCH operations that don't return a body.
+    /// </summary>
+    protected IActionResult HandleNoContent(Result result)
+    {
+        if (result.IsSuccess)
+            return NoContent();
+
+        return HandleError(result);
+    }
+
+    /// <summary>
     /// Converts a Result&lt;T&gt; to an IActionResult with the value or error.
     /// </summary>
     protected IActionResult HandleResult<T>(Result<T> result)

@@ -1,7 +1,9 @@
 using Edificia.Application.Common;
 using Edificia.Application.Projects.Commands.CreateProject;
+using Edificia.Application.Projects.Commands.UpdateProjectTree;
 using Edificia.Application.Projects.Queries;
 using Edificia.Application.Projects.Queries.GetProjectById;
+using Edificia.Application.Projects.Queries.GetProjectTree;
 using Edificia.Application.Projects.Queries.GetProjects;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -86,5 +88,45 @@ public sealed class ProjectsController : BaseApiController
         var result = await _sender.Send(command);
 
         return HandleCreated(result, nameof(GetById), id => new { id });
+    }
+
+    /// <summary>
+    /// Gets the normative content tree of a project.
+    /// Returns the raw JSONB tree along with intervention metadata for client-side filtering.
+    /// </summary>
+    /// <param name="id">The project ID.</param>
+    /// <returns>The content tree JSON and intervention metadata.</returns>
+    /// <response code="200">Returns the content tree.</response>
+    /// <response code="404">Project not found.</response>
+    [HttpGet("{id:guid}/tree")]
+    [ProducesResponseType(typeof(ContentTreeResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetTree(Guid id)
+    {
+        var query = new GetProjectTreeQuery(id);
+        var result = await _sender.Send(query);
+
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Updates the normative content tree of a project.
+    /// Replaces the entire content tree JSON (JSONB column).
+    /// </summary>
+    /// <param name="id">The project ID.</param>
+    /// <param name="request">The content tree data.</param>
+    /// <response code="204">Content tree updated successfully.</response>
+    /// <response code="400">Validation error in the request data.</response>
+    /// <response code="404">Project not found.</response>
+    [HttpPut("{id:guid}/tree")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateTree(Guid id, [FromBody] UpdateProjectTreeRequest request)
+    {
+        var command = new UpdateProjectTreeCommand(id, request.ContentTreeJson);
+        var result = await _sender.Send(command);
+
+        return HandleNoContent(result);
     }
 }
