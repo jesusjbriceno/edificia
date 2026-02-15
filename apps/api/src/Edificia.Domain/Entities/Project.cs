@@ -1,3 +1,6 @@
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Edificia.Domain.Enums;
 using Edificia.Domain.Primitives;
 
@@ -113,5 +116,60 @@ public sealed class Project : AuditableEntity
     public void UpdateContentTree(string contentTreeJson)
     {
         ContentTreeJson = contentTreeJson;
+    }
+
+    /// <summary>
+    /// Updates the content of a specific section within the content tree.
+    /// Recursively searches chapters and nested sections by ID.
+    /// </summary>
+    /// <param name="sectionId">The unique identifier of the section to update.</param>
+    /// <param name="content">The new content for the section.</param>
+    /// <returns>True if the section was found and updated; false otherwise.</returns>
+    public bool UpdateSectionContent(string sectionId, string content)
+    {
+        if (ContentTreeJson is null)
+            return false;
+
+        var root = JsonNode.Parse(ContentTreeJson);
+        var chapters = root?["chapters"]?.AsArray();
+
+        if (chapters is null || chapters.Count == 0)
+            return false;
+
+        foreach (var chapter in chapters)
+        {
+            if (chapter is not null && UpdateNodeContent(chapter, sectionId, content))
+            {
+                var options = new JsonSerializerOptions
+                {
+                    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                };
+                ContentTreeJson = root!.ToJsonString(options);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool UpdateNodeContent(JsonNode node, string sectionId, string content)
+    {
+        if (node["id"]?.GetValue<string>() == sectionId)
+        {
+            node["content"] = content;
+            return true;
+        }
+
+        var sections = node["sections"]?.AsArray();
+        if (sections is not null)
+        {
+            foreach (var section in sections)
+            {
+                if (section is not null && UpdateNodeContent(section, sectionId, content))
+                    return true;
+            }
+        }
+
+        return false;
     }
 }
