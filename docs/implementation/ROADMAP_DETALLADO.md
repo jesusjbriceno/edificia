@@ -62,7 +62,18 @@
 | **6.1** | feature/export-docx | • Implementar servicio OpenXml. • Mapear JSON TipTap \-\> Estilos Word. • Endpoint GET /export. | • Botón "Exportar" en la TopBar. • Manejo de descarga de Blob. |
 | **6.2** | feature/polish-ui | • Ajuste de validaciones finales. • Logging y métricas. | • Pantallas de carga (Skeletons). • Página 404 y Error Boundaries. |
 
-## **🚦 Definición de Hecho (DoD)**
+## **� Fase 7: Refactor \- Mapeos y Limpieza**
+
+**Objetivo:** Centralizar los mapeos Request/DTO → Command/Query mediante operadores de conversión explícitos, aligerando los controladores y mejorando la mantenibilidad.
+
+| ID | Feature Branch | Tareas Backend (.NET) | Tareas Frontend (Astro/React) |
+| :---- | :---- | :---- | :---- |
+| **7.1** | feature/refactor-mappings | • Añadir operadores `explicit operator` en cada Command/Query para convertir desde su Request DTO correspondiente (ej: `CreateProjectCommand` ← `CreateProjectRequest`). • Refactorizar todos los Controllers para usar los operadores en lugar de mapeos manuales inline. • Verificar que todos los tests siguen pasando. | • N/A |
+| **7.2** | feature/refactor-sql-constants | • Extraer todas las consultas SQL raw de los Query Handlers de Dapper a clases de constantes centralizadas (ej: `ProjectQueries.cs` con `GetById`, `GetPaged`, `Count`). • Refactorizar los Handlers para referenciar las constantes en lugar de SQL inline. • Verificar que todos los tests siguen pasando. | • N/A |
+
+**Contexto:** Según AGENTS.md, el mapeo debe ser **manual con operadores explícitos** (PROHIBIDO AutoMapper). La Feature 7.1 consolida los mapeos dispersos en los controllers dentro de los propios Commands/Queries. La Feature 7.2 centraliza las queries SQL de Dapper en ficheros de constantes por agregado, facilitando la revisión, reutilización y mantenimiento del SQL.
+
+## **�🚦 Definición de Hecho (DoD)**
 
 Para considerar una **Feature** cerrada:
 
