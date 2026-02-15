@@ -1,0 +1,15 @@
+namespace Edificia.Application.Common;
+
+/// <summary>
+/// Generic paged response wrapper for list queries.
+/// </summary>
+public sealed record PagedResponse<T>(
+    IReadOnlyList<T> Items,
+    int TotalCount,
+    int Page,
+    int PageSize)
+{
+    public int TotalPages => (int)Math.Ceiling(TotalCount / (double)PageSize);
+    public bool HasNextPage => Page < TotalPages;
+    public bool HasPreviousPage => Page > 1;
+}

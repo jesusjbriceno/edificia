@@ -1,4 +1,8 @@
+using Edificia.Application.Common;
 using Edificia.Application.Projects.Commands.CreateProject;
+using Edificia.Application.Projects.Queries;
+using Edificia.Application.Projects.Queries.GetProjectById;
+using Edificia.Application.Projects.Queries.GetProjects;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,6 +18,48 @@ public sealed class ProjectsController : BaseApiController
     public ProjectsController(ISender sender)
     {
         _sender = sender;
+    }
+
+    /// <summary>
+    /// Retrieves a paginated list of projects.
+    /// </summary>
+    /// <param name="page">Page number (default: 1).</param>
+    /// <param name="pageSize">Items per page (1-50, default: 10).</param>
+    /// <param name="status">Optional filter by status (Draft, InProgress, Completed, Archived).</param>
+    /// <param name="search">Optional search term (matches title or description).</param>
+    /// <response code="200">Returns the paginated list of projects.</response>
+    /// <response code="400">Invalid pagination or filter parameters.</response>
+    [HttpGet]
+    [ProducesResponseType(typeof(PagedResponse<ProjectResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetAll(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? status = null,
+        [FromQuery] string? search = null)
+    {
+        var query = new GetProjectsQuery(page, pageSize, status, search);
+        var result = await _sender.Send(query);
+
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Gets a project by its unique identifier.
+    /// </summary>
+    /// <param name="id">The project ID.</param>
+    /// <returns>The project details.</returns>
+    /// <response code="200">Returns the project.</response>
+    /// <response code="404">Project not found.</response>
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(ProjectResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(Guid id)
+    {
+        var query = new GetProjectByIdQuery(id);
+        var result = await _sender.Send(query);
+
+        return HandleResult(result);
     }
 
     /// <summary>
@@ -40,20 +86,5 @@ public sealed class ProjectsController : BaseApiController
         var result = await _sender.Send(command);
 
         return HandleCreated(result, nameof(GetById), id => new { id });
-    }
-
-    /// <summary>
-    /// Gets a project by its unique identifier.
-    /// </summary>
-    /// <param name="id">The project ID.</param>
-    /// <returns>The project details.</returns>
-    /// <remarks>Placeholder — will be implemented in Feature 2.2 (project-read).</remarks>
-    [HttpGet("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public Task<IActionResult> GetById(Guid id)
-    {
-        // Placeholder — GET by ID will be implemented with Dapper in Feature 2.2
-        return Task.FromResult<IActionResult>(NotFound());
     }
 }
