@@ -26,6 +26,14 @@
 | **2.2** | feature/project-read | • Implementar GetProjectsQuery con Dapper (paginado). • Implementar GetProjectByIdQuery. | • Crear DashboardLayout.astro. • Implementar página dashboard.astro con Grid de proyectos. • Conectar API GET /projects. |
 | **2.3** | feature/project-wizard | • Ajustar CreateProjectCommand para recibir IsLoeRequired. | • Implementar **Wizard React** (Modal): 1\. Datos Básicos. 2\. Selector (Obra Nueva vs Reforma). 3\. Normativa Local. • Conectar POST /projects. |
 
+## **🔧 Fase 3.0: Refactor Previo \- Repositorio Base**
+
+**Objetivo:** Crear `IBaseRepository<T>` y `BaseRepository<T>` genéricos para evitar duplicación en futuros repositorios. Se aplica antes de avanzar a nuevas entidades.
+
+| ID | Feature Branch | Tareas Backend (.NET) | Tareas Frontend (Astro/React) |
+| :---- | :---- | :---- | :---- |
+| **3.0** | feature/base-repository | • Crear `IBaseRepository<T>` en Application/Interfaces con `GetByIdAsync`, `AddAsync`, `SaveChangesAsync`. • Crear `BaseRepository<T>` en Infrastructure con implementación EF Core genérica. • Refactorizar `IProjectRepository` e `ProjectRepository` para heredar del repositorio base. • Verificar que todos los tests siguen pasando. | • N/A |
+
 ## **🧠 Fase 3: El Motor de Normativa (JSON Engine)**
 
 **Objetivo:** Renderizar el árbol de capítulos filtrado según la estrategia del proyecto.

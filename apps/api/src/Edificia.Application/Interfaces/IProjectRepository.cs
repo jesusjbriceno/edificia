@@ -4,11 +4,9 @@ namespace Edificia.Application.Interfaces;
 
 /// <summary>
 /// Repository interface for Project aggregate (write-side).
+/// Extends <see cref="IBaseRepository{T}"/> with Project-specific operations.
 /// Defined in Application layer; implemented in Infrastructure.
 /// </summary>
-public interface IProjectRepository
+public interface IProjectRepository : IBaseRepository<Project>
 {
-    Task<Project?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
-    Task AddAsync(Project project, CancellationToken cancellationToken = default);
-    Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }
