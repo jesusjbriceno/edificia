@@ -3,6 +3,7 @@ using Edificia.Application.Auth.Commands.ChangePassword;
 using Edificia.Application.Auth.Commands.Login;
 using Edificia.Application.Auth.Commands.RefreshToken;
 using Edificia.Application.Auth.Commands.RevokeToken;
+using Edificia.Application.Auth.Commands.UpdateProfile;
 using Edificia.Application.Auth.DTOs;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -92,6 +93,29 @@ public class AuthController : BaseApiController
             FullName = User.FindFirstValue("full_name"),
             Roles = User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList()
         });
+    }
+
+    /// <summary>
+    /// Updates the authenticated user's own profile (FullName and CollegiateNumber).
+    /// </summary>
+    [HttpPut("profile")]
+    [Authorize(Policy = "ActiveUser")]
+    [ProducesResponseType(typeof(UpdateProfileResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UpdateProfile(
+        [FromBody] UpdateProfileRequest request,
+        CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+
+        if (userId is null)
+            return Unauthorized();
+
+        var command = UpdateProfileCommand.Create(userId.Value, request);
+        var result = await _mediator.Send(command, ct);
+
+        return HandleResult(result);
     }
 
     private Guid? GetCurrentUserId()
