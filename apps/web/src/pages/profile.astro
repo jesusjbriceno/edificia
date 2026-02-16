@@ -1,0 +1,27 @@
+---
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+import { ProfileView } from '@/components/Profile/ProfileView';
+import { AuthGuard } from '@/components/auth/AuthGuard';
+
+// En un caso real, obtendríamos el usuario del store o del servidor
+const mockUser = {
+	name: "Jesús Briceño",
+	email: "jesus@edificia.es",
+	role: "SuperAdmin"
+};
+---
+
+<DashboardLayout title="Mi Perfil">
+	<AuthGuard client:only="react">
+		<div class="max-w-7xl mx-auto space-y-8 py-8">
+			<div className="flex items-center justify-between">
+				<div>
+					<h1 class="text-3xl font-bold text-white tracking-tight">Mi Perfil</h1>
+					<p class="text-gray-400 mt-1">Información de cuenta y configuración de seguridad.</p>
+				</div>
+			</div>
+
+			<ProfileView user={mockUser as any} client:load />
+		</div>
+	</AuthGuard>
+</DashboardLayout>
