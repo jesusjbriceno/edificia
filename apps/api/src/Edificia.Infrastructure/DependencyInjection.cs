@@ -1,4 +1,6 @@
+using System.Text;
 using Edificia.Application.Interfaces;
+using Edificia.Domain.Constants;
 using Edificia.Domain.Entities;
 using Edificia.Infrastructure.Ai;
 using Edificia.Infrastructure.Email;
@@ -6,10 +8,12 @@ using Edificia.Infrastructure.Export;
 using Edificia.Infrastructure.Identity;
 using Edificia.Infrastructure.Persistence;
 using Edificia.Infrastructure.Persistence.Repositories;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Edificia.Infrastructure;
 
@@ -58,6 +62,56 @@ public static class DependencyInjection
         // ---------- JWT Settings ----------
         services.Configure<JwtSettings>(
             configuration.GetSection(JwtSettings.SectionName));
+
+        // ---------- JWT Token Service ----------
+        services.AddScoped<IJwtTokenService, JwtTokenService>();
+
+        // ---------- JWT Bearer Authentication ----------
+        var jwtSettings = configuration
+            .GetSection(JwtSettings.SectionName)
+            .Get<JwtSettings>() ?? new JwtSettings();
+
+        services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = jwtSettings.Issuer,
+                    ValidAudience = jwtSettings.Audience,
+                    IssuerSigningKey = new SymmetricSecurityKey(
+                        Encoding.UTF8.GetBytes(jwtSettings.SecretKey)),
+                    ClockSkew = TimeSpan.FromMinutes(1)
+                };
+            });
+
+        // ---------- Authorization Policies ----------
+        services.AddAuthorizationBuilder()
+            .AddPolicy(AppPolicies.ActiveUser, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.RequireAssertion(context =>
+                    !context.User.HasClaim(AppClaims.AuthMethodReference, AppClaims.PasswordChangeRequired));
+            })
+            .AddPolicy(AppPolicies.RequireRoot, policy =>
+            {
+                policy.RequireRole(AppRoles.Root);
+            })
+            .AddPolicy(AppPolicies.RequireAdmin, policy =>
+            {
+                policy.RequireRole(AppRoles.Root, AppRoles.Admin);
+            })
+            .AddPolicy(AppPolicies.RequireArchitect, policy =>
+            {
+                policy.RequireRole(AppRoles.Root, AppRoles.Admin, AppRoles.Architect);
+            });
 
         // ---------- Email Service ----------
         services.Configure<EmailSettings>(
