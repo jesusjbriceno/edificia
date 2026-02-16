@@ -17,23 +17,15 @@ public sealed partial class ExportProjectHandler : IRequestHandler<ExportProject
 
     private readonly IProjectRepository _repository;
     private readonly IDocumentExportService _exportService;
-    private readonly ILogger<ExportProjectHandler>? _logger;
+    private readonly ILogger<ExportProjectHandler> _logger;
 
-    /// <summary>Constructor for unit testing (without ILogger).</summary>
-    public ExportProjectHandler(
-        IProjectRepository repository,
-        IDocumentExportService exportService)
-    {
-        _repository = repository;
-        _exportService = exportService;
-    }
-
-    /// <summary>Constructor for DI (with ILogger).</summary>
     public ExportProjectHandler(
         IProjectRepository repository,
         IDocumentExportService exportService,
-        ILogger<ExportProjectHandler> logger) : this(repository, exportService)
+        ILogger<ExportProjectHandler> logger)
     {
+        _repository = repository;
+        _exportService = exportService;
         _logger = logger;
     }
 
@@ -45,14 +37,14 @@ public sealed partial class ExportProjectHandler : IRequestHandler<ExportProject
 
         if (project is null)
         {
-            _logger?.LogWarning("Project {ProjectId} not found for export", request.ProjectId);
+            _logger.LogWarning("Project {ProjectId} not found for export", request.ProjectId);
             return Result.NotFound<ExportDocumentResponse>(
                 Error.NotFound("Project", $"No se encontró el proyecto con ID {request.ProjectId}."));
         }
 
         if (string.IsNullOrWhiteSpace(project.ContentTreeJson))
         {
-            _logger?.LogWarning("Project {ProjectId} has no content tree for export", request.ProjectId);
+            _logger.LogWarning("Project {ProjectId} has no content tree for export", request.ProjectId);
             return Result.Failure<ExportDocumentResponse>(
                 Error.Failure("Export.NoContent",
                     "El proyecto no tiene contenido para exportar. Añada contenido antes de exportar."));
@@ -71,7 +63,7 @@ public sealed partial class ExportProjectHandler : IRequestHandler<ExportProject
 
             if (fileContent is null || fileContent.Length == 0)
             {
-                _logger?.LogError("Export service returned empty result for project {ProjectId}", request.ProjectId);
+                _logger.LogError("Export service returned empty result for project {ProjectId}", request.ProjectId);
                 return Result.Failure<ExportDocumentResponse>(
                     Error.Failure("Export.EmptyResult",
                         "No se pudo exportar el documento. El servicio de exportación no generó contenido."));
@@ -79,14 +71,14 @@ public sealed partial class ExportProjectHandler : IRequestHandler<ExportProject
 
             var fileName = SanitizeFileName(project.Title) + ".docx";
 
-            _logger?.LogInformation("Successfully exported project {ProjectId} ({FileName}, {Size} bytes)",
+            _logger.LogInformation("Successfully exported project {ProjectId} ({FileName}, {Size} bytes)",
                 request.ProjectId, fileName, fileContent.Length);
 
             return Result.Success(new ExportDocumentResponse(fileContent, fileName, DocxContentType));
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Error exporting project {ProjectId}", request.ProjectId);
+            _logger.LogError(ex, "Error exporting project {ProjectId}", request.ProjectId);
             return Result.Failure<ExportDocumentResponse>(
                 Error.Failure("Export.Error",
                     $"Error al exportar el documento: {ex.Message}"));
