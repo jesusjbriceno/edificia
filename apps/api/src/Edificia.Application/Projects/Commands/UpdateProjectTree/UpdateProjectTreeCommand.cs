@@ -9,4 +9,8 @@ namespace Edificia.Application.Projects.Commands.UpdateProjectTree;
 /// </summary>
 public sealed record UpdateProjectTreeCommand(
     Guid ProjectId,
-    string ContentTreeJson) : IRequest<Result>;
+    string ContentTreeJson) : IRequest<Result>
+{
+    public static UpdateProjectTreeCommand Create(Guid projectId, UpdateProjectTreeRequest r)
+        => new(projectId, r.ContentTreeJson);
+}

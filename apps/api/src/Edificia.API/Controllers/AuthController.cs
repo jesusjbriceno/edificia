@@ -34,7 +34,7 @@ public class AuthController : BaseApiController
         [FromBody] LoginRequest request,
         CancellationToken ct)
     {
-        var command = new LoginCommand(request.Email, request.Password);
+        var command = (LoginCommand)request;
         var result = await _mediator.Send(command, ct);
 
         return HandleResult(result);
@@ -59,11 +59,7 @@ public class AuthController : BaseApiController
         if (userId is null)
             return Unauthorized();
 
-        var command = new ChangePasswordCommand(
-            userId.Value,
-            request.CurrentPassword,
-            request.NewPassword);
-
+        var command = ChangePasswordCommand.Create(userId.Value, request);
         var result = await _mediator.Send(command, ct);
 
         return HandleResult(result);
