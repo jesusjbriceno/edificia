@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { ProfileView } from './ProfileView';
+import { ProfileView } from '@/components/Profile/ProfileView';
 
 const mockUser = {
   name: 'Alvaro Arquitecto',

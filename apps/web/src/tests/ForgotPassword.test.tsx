@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { ForgotPassword } from './ForgotPassword';
+import { ForgotPassword } from '@/components/auth/ForgotPassword';
 
 describe('ForgotPassword component', () => {
   const mockOnSubmit = vi.fn();

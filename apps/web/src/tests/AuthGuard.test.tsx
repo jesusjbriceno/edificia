@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { AuthGuard } from './AuthGuard';
+import { AuthGuard } from '@/components/auth/AuthGuard';
 import { useAuthStore } from '@/store/useAuthStore';
 
 // Mock de useAuthStore

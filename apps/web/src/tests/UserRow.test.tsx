@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { UserRow } from './UserRow';
+import { UserRow } from '@/components/Admin/UserRow';
 
 const mockUser = {
   id: "1",

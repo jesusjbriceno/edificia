@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { UserForm } from './UserForm';
+import { UserForm } from '@/components/Admin/UserForm';
 
 describe('UserForm component', () => {
   const mockOnSubmit = vi.fn();
