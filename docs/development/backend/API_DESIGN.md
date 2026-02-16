@@ -1,93 +1,74 @@
-# **📡 Diseño de API REST y Patrón CQRS \- EDIFICIA**
+# **📡 Diseño de API REST y Estrategia de DTOs \- EDIFICIA**
 
-**Versión:** 2.0
+**Versión:** 2.2 (Soporte Prompt Engine & Technical Context)
 
-**Arquitectura:** RESTful sobre CQRS (Mediator Pattern).
+## **2\. Catálogo de Endpoints (Actualizado)**
 
-## **1\. Filosofía CQRS en EDIFICIA**
+### **🏗️ Módulo: Proyectos (Projects)**
 
-Separamos estrictamente las operaciones de lectura (Queries) de las de escritura (Commands).
+Se amplía el modelo de datos para soportar el Motor de Prompts.
 
-### **🔴 Commands (Escritura)**
+#### **Modelo de Entidad Ampliado (Project)**
 
-* **Responsabilidad:** Modificar el estado del sistema (INSERT, UPDATE, DELETE).  
-* **Herramienta:** Entity Framework Core (aprovecha Change Tracker y Transacciones).  
-* **Retorno:** Generalmente devuelve el ID del recurso creado o Unit (Void).  
-* **Naming:** Verbo \+ Entidad \+ "Command" (ej: CreateProjectCommand).
-
-### **🔵 Queries (Lectura)**
-
-* **Responsabilidad:** Leer datos para la UI.  
-* **Herramienta:** Dapper (Micro-ORM) con SQL Raw contra Vistas o Tablas.  
-* **Retorno:** DTOs planos optimizados para la vista (sin grafos de objetos complejos).  
-* **Naming:** Verbo \+ Entidad \+ "Query" (ej: GetProjectDashboardQuery).
-
-## **2\. Flujo de Datos (The Thin Controller)**
-
-Los Controladores API son "tontos". Su único trabajo es recibir el HTTP Request, mapearlo a un Comando/Query de MediatR y devolver la respuesta HTTP adecuada.
-
-// Ejemplo Conceptual  
-\[HttpPost\]  
-public async Task\<IActionResult\> Create(CreateProjectRequest request)  
+public class Project   
 {  
-    // 1\. Mapear DTO externo \-\> Command interno  
-    var command \= new CreateProjectCommand(request.Title, request.InterventionType);  
+    public Guid Id { get; set; }  
+    public string Title { get; set; }  
       
-    // 2\. Despachar al Bus en memoria  
-    var result \= await \_mediator.Send(command);  
+    // \--- Estrategia \---  
+    public InterventionType InterventionType { get; set; }  
+    public bool IsLoeRequired { get; set; }  
       
-    // 3\. Retornar  
-    return CreatedAtAction(nameof(Get), new { id \= result }, result);  
+    // \--- Contexto Técnico (Input para IA) \---  
+    // Almacena las respuestas de los formularios técnicos (ej: "Cimentación: Zapatas")  
+    // Se usa para inyectar datos en el Prompt.  
+    public string TechnicalContextJson { get; set; } \= "{}";   
+      
+    // \--- Contexto Normativo (Input para IA) \---  
+    public string MunicipalRegulation { get; set; }  
+      
+    // \--- Contenido Generado (Output) \---  
+    public string ContentTreeJson { get; set; }  
 }
 
-## **3\. Catálogo de Operaciones (CQRS)**
+#### **DTOs para Prompt Engine**
 
-### **🏗️ Módulo: Projects**
+Cuando el frontend solicita generar texto, puede enviar datos frescos del formulario actual, que se fusionan con el contexto guardado.
 
-| Tipo | Clase (MediatR) | Request DTO (API) | Response DTO | Herramienta |
+**POST /api/v1/projects/{id}/ai/generate**
+
+**Request (GenerateTextRequest):**
+
+public record GenerateTextRequest(  
+    string SectionCode,       // "MD.2.1"  
+    JsonElement CurrentFormData, // Datos del formulario que el usuario acaba de tocar  
+    string? UserInstructions  // "Hazlo más técnico"  
+);
+
+**Lógica del Backend (Prompt Engine):**
+
+1. Recupera el Project de BD.  
+2. Recupera el User (Autor) para obtener Nombre y Nº Colegiado (Contexto de Autoría).  
+3. Fusiona: Project.TechnicalContextJson \+ CurrentFormData.  
+4. Construye el Prompt:"Actúa como el Arq. {User.Name}. Redacta el apartado {SectionCode} para una obra de tipo {InterventionType}.  
+   Datos técnicos: {MergedData}.  
+   Normativa Local: {Project.MunicipalRegulation}."
+
+### **🔐 Módulo: Auth (Actualizado)**
+
+Añadido el endpoint para el cambio de contraseña obligatorio.
+
+| Verbo | Ruta | Request DTO | Response | Descripción |
 | :---- | :---- | :---- | :---- | :---- |
-| **Query** | GetProjectsQuery | (QueryString) | Paginated\<ProjectSummary\> | **Dapper** |
-| **Query** | GetProjectByIdQuery | \- | ProjectDetail | **Dapper** |
-| **Command** | CreateProjectCommand | CreateProjectRequest | Guid (New Id) | **EF Core** |
-| **Command** | UpdateProjectSettingsCommand | UpdateSettingsRequest | Unit | **EF Core** |
-| **Command** | DeleteProjectCommand | \- | Unit | **EF Core** |
+| POST | /api/v1/auth/change-password | ChangePasswordRequest | Unit | Permite cambiar la clave si se tiene el token temporal (incluso si está restringido). |
 
-### **📄 Módulo: Sections (Memoria)**
+public record ChangePasswordRequest(  
+    string CurrentPassword,  
+    string NewPassword  
+);
 
-| Tipo | Clase (MediatR) | Request DTO (API) | Response DTO | Herramienta |
-| :---- | :---- | :---- | :---- | :---- |
-| **Query** | GetProjectTreeQuery | \- | ContentTreeJson | **Dapper** (Select directo jsonb) |
-| **Command** | PatchSectionContentCommand | UpdateSectionRequest | Unit | **EF Core** (Optimizado con ExecuteUpdate) |
+## **4\. Próximos Pasos (Feature 5.2)**
 
-### **🤖 Módulo: AI (Inferencia)**
-
-| Tipo | Clase (MediatR) | Request DTO (API) | Response DTO | Herramienta |
-| :---- | :---- | :---- | :---- | :---- |
-| **Command** | GenerateSectionTextCommand | GenerateTextRequest | GeneratedTextResponse | **Flux Gateway Service** |
-
-## **4\. Estructura de Carpetas (Application Layer)**
-
-Para mantener el orden, la capa Edificia.Application reflejará esta división:
-
-/Edificia.Application  
-  /Projects  
-    /Commands  
-      /CreateProject  
-        CreateProjectCommand.cs  
-        CreateProjectHandler.cs  
-        CreateProjectValidator.cs  
-    /Queries  
-      /GetProjects  
-        GetProjectsQuery.cs  
-        GetProjectsHandler.cs  
-        ProjectSummaryDto.cs
-
-## **5\. Manejo de Respuestas y Errores**
-
-No lanzamos excepciones para control de flujo. Usamos un patrón Result\<T\>.
-
-* **Success:** Result.Success(data) \-\> HTTP 200/201.  
-* **Validation Error:** Result.Failure(ValidationError) \-\> HTTP 400\.  
-* **Not Found:** Result.NotFound() \-\> HTTP 404\.
-
-El controlador se encarga de traducir este Result al IActionResult correspondiente.
+1. **Migración EF:** Añadir columna technical\_context\_json a la tabla projects.  
+2. **Extensión Identity:** Añadir columna must\_change\_password a asp\_net\_users.  
+3. **Prompt Builder:** Implementar la clase PromptBuilderService en Application que orqueste la fusión de estos datos antes de llamar a Flux.

@@ -1,8 +1,12 @@
 using Edificia.Application.Interfaces;
+using Edificia.Domain.Entities;
 using Edificia.Infrastructure.Ai;
+using Edificia.Infrastructure.Email;
 using Edificia.Infrastructure.Export;
+using Edificia.Infrastructure.Identity;
 using Edificia.Infrastructure.Persistence;
 using Edificia.Infrastructure.Persistence.Repositories;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,6 +28,62 @@ public static class DependencyInjection
             options
                 .UseNpgsql(connectionString)
                 .UseSnakeCaseNamingConvention());
+
+        // ---------- ASP.NET Core Identity ----------
+        services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
+            {
+                // Password policy
+                options.Password.RequireDigit = true;
+                options.Password.RequireLowercase = true;
+                options.Password.RequireUppercase = true;
+                options.Password.RequireNonAlphanumeric = true;
+                options.Password.RequiredLength = 8;
+
+                // Lockout
+                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+                options.Lockout.MaxFailedAccessAttempts = 5;
+
+                // User
+                options.User.RequireUniqueEmail = true;
+            })
+            .AddEntityFrameworkStores<EdificiaDbContext>()
+            .AddDefaultTokenProviders();
+
+        // ---------- Identity Seeder ----------
+        services.Configure<SecuritySettings>(
+            configuration.GetSection(SecuritySettings.SectionName));
+
+        services.AddHostedService<IdentityDataInitializer>();
+
+        // ---------- JWT Settings ----------
+        services.Configure<JwtSettings>(
+            configuration.GetSection(JwtSettings.SectionName));
+
+        // ---------- Email Service ----------
+        services.Configure<EmailSettings>(
+            configuration.GetSection(EmailSettings.SectionName));
+
+        var emailProvider = configuration
+            .GetSection(EmailSettings.SectionName)
+            .GetValue<string>("Provider") ?? "Smtp";
+
+        if (emailProvider.Equals("Brevo", StringComparison.OrdinalIgnoreCase))
+        {
+            services.AddHttpClient<IEmailService, BrevoEmailService>(client =>
+            {
+                var apiKey = configuration
+                    .GetSection(EmailSettings.SectionName)
+                    .GetValue<string>("BrevoApiKey") ?? string.Empty;
+
+                client.DefaultRequestHeaders.Add("api-key", apiKey);
+                client.DefaultRequestHeaders.Add("Accept", "application/json");
+                client.Timeout = TimeSpan.FromSeconds(30);
+            });
+        }
+        else
+        {
+            services.AddScoped<IEmailService, SmtpEmailService>();
+        }
 
         // ---------- Dapper (Read-side) ----------
         services.AddSingleton<IDbConnectionFactory, DapperConnectionFactory>();
