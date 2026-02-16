@@ -1,0 +1,57 @@
+---
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+import ProjectCard from '@/components/ProjectCard';
+import { Button } from '@/components/ui/Button';
+import { Plus } from 'lucide-react';
+import ProjectWizard from '@/components/ProjectWizard';
+import { useState } from 'react';
+
+const projects = [
+	{ title: "Residencial Los Olivos", status: "InProgress", lastModified: "Hace 2 horas", type: "Obra Nueva" },
+	{ title: "Reforma Local Gran Vía", status: "Draft", lastModified: "Ayer", type: "Reforma" },
+	{ title: "Ampliación Nave Industrial", status: "Completed", lastModified: "Hace 3 días", type: "Ampliación" },
+	{ title: "Vivienda Unifamiliar", status: "InProgress", lastModified: "Hace una semana", type: "Obra Nueva" },
+];
+
+// Nota: En Astro no podemos usar hooks en el top-level si solo es una isla. 
+// Usaremos un wrapper componente para gestionar el estado del modal si es necesario, 
+// o un script simple para interactuar. Para esta demo, lo haremos como una isla React completa.
+---
+
+<DashboardLayout title="Proyectos">
+	<div class="max-w-7xl mx-auto space-y-8">
+		<div class="flex items-center justify-between">
+			<div>
+				<h1 class="text-3xl font-bold text-white tracking-tight">Mis Proyectos</h1>
+				<p class="text-gray-400 mt-1">Gestiona y redacta tus memorias de proyecto.</p>
+			</div>
+			
+			<div id="project-wizard-trigger">
+				<!-- Este botón será reemplazado o manejado por una isla en un escenario real robusto -->
+				<Button className="h-12" id="new-project-btn">
+					<Plus className="w-5 h-5 mr-2" />
+					Nuevo Proyecto
+				</Button>
+			</div>
+		</div>
+
+		<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+			{projects.map((project) => (
+				<ProjectCard 
+					key={project.title}
+					title={project.title}
+					status={project.status as any}
+					lastModified={project.lastModified}
+					type={project.type}
+					client:load
+				/>
+			))}
+		</div>
+	</div>
+
+	<!-- Isla para el Wizard -->
+	<script>
+		// Simulación simple para disparar el modal (mejorable con una isla envolvente)
+		// En una app real, el botón y el modal estarían en el mismo componente de React.
+	</script>
+</DashboardLayout>
