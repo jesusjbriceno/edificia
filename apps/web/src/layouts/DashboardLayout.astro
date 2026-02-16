@@ -1,0 +1,87 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import { LayoutDashboard, FolderKanban, Users, Settings, LogOut, Search, Bell } from 'lucide-react';
+
+interface Props {
+	title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<BaseLayout title={title}>
+	<div class="flex h-screen bg-dark-bg">
+		<!-- Sidebar -->
+		<aside class="w-64 border-r border-white/5 flex flex-col bg-dark-bg/50 backdrop-blur-xl">
+			<div class="p-6">
+				<h2 class="text-2xl font-bold tracking-tight text-white">
+					<span class="text-brand-primary">E</span>DIFICIA
+				</h2>
+			</div>
+
+			<nav class="flex-1 px-4 space-y-2 mt-4">
+				<a href="/dashboard" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-white bg-brand-primary/10 border border-brand-primary/20 rounded-lg transition-all">
+					<LayoutDashboard size={18} className="text-brand-primary" />
+					Proyectos
+				</a>
+				<a href="#" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-all">
+					<FolderKanban size={18} />
+					Plantillas
+				</a>
+				<a href="/admin/users" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-all">
+					<Users size={18} />
+					Usuarios
+				</a>
+			</nav>
+
+			<div class="p-4 border-t border-white/5 space-y-2">
+				<a href="#" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-all">
+					<Settings size={18} />
+					Ajustes
+				</a>
+				<a href="/" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-400 hover:bg-red-500/10 rounded-lg transition-all">
+					<LogOut size={18} />
+					Cerrar Sesión
+				</a>
+			</div>
+		</aside>
+
+		<!-- Main Content -->
+		<div class="flex-1 flex flex-col overflow-hidden">
+			<!-- Header -->
+			<header class="h-16 border-b border-white/5 flex items-center justify-between px-8 bg-dark-bg/30 backdrop-blur-md">
+				<div class="flex items-center flex-1 max-w-xl">
+					<div class="relative w-full">
+						<Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+						<input 
+							type="text" 
+							placeholder="Buscar proyectos..." 
+							class="w-full bg-white/5 border border-white/10 rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-brand-primary transition-all"
+						/>
+					</div>
+				</div>
+
+				<div class="flex items-center gap-4">
+					<button class="p-2 text-gray-400 hover:text-white transition-colors relative">
+						<Bell size={20} />
+						<span class="absolute top-2 right-2 w-2 h-2 bg-brand-primary rounded-full"></span>
+					</button>
+					<div class="flex items-center gap-3 pl-4 border-l border-white/10">
+						<div class="text-right">
+							<p class="text-sm font-medium text-white">Arq. Javier López</p>
+							<p class="text-xs text-gray-500">Arquitecto Senior</p>
+						</div>
+						<div class="w-10 h-10 rounded-full bg-gradient-to-br from-brand-primary to-blue-600 flex items-center justify-center font-bold text-white">
+							JL
+						</div>
+					</div>
+				</div>
+			</header>
+
+			<!-- Scrollable Area -->
+			<main class="flex-1 overflow-y-auto p-8">
+				<slot />
+			</main>
+		</div>
+	</div>
+</BaseLayout>
