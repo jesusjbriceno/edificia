@@ -1,5 +1,7 @@
 using Edificia.Application.Export.Queries.ExportProject;
+using Edificia.Domain.Constants;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Edificia.API.Controllers;
@@ -8,6 +10,7 @@ namespace Edificia.API.Controllers;
 /// Controller for document export operations.
 /// </summary>
 [Route("api/projects")]
+[Authorize(Policy = AppPolicies.ActiveUser)]
 public sealed class ExportController : BaseApiController
 {
     private readonly IMediator _mediator;

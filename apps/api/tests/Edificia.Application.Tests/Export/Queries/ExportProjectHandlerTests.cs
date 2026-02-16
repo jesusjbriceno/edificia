@@ -3,6 +3,7 @@ using Edificia.Application.Interfaces;
 using Edificia.Domain.Entities;
 using Edificia.Domain.Enums;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace Edificia.Application.Tests.Export.Queries;
@@ -19,7 +20,8 @@ public class ExportProjectHandlerTests
         _exportServiceMock = new Mock<IDocumentExportService>();
         _handler = new ExportProjectHandler(
             _repositoryMock.Object,
-            _exportServiceMock.Object);
+            _exportServiceMock.Object,
+            Mock.Of<ILogger<ExportProjectHandler>>());
     }
 
     [Fact]

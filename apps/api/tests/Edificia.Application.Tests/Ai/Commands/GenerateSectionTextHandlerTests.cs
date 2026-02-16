@@ -4,6 +4,7 @@ using Edificia.Application.Interfaces;
 using Edificia.Domain.Entities;
 using Edificia.Domain.Enums;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace Edificia.Application.Tests.Ai.Commands;
@@ -23,7 +24,8 @@ public class GenerateSectionTextHandlerTests
         _handler = new GenerateSectionTextHandler(
             _aiServiceMock.Object,
             _repositoryMock.Object,
-            _templateServiceMock.Object);
+            _templateServiceMock.Object,
+            Mock.Of<ILogger<GenerateSectionTextHandler>>());
     }
 
     [Fact]

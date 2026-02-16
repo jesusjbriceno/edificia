@@ -6,7 +6,9 @@ using Edificia.Application.Projects.Queries;
 using Edificia.Application.Projects.Queries.GetProjectById;
 using Edificia.Application.Projects.Queries.GetProjectTree;
 using Edificia.Application.Projects.Queries.GetProjects;
+using Edificia.Domain.Constants;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Edificia.API.Controllers;
@@ -14,6 +16,7 @@ namespace Edificia.API.Controllers;
 /// <summary>
 /// Controller for managing construction projects.
 /// </summary>
+[Authorize(Policy = AppPolicies.ActiveUser)]
 public sealed class ProjectsController : BaseApiController
 {
     private readonly ISender _sender;
