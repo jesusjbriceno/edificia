@@ -139,4 +139,7 @@ public static class AuthErrors
 
     public static readonly Error RefreshTokenExpired =
         Error.Unauthorized("Auth.RefreshTokenExpired", "El token de actualización ha expirado.");
+
+    public static readonly Error ProfileUpdateFailed =
+        Error.Failure("Auth.ProfileUpdateFailed", "No se pudo actualizar el perfil.");
 }
