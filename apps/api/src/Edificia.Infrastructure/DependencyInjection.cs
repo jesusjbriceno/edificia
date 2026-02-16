@@ -1,5 +1,6 @@
 using Edificia.Application.Interfaces;
 using Edificia.Infrastructure.Ai;
+using Edificia.Infrastructure.Export;
 using Edificia.Infrastructure.Persistence;
 using Edificia.Infrastructure.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -29,6 +30,9 @@ public static class DependencyInjection
 
         // ---------- Repositories ----------
         services.AddScoped<IProjectRepository, ProjectRepository>();
+
+        // ---------- Document Export ----------
+        services.AddScoped<IDocumentExportService, DocxExportService>();
 
         // ---------- AI Service (Flux Gateway) ----------
         services.Configure<FluxGatewaySettings>(
