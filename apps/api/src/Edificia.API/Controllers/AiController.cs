@@ -37,12 +37,7 @@ public sealed class AiController : BaseApiController
         [FromBody] GenerateTextRequest request,
         CancellationToken cancellationToken)
     {
-        var command = new GenerateSectionTextCommand(
-            id,
-            request.SectionId,
-            request.Prompt,
-            request.Context);
-
+        var command = GenerateSectionTextCommand.Create(id, request);
         var result = await _sender.Send(command, cancellationToken);
 
         return HandleResult(result);

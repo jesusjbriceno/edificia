@@ -11,4 +11,8 @@ public sealed record GenerateSectionTextCommand(
     Guid ProjectId,
     string SectionId,
     string Prompt,
-    string? Context) : IRequest<Result<GeneratedTextResponse>>;
+    string? Context) : IRequest<Result<GeneratedTextResponse>>
+{
+    public static GenerateSectionTextCommand Create(Guid projectId, GenerateTextRequest r)
+        => new(projectId, r.SectionId, r.Prompt, r.Context);
+}
