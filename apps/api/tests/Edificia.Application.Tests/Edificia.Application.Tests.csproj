@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Edificia.Application\Edificia.Application.csproj" />
+    <ProjectReference Include="..\..\src\Edificia.Infrastructure\Edificia.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
