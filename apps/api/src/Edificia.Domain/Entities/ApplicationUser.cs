@@ -8,6 +8,12 @@ namespace Edificia.Domain.Entities;
 /// </summary>
 public sealed class ApplicationUser : IdentityUser<Guid>
 {
+    public ApplicationUser()
+    {
+        if (Id == Guid.Empty)
+            Id = Guid.NewGuid();
+    }
+
     /// <summary>Nombre completo del usuario.</summary>
     public string FullName { get; set; } = string.Empty;
 
