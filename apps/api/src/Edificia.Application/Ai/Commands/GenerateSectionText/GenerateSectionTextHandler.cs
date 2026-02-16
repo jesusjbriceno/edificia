@@ -17,25 +17,17 @@ public sealed class GenerateSectionTextHandler
     private readonly IAiService _aiService;
     private readonly IProjectRepository _repository;
     private readonly IPromptTemplateService _templateService;
-    private readonly ILogger<GenerateSectionTextHandler>? _logger;
-
-    public GenerateSectionTextHandler(
-        IAiService aiService,
-        IProjectRepository repository,
-        IPromptTemplateService templateService)
-    {
-        _aiService = aiService;
-        _repository = repository;
-        _templateService = templateService;
-    }
+    private readonly ILogger<GenerateSectionTextHandler> _logger;
 
     public GenerateSectionTextHandler(
         IAiService aiService,
         IProjectRepository repository,
         IPromptTemplateService templateService,
         ILogger<GenerateSectionTextHandler> logger)
-        : this(aiService, repository, templateService)
     {
+        _aiService = aiService;
+        _repository = repository;
+        _templateService = templateService;
         _logger = logger;
     }
 
@@ -64,7 +56,7 @@ public sealed class GenerateSectionTextHandler
 
         try
         {
-            _logger?.LogInformation(
+            _logger.LogInformation(
                 "Generating AI text for Project {ProjectId}, Section {SectionId}",
                 request.ProjectId, request.SectionId);
 
@@ -72,7 +64,7 @@ public sealed class GenerateSectionTextHandler
 
             if (string.IsNullOrWhiteSpace(generatedText))
             {
-                _logger?.LogWarning(
+                _logger.LogWarning(
                     "AI service returned empty response for Project {ProjectId}, Section {SectionId}",
                     request.ProjectId, request.SectionId);
 
@@ -90,7 +82,7 @@ public sealed class GenerateSectionTextHandler
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
         {
-            _logger?.LogError(ex,
+            _logger.LogError(ex,
                 "AI service error for Project {ProjectId}, Section {SectionId}",
                 request.ProjectId, request.SectionId);
 
