@@ -1,0 +1,167 @@
+using System.Text;
+using Edificia.Application.Interfaces;
+using Edificia.Domain.Constants;
+using Edificia.Domain.Entities;
+using Edificia.Infrastructure.Ai;
+using Edificia.Infrastructure.Email;
+using Edificia.Infrastructure.Export;
+using Edificia.Infrastructure.Identity;
+using Edificia.Infrastructure.Persistence;
+using Edificia.Infrastructure.Persistence.Repositories;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
+
+namespace Edificia.Infrastructure;
+
+public static class DependencyInjection
+{
+    public static IServiceCollection AddInfrastructure(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        // ---------- EF Core (Write-side) ----------
+        var connectionString = configuration.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException(
+                "Connection string 'DefaultConnection' not found in configuration.");
+
+        services.AddDbContext<EdificiaDbContext>(options =>
+            options
+                .UseNpgsql(connectionString)
+                .UseSnakeCaseNamingConvention());
+
+        // ---------- ASP.NET Core Identity ----------
+        services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
+            {
+                // Password policy
+                options.Password.RequireDigit = true;
+                options.Password.RequireLowercase = true;
+                options.Password.RequireUppercase = true;
+                options.Password.RequireNonAlphanumeric = true;
+                options.Password.RequiredLength = 8;
+
+                // Lockout
+                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+                options.Lockout.MaxFailedAccessAttempts = 5;
+
+                // User
+                options.User.RequireUniqueEmail = true;
+            })
+            .AddEntityFrameworkStores<EdificiaDbContext>()
+            .AddDefaultTokenProviders();
+
+        // ---------- Identity Seeder ----------
+        services.Configure<SecuritySettings>(
+            configuration.GetSection(SecuritySettings.SectionName));
+
+        services.AddHostedService<IdentityDataInitializer>();
+
+        // ---------- JWT Settings ----------
+        services.Configure<JwtSettings>(
+            configuration.GetSection(JwtSettings.SectionName));
+
+        // ---------- JWT Token Service ----------
+        services.AddScoped<IJwtTokenService, JwtTokenService>();
+        services.AddSingleton<IRefreshTokenSettings, RefreshTokenSettingsAdapter>();
+
+        // ---------- JWT Bearer Authentication ----------
+        var jwtSettings = configuration
+            .GetSection(JwtSettings.SectionName)
+            .Get<JwtSettings>() ?? new JwtSettings();
+
+        services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = jwtSettings.Issuer,
+                    ValidAudience = jwtSettings.Audience,
+                    IssuerSigningKey = new SymmetricSecurityKey(
+                        Encoding.UTF8.GetBytes(jwtSettings.SecretKey)),
+                    ClockSkew = TimeSpan.FromMinutes(1)
+                };
+            });
+
+        // ---------- Authorization Policies ----------
+        services.AddAuthorizationBuilder()
+            .AddPolicy(AppPolicies.ActiveUser, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.RequireAssertion(context =>
+                    !context.User.HasClaim(AppClaims.AuthMethodReference, AppClaims.PasswordChangeRequired));
+            })
+            .AddPolicy(AppPolicies.RequireRoot, policy =>
+            {
+                policy.RequireRole(AppRoles.Root);
+            })
+            .AddPolicy(AppPolicies.RequireAdmin, policy =>
+            {
+                policy.RequireRole(AppRoles.Root, AppRoles.Admin);
+            })
+            .AddPolicy(AppPolicies.RequireArchitect, policy =>
+            {
+                policy.RequireRole(AppRoles.Root, AppRoles.Admin, AppRoles.Architect);
+            });
+
+        // ---------- Email Service ----------
+        services.Configure<EmailSettings>(
+            configuration.GetSection(EmailSettings.SectionName));
+
+        var emailProvider = configuration
+            .GetSection(EmailSettings.SectionName)
+            .GetValue<string>("Provider") ?? "Smtp";
+
+        if (emailProvider.Equals("Brevo", StringComparison.OrdinalIgnoreCase))
+        {
+            services.AddHttpClient<IEmailService, BrevoEmailService>(client =>
+            {
+                var apiKey = configuration
+                    .GetSection(EmailSettings.SectionName)
+                    .GetValue<string>("BrevoApiKey") ?? string.Empty;
+
+                client.DefaultRequestHeaders.Add("api-key", apiKey);
+                client.DefaultRequestHeaders.Add("Accept", "application/json");
+                client.Timeout = TimeSpan.FromSeconds(30);
+            });
+        }
+        else
+        {
+            services.AddScoped<IEmailService, SmtpEmailService>();
+        }
+
+        // ---------- Dapper (Read-side) ----------
+        services.AddSingleton<IDbConnectionFactory, DapperConnectionFactory>();
+
+        // ---------- Repositories ----------
+        services.AddScoped<IProjectRepository, ProjectRepository>();
+        services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+
+        // ---------- Document Export ----------
+        services.AddScoped<IDocumentExportService, DocxExportService>();
+
+        // ---------- AI Service (Flux Gateway) ----------
+        services.Configure<FluxGatewaySettings>(
+            configuration.GetSection(FluxGatewaySettings.SectionName));
+
+        services.AddMemoryCache();
+
+        services.AddHttpClient<IAiService, FluxAiService>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(60);
+            client.DefaultRequestHeaders.Add("Accept", "application/json");
+        });
+
+        return services;
+    }
+}

@@ -1,0 +1,1155 @@
+openapi: 3.0.3
+info:
+  title: EDIFICIA API
+  version: 1.0.0
+  description: |
+    API para la redacción automatizada de Memorias de Proyecto de Ejecución (CTE/LOE).
+    
+    ## Autenticación
+    La API usa JWT Bearer tokens. Obtener un token mediante `POST /api/auth/login` 
+    e incluirlo en el header `Authorization: Bearer <token>`.
+    
+    ## Refresh Tokens
+    Los access tokens expiran en 60 minutos. Usar `POST /api/auth/refresh` para 
+    obtener un nuevo par de tokens (rotation). Se implementa stolen-token detection.
+    
+    ## Errores
+    Todas las respuestas de error usan el formato RFC 7807 ProblemDetails.
+  contact:
+    name: EDIFICIA
+    url: https://edificia.jesusjbriceno.dev
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+
+servers:
+  - url: http://localhost:5000
+    description: Local
+  - url: https://api-edificia.jesusjbriceno.dev
+    description: Producción
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Auth
+    description: Autenticación, tokens y perfil de usuario
+  - name: Projects
+    description: CRUD de proyectos y gestión del árbol de contenido
+  - name: Users
+    description: Gestión de usuarios (requiere rol Admin)
+  - name: AI
+    description: Generación de texto con IA
+  - name: Export
+    description: Exportación de proyectos a DOCX
+  - name: Health
+    description: Health checks
+
+paths:
+  # ─── AUTH ────────────────────────────────────────────────
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      description: Autentica un usuario y devuelve JWT + Refresh Token.
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: arquitecto@edificia.es
+              password: MiContraseña123!
+      responses:
+        '200':
+          description: Autenticación exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Credenciales inválidas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                status: 401
+                title: No autorizado
+                detail: Email o contraseña incorrectos.
+                code: Auth.InvalidCredentials
+        '403':
+          description: Cuenta desactivada o bloqueada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+  /api/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh Token
+      description: |
+        Rota el refresh token (emite nuevos access + refresh tokens).
+        **Stolen-token detection:** si se reutiliza un token ya revocado,
+        se revocan TODOS los tokens del usuario.
+      operationId: refreshToken
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Tokens renovados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Token inválido o expirado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+  /api/auth/revoke:
+    post:
+      tags: [Auth]
+      summary: Revoke Token
+      description: Revoca un refresh token (logout). Operación idempotente.
+      operationId: revokeToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RevokeTokenRequest'
+      responses:
+        '200':
+          description: Token revocado
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/auth/change-password:
+    post:
+      tags: [Auth]
+      summary: Change Password
+      description: |
+        Cambia la contraseña del usuario autenticado. 
+        Si `mustChangePassword` era true, se desactiva automáticamente.
+      operationId: changePassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+            example:
+              currentPassword: MiContraseña123!
+              newPassword: NuevaContraseña456@
+      responses:
+        '200':
+          description: Contraseña cambiada
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          description: Contraseña actual incorrecta
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+  /api/auth/me:
+    get:
+      tags: [Auth]
+      summary: Get Current User
+      description: Obtiene la información del usuario autenticado.
+      operationId: getCurrentUser
+      responses:
+        '200':
+          description: Información del usuario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentUserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/auth/profile:
+    put:
+      tags: [Auth]
+      summary: Update Profile
+      description: Actualiza el perfil del usuario autenticado (nombre y número de colegiado).
+      operationId: updateProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Perfil actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateProfileResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ─── PROJECTS ────────────────────────────────────────────
+  /api/projects:
+    get:
+      tags: [Projects]
+      summary: List Projects
+      description: Lista paginada de proyectos con filtros opcionales.
+      operationId: listProjects
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/ProjectStatus'
+          description: Filtro por estado
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Búsqueda ILIKE en título
+      responses:
+        '200':
+          description: Lista paginada de proyectos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedProjectResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Projects]
+      summary: Create Project
+      description: Crea un nuevo proyecto.
+      operationId: createProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectRequest'
+      responses:
+        '201':
+          description: Proyecto creado
+          headers:
+            Location:
+              schema:
+                type: string
+              description: URI del nuevo proyecto
+          content:
+            application/json:
+              schema:
+                type: string
+                format: uuid
+                description: ID del proyecto creado
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/projects/{id}:
+    get:
+      tags: [Projects]
+      summary: Get Project
+      description: Obtiene un proyecto por ID.
+      operationId: getProject
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      responses:
+        '200':
+          description: Datos del proyecto
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/projects/{id}/tree:
+    get:
+      tags: [Projects]
+      summary: Get Content Tree
+      description: Obtiene el árbol de contenido normativo del proyecto (JSONB).
+      operationId: getContentTree
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      responses:
+        '200':
+          description: Árbol de contenido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentTreeResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Projects]
+      summary: Update Content Tree
+      description: Reemplaza completamente el árbol de contenido del proyecto.
+      operationId: updateContentTree
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProjectTreeRequest'
+      responses:
+        '204':
+          description: Árbol actualizado
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/projects/{id}/sections/{sectionId}:
+    patch:
+      tags: [Projects]
+      summary: Patch Section Content
+      description: Actualiza el contenido de una sección específica dentro del árbol (JSONB parcial).
+      operationId: patchSectionContent
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - name: sectionId
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 200
+          description: ID de la sección dentro del árbol
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSectionRequest'
+      responses:
+        '204':
+          description: Sección actualizada
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ─── USERS ──────────────────────────────────────────────
+  /api/users:
+    get:
+      tags: [Users]
+      summary: List Users
+      description: Lista paginada de usuarios con filtros. Requiere rol Admin.
+      operationId: listUsers
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: role
+          in: query
+          schema:
+            $ref: '#/components/schemas/Role'
+          description: Filtro por rol
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+          description: Filtro por estado activo
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Búsqueda ILIKE en nombre o email
+      responses:
+        '200':
+          description: Lista paginada de usuarios
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedUserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [Users]
+      summary: Create User
+      description: |
+        Crea un nuevo usuario. Se genera contraseña temporal enviada por email.
+        El usuario debe cambiarla en el primer login (`mustChangePassword = true`).
+        Requiere rol Admin. Jerarquía: Root puede crear Admin; Admin solo Architect/Collaborator.
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: Usuario creado
+          headers:
+            Location:
+              schema:
+                type: string
+              description: URI del nuevo usuario
+          content:
+            application/json:
+              schema:
+                type: string
+                format: uuid
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Email ya existe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+  /api/users/{id}:
+    get:
+      tags: [Users]
+      summary: Get User
+      description: Obtiene un usuario por ID. Requiere rol Admin.
+      operationId: getUser
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Datos del usuario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Users]
+      summary: Update User
+      description: Actualiza datos y rol de un usuario. Requiere rol Admin.
+      operationId: updateUser
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '204':
+          description: Usuario actualizado
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/users/{id}/deactivate:
+    post:
+      tags: [Users]
+      summary: Deactivate User
+      description: Desactiva un usuario (soft delete). Requiere rol Admin.
+      operationId: deactivateUser
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Usuario desactivado
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/users/{id}/activate:
+    post:
+      tags: [Users]
+      summary: Activate User
+      description: Reactiva un usuario previamente desactivado. Requiere rol Admin.
+      operationId: activateUser
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Usuario activado
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/users/{id}/reset-password:
+    post:
+      tags: [Users]
+      summary: Reset User Password
+      description: |
+        Restablece la contraseña del usuario. Se genera contraseña temporal
+        enviada por email. Requiere rol Admin.
+      operationId: resetUserPassword
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Contraseña restablecida
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ─── AI ─────────────────────────────────────────────────
+  /api/projects/{id}/ai/generate:
+    post:
+      tags: [AI]
+      summary: Generate Section Text
+      description: |
+        Genera texto para una sección del proyecto usando IA (Flux Gateway).
+        El backend enriquece el prompt con metadatos del proyecto (título, tipo de intervención,
+        LOE, dirección, normativa local, contenido existente de la sección).
+      operationId: generateSectionText
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateTextRequest'
+      responses:
+        '200':
+          description: Texto generado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeneratedTextResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ─── EXPORT ─────────────────────────────────────────────
+  /api/projects/{id}/export:
+    get:
+      tags: [Export]
+      summary: Export to DOCX
+      description: Exporta el proyecto completo como documento Word (.docx).
+      operationId: exportToDocx
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      responses:
+        '200':
+          description: Archivo DOCX
+          content:
+            application/vnd.openxmlformats-officedocument.wordprocessingml.document:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: El proyecto no tiene contenido para exportar
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ─── HEALTH ─────────────────────────────────────────────
+  /health/live:
+    get:
+      tags: [Health]
+      summary: Liveness Probe
+      description: Verifica que la aplicación está corriendo.
+      operationId: healthLive
+      security: []
+      responses:
+        '200':
+          description: Healthy
+
+  /health/ready:
+    get:
+      tags: [Health]
+      summary: Readiness Probe
+      description: Verifica conexión a PostgreSQL.
+      operationId: healthReady
+      security: []
+      responses:
+        '200':
+          description: Ready
+        '503':
+          description: Not ready
+
+# ═══════════════════════════════════════════════════════════
+# COMPONENTS
+# ═══════════════════════════════════════════════════════════
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 'Token JWT obtenido de POST /api/auth/login. Ejemplo: eyJhbGciOiJIUzI1NiIs...'
+
+  # ─── PARAMETERS ─────────────────────────────────────────
+  parameters:
+    ProjectId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: ID del proyecto
+
+    UserId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: ID del usuario
+
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      description: Número de página
+
+    PageSize:
+      name: pageSize
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 10
+      description: Elementos por página
+
+  # ─── RESPONSES ──────────────────────────────────────────
+  responses:
+    Unauthorized:
+      description: No autenticado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            status: 401
+            title: No autorizado
+            detail: Token no válido o expirado.
+
+    Forbidden:
+      description: Sin permisos suficientes
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            status: 403
+            title: Prohibido
+            detail: No tiene permisos para esta operación.
+
+    NotFound:
+      description: Recurso no encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            status: 404
+            title: No encontrado
+            detail: El recurso solicitado no existe.
+
+    ValidationError:
+      description: Errores de validación
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationProblemDetails'
+
+  # ─── SCHEMAS ────────────────────────────────────────────
+  schemas:
+    # --- Shared ---
+    ProblemDetails:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 400
+        title:
+          type: string
+          example: Error en la solicitud
+        detail:
+          type: string
+          example: Descripción del error.
+        code:
+          type: string
+          example: Entity.ErrorCode
+
+    ValidationProblemDetails:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 400
+        title:
+          type: string
+          example: Errores de validación
+        detail:
+          type: string
+          example: Se encontraron errores de validación.
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              property:
+                type: string
+                example: Email
+              error:
+                type: string
+                example: "'Email' no puede estar vacío."
+
+    # --- Enums ---
+    InterventionType:
+      type: string
+      enum: [NewConstruction, Reform, Extension]
+      description: |
+        Tipo de intervención:
+        - `NewConstruction` (0): Obra nueva
+        - `Reform` (1): Reforma
+        - `Extension` (2): Ampliación
+
+    ProjectStatus:
+      type: string
+      enum: [Draft, InProgress, Completed, Archived]
+      description: |
+        Estado del proyecto:
+        - `Draft` (0): Borrador
+        - `InProgress` (1): En redacción
+        - `Completed` (2): Completado
+        - `Archived` (3): Archivado
+
+    Role:
+      type: string
+      enum: [Root, Admin, Architect, Collaborator]
+      description: Roles del sistema
+
+    # --- Auth Schemas ---
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: arquitecto@edificia.es
+        password:
+          type: string
+          format: password
+          example: MiContraseña123!
+
+    LoginResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          description: JWT Bearer token
+        refreshToken:
+          type: string
+          description: Token de refresco (64 bytes base64)
+        expiresInMinutes:
+          type: integer
+          example: 60
+        mustChangePassword:
+          type: boolean
+          description: Si true, el usuario debe cambiar la contraseña antes de operar
+        user:
+          $ref: '#/components/schemas/UserInfo'
+
+    UserInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        fullName:
+          type: string
+          example: María García López
+        collegiateNumber:
+          type: string
+          nullable: true
+          example: COA-12345
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Role'
+
+    RefreshTokenRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+          description: Token de refresco actual
+
+    RevokeTokenRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+          description: Token a revocar
+
+    ChangePasswordRequest:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword:
+          type: string
+          format: password
+        newPassword:
+          type: string
+          format: password
+          minLength: 8
+          description: 'Min 8 chars. Requiere: 1 mayúscula, 1 minúscula, 1 dígito, 1 carácter especial. No puede ser igual a la actual.'
+
+    CurrentUserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        fullName:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+
+    UpdateProfileRequest:
+      type: object
+      required: [fullName]
+      properties:
+        fullName:
+          type: string
+          maxLength: 200
+          example: María García López
+        collegiateNumber:
+          type: string
+          nullable: true
+          maxLength: 50
+          example: COA-12345
+
+    UpdateProfileResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        fullName:
+          type: string
+        collegiateNumber:
+          type: string
+          nullable: true
+
+    # --- Project Schemas ---
+    ProjectResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          example: Reforma integral vivienda unifamiliar
+        description:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+          example: Calle Mayor 123, Madrid
+        interventionType:
+          type: string
+          example: Reform
+        isLoeRequired:
+          type: boolean
+        cadastralReference:
+          type: string
+          nullable: true
+          example: 1234567AB1234C0001XY
+        localRegulations:
+          type: string
+          nullable: true
+        status:
+          type: string
+          example: Draft
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    PagedProjectResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectResponse'
+        totalCount:
+          type: integer
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        totalPages:
+          type: integer
+        hasNextPage:
+          type: boolean
+        hasPreviousPage:
+          type: boolean
+
+    CreateProjectRequest:
+      type: object
+      required: [title, interventionType, isLoeRequired]
+      properties:
+        title:
+          type: string
+          maxLength: 300
+          example: Reforma integral vivienda unifamiliar
+        interventionType:
+          type: integer
+          description: '0=NewConstruction, 1=Reform, 2=Extension'
+          enum: [0, 1, 2]
+        isLoeRequired:
+          type: boolean
+        description:
+          type: string
+          nullable: true
+          maxLength: 2000
+        address:
+          type: string
+          nullable: true
+          maxLength: 500
+        cadastralReference:
+          type: string
+          nullable: true
+          maxLength: 100
+        localRegulations:
+          type: string
+          nullable: true
+          maxLength: 5000
+
+    ContentTreeResponse:
+      type: object
+      properties:
+        projectId:
+          type: string
+          format: uuid
+        interventionType:
+          type: string
+        isLoeRequired:
+          type: boolean
+        contentTreeJson:
+          type: string
+          nullable: true
+          description: Árbol de contenido en formato JSON string
+
+    UpdateProjectTreeRequest:
+      type: object
+      required: [contentTreeJson]
+      properties:
+        contentTreeJson:
+          type: string
+          maxLength: 1048576
+          description: Árbol de contenido JSON completo (max 1 MB)
+
+    UpdateSectionRequest:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+          maxLength: 524288
+          description: Contenido HTML de la sección (max 512 KB)
+
+    # --- User Schemas ---
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        fullName:
+          type: string
+          example: María García López
+        collegiateNumber:
+          type: string
+          nullable: true
+          example: COA-12345
+        isActive:
+          type: boolean
+        mustChangePassword:
+          type: boolean
+        role:
+          type: string
+          example: Architect
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    PagedUserResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserResponse'
+        totalCount:
+          type: integer
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        totalPages:
+          type: integer
+        hasNextPage:
+          type: boolean
+        hasPreviousPage:
+          type: boolean
+
+    CreateUserRequest:
+      type: object
+      required: [email, fullName, role]
+      properties:
+        email:
+          type: string
+          format: email
+          example: nuevo@edificia.es
+        fullName:
+          type: string
+          maxLength: 200
+          example: Carlos Rodríguez Pérez
+        role:
+          type: string
+          enum: [Admin, Architect, Collaborator]
+          description: 'Roles asignables (Root no se puede asignar por API)'
+        collegiateNumber:
+          type: string
+          nullable: true
+          maxLength: 50
+
+    UpdateUserRequest:
+      type: object
+      required: [fullName, role]
+      properties:
+        fullName:
+          type: string
+          maxLength: 200
+        role:
+          type: string
+          enum: [Admin, Architect, Collaborator]
+        collegiateNumber:
+          type: string
+          nullable: true
+          maxLength: 50
+
+    # --- AI Schemas ---
+    GenerateTextRequest:
+      type: object
+      required: [sectionId, prompt]
+      properties:
+        sectionId:
+          type: string
+          maxLength: 200
+          example: MD.01
+          description: ID de la sección dentro del árbol de contenido
+        prompt:
+          type: string
+          maxLength: 10000
+          example: Describe los agentes intervinientes en el proyecto
+        context:
+          type: string
+          nullable: true
+          maxLength: 50000
+          description: Contexto adicional opcional
+
+    GeneratedTextResponse:
+      type: object
+      properties:
+        projectId:
+          type: string
+          format: uuid
+        sectionId:
+          type: string
+          example: MD.01
+        generatedText:
+          type: string
+          description: Texto HTML generado por IA

@@ -107,9 +107,52 @@ export type ProjectForm \= z.infer\<typeof ProjectSchema\>;
 * Tests unitarios para hooks de lógica de negocio (ej: useProjectFilters).  
 * Tests de integración para flujos críticos (ej: rellenar formulario \-\> validación Zod \-\> envío a store).
 
-## **4\. Git Workflow**
+## **4. Git Workflow (Git Flow \ Estricto)**
 
-* **Main:** Producción.  
-* **Develop:** Integración.  
-* **Feat:** feature/auth-flux-gateway.  
-* **Commits:** feat: implementa validación zod en formulario login (Conventional Commits).
+### **4.1. Ramas**
+
+| Rama | Propósito | Se crea desde | Se mergea a |
+| :---- | :---- | :---- | :---- |
+| **main** | Producción estable | — | — |
+| **develop** | Integración continua | main (una vez) | main (release) |
+| **feature/\*** | Una feature del Roadmap | develop | develop (vía PR) |
+| **hotfix/\*** | Corrección urgente | main | main + develop |
+
+### **4.2. Reglas Innegociables**
+
+1. **PROHIBIDO** commitear directamente en `main` o `develop`.
+2. Todo cambio entra vía **Pull Request** desde una rama `feature/*` o `hotfix/*`.
+3. Cada PR debe referenciar el **ID del Roadmap** (ej: "Fase 1.1 - Shared Kernel").
+4. Antes de crear la PR, el código debe **compilar sin errores** (`dotnet build` / `npm run build`).
+5. Los tests deben estar en verde antes de solicitar merge.
+
+### **4.3. Flujo de Trabajo**
+
+```
+1. git checkout develop && git pull
+2. git checkout -b feature/<nombre>
+3. # ... desarrollo + commits ...
+4. git push -u origin feature/<nombre>
+5. gh pr create --base develop --title "feat: ..." --body "..."
+6. # Revisión → Aprobación → Merge
+7. git checkout develop && git pull
+```
+
+### **4.4. Conventional Commits**
+
+Todos los mensajes de commit siguen el estándar [Conventional Commits](https://www.conventionalcommits.org/):
+
+* `feat:` Nueva funcionalidad.
+* `fix:` Corrección de bugs.
+* `docs:` Solo documentación.
+* `refactor:` Refactorización sin cambio funcional.
+* `test:` Añadir o corregir tests.
+* `chore:` Tareas de mantenimiento.
+
+### **4.5. Naming de Ramas (Ejemplos)**
+
+* `feature/shared-kernel`
+* `feature/infra-persistence`
+* `feature/api-swagger`
+* `feature/project-domain`
+* `hotfix/fix-db-connection`
