@@ -65,6 +65,7 @@ public static class DependencyInjection
 
         // ---------- JWT Token Service ----------
         services.AddScoped<IJwtTokenService, JwtTokenService>();
+        services.AddSingleton<IRefreshTokenSettings, RefreshTokenSettingsAdapter>();
 
         // ---------- JWT Bearer Authentication ----------
         var jwtSettings = configuration
@@ -144,6 +145,7 @@ public static class DependencyInjection
 
         // ---------- Repositories ----------
         services.AddScoped<IProjectRepository, ProjectRepository>();
+        services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
         // ---------- Document Export ----------
         services.AddScoped<IDocumentExportService, DocxExportService>();
