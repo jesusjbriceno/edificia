@@ -45,30 +45,13 @@ public sealed class GetProjectsHandler
             whereClause.Append(string.Join(" AND ", conditions));
         }
 
-        var countSql = $"SELECT COUNT(*) FROM projects{whereClause}";
+        var countSql = ProjectSqlQueries.Count(whereClause.ToString());
 
         var offset = (request.Page - 1) * request.PageSize;
         parameters.Add("Limit", request.PageSize);
         parameters.Add("Offset", offset);
 
-        var dataSql = $"""
-            SELECT
-                id              AS Id,
-                title           AS Title,
-                description     AS Description,
-                address         AS Address,
-                intervention_type AS InterventionType,
-                is_loe_required AS IsLoeRequired,
-                cadastral_reference AS CadastralReference,
-                local_regulations AS LocalRegulations,
-                status          AS Status,
-                created_at      AS CreatedAt,
-                updated_at      AS UpdatedAt
-            FROM projects
-            {whereClause}
-            ORDER BY created_at DESC
-            LIMIT @Limit OFFSET @Offset
-            """;
+        var dataSql = ProjectSqlQueries.GetPaged(whereClause.ToString());
 
         using var connection = _connectionFactory.CreateConnection();
 

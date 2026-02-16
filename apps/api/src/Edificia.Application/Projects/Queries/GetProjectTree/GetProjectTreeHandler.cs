@@ -21,20 +21,10 @@ public sealed class GetProjectTreeHandler : IRequestHandler<GetProjectTreeQuery,
     public async Task<Result<ContentTreeResponse>> Handle(
         GetProjectTreeQuery request, CancellationToken cancellationToken)
     {
-        const string sql = """
-            SELECT
-                id                  AS ProjectId,
-                intervention_type   AS InterventionType,
-                is_loe_required     AS IsLoeRequired,
-                content_tree_json   AS ContentTreeJson
-            FROM projects
-            WHERE id = @ProjectId
-            """;
-
         using var connection = _connectionFactory.CreateConnection();
 
         var result = await connection.QuerySingleOrDefaultAsync<ContentTreeResponse>(
-            sql, new { request.ProjectId });
+            ProjectSqlQueries.GetTree, new { request.ProjectId });
 
         return result is null
             ? Result.Failure<ContentTreeResponse>(
