@@ -1,4 +1,4 @@
-using System.Text;
+using Edificia.Application.Ai.Services;
 using Edificia.Application.Interfaces;
 using Edificia.Shared.Result;
 using MediatR;
@@ -7,34 +7,63 @@ using Microsoft.Extensions.Logging;
 namespace Edificia.Application.Ai.Commands.GenerateSectionText;
 
 /// <summary>
-/// Handles GenerateSectionTextCommand by calling the AI service.
-/// Formats the prompt with optional context before sending.
+/// Handles GenerateSectionTextCommand by loading the project context,
+/// building a contextualized prompt via IPromptTemplateService,
+/// and calling the AI service to generate section text.
 /// </summary>
 public sealed class GenerateSectionTextHandler
     : IRequestHandler<GenerateSectionTextCommand, Result<GeneratedTextResponse>>
 {
     private readonly IAiService _aiService;
-    private readonly ILogger<GenerateSectionTextHandler> _logger;
+    private readonly IProjectRepository _repository;
+    private readonly IPromptTemplateService _templateService;
+    private readonly ILogger<GenerateSectionTextHandler>? _logger;
 
-    public GenerateSectionTextHandler(IAiService aiService)
+    public GenerateSectionTextHandler(
+        IAiService aiService,
+        IProjectRepository repository,
+        IPromptTemplateService templateService)
     {
         _aiService = aiService;
-        _logger = null!; // Logger is optional for testability
+        _repository = repository;
+        _templateService = templateService;
     }
 
-    public GenerateSectionTextHandler(IAiService aiService, ILogger<GenerateSectionTextHandler> logger)
+    public GenerateSectionTextHandler(
+        IAiService aiService,
+        IProjectRepository repository,
+        IPromptTemplateService templateService,
+        ILogger<GenerateSectionTextHandler> logger)
+        : this(aiService, repository, templateService)
     {
-        _aiService = aiService;
         _logger = logger;
     }
 
     public async Task<Result<GeneratedTextResponse>> Handle(
         GenerateSectionTextCommand request, CancellationToken cancellationToken)
     {
+        var project = await _repository.GetByIdAsync(request.ProjectId, cancellationToken);
+
+        if (project is null)
+        {
+            return Result.Failure<GeneratedTextResponse>(
+                Error.NotFound("Project", $"No se encontró el proyecto con ID {request.ProjectId}."));
+        }
+
+        var promptContext = new SectionPromptContext(
+            SectionId: request.SectionId,
+            UserPrompt: request.Prompt,
+            ExistingContent: request.Context,
+            ProjectTitle: project.Title,
+            InterventionType: project.InterventionType,
+            IsLoeRequired: project.IsLoeRequired,
+            Address: project.Address,
+            LocalRegulations: project.LocalRegulations);
+
+        var formattedPrompt = _templateService.BuildSectionPrompt(promptContext);
+
         try
         {
-            var formattedPrompt = FormatPrompt(request.Prompt, request.Context);
-
             _logger?.LogInformation(
                 "Generating AI text for Project {ProjectId}, Section {SectionId}",
                 request.ProjectId, request.SectionId);
@@ -69,20 +98,5 @@ public sealed class GenerateSectionTextHandler
                 Error.Failure("AiService",
                     "Error al comunicarse con el servicio de IA. Inténtelo de nuevo más tarde."));
         }
-    }
-
-    private static string FormatPrompt(string prompt, string? context)
-    {
-        if (string.IsNullOrWhiteSpace(context))
-            return prompt;
-
-        var sb = new StringBuilder();
-        sb.AppendLine("Contexto del proyecto:");
-        sb.AppendLine(context);
-        sb.AppendLine();
-        sb.AppendLine("Instrucción:");
-        sb.AppendLine(prompt);
-
-        return sb.ToString();
     }
 }
