@@ -1,3 +1,4 @@
+using Edificia.Application.Auth.DTOs;
 using Edificia.Shared.Result;
 using MediatR;
 
@@ -10,4 +11,8 @@ namespace Edificia.Application.Auth.Commands.ChangePassword;
 public sealed record ChangePasswordCommand(
     Guid UserId,
     string CurrentPassword,
-    string NewPassword) : IRequest<Result>;
+    string NewPassword) : IRequest<Result>
+{
+    public static ChangePasswordCommand Create(Guid userId, ChangePasswordRequest r)
+        => new(userId, r.CurrentPassword, r.NewPassword);
+}

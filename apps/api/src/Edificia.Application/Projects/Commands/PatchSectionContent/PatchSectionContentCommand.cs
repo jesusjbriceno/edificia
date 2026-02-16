@@ -10,4 +10,9 @@ namespace Edificia.Application.Projects.Commands.PatchSectionContent;
 public sealed record PatchSectionContentCommand(
     Guid ProjectId,
     string SectionId,
-    string Content) : IRequest<Result>;
+    string Content) : IRequest<Result>
+{
+    public static PatchSectionContentCommand Create(
+        Guid projectId, string sectionId, UpdateSectionRequest r)
+        => new(projectId, sectionId, r.Content);
+}
