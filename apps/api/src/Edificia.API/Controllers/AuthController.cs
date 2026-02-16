@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using Edificia.Application.Auth.Commands.ChangePassword;
 using Edificia.Application.Auth.Commands.Login;
+using Edificia.Application.Auth.Commands.RefreshToken;
+using Edificia.Application.Auth.Commands.RevokeToken;
 using Edificia.Application.Auth.DTOs;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -98,5 +100,41 @@ public class AuthController : BaseApiController
             ?? User.FindFirstValue("sub");
 
         return Guid.TryParse(sub, out var id) ? id : null;
+    }
+
+    /// <summary>
+    /// Refreshes an expired access token using a valid refresh token.
+    /// Implements token rotation: the old refresh token is revoked and a new pair is issued.
+    /// </summary>
+    [HttpPost("refresh")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Refresh(
+        [FromBody] RefreshTokenRequest request,
+        CancellationToken ct)
+    {
+        var command = (RefreshTokenCommand)request;
+        var result = await _mediator.Send(command, ct);
+
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Revokes a refresh token (logout).
+    /// The token will no longer be valid for obtaining new access tokens.
+    /// </summary>
+    [HttpPost("revoke")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Revoke(
+        [FromBody] RevokeTokenRequest request,
+        CancellationToken ct)
+    {
+        var command = (RevokeTokenCommand)request;
+        var result = await _mediator.Send(command, ct);
+
+        return HandleResult(result);
     }
 }

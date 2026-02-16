@@ -13,6 +13,8 @@ public class LoginHandlerTests
 {
     private readonly Mock<UserManager<ApplicationUser>> _userManagerMock;
     private readonly Mock<IJwtTokenService> _jwtTokenServiceMock;
+    private readonly Mock<IRefreshTokenRepository> _refreshTokenRepoMock;
+    private readonly Mock<IRefreshTokenSettings> _refreshTokenSettingsMock;
     private readonly Mock<ILogger<LoginHandler>> _loggerMock;
     private readonly LoginHandler _handler;
 
@@ -23,11 +25,16 @@ public class LoginHandlerTests
             store.Object, null!, null!, null!, null!, null!, null!, null!, null!);
 
         _jwtTokenServiceMock = new Mock<IJwtTokenService>();
+        _refreshTokenRepoMock = new Mock<IRefreshTokenRepository>();
+        _refreshTokenSettingsMock = new Mock<IRefreshTokenSettings>();
+        _refreshTokenSettingsMock.Setup(x => x.ExpirationDays).Returns(7);
         _loggerMock = new Mock<ILogger<LoginHandler>>();
 
         _handler = new LoginHandler(
             _userManagerMock.Object,
             _jwtTokenServiceMock.Object,
+            _refreshTokenRepoMock.Object,
+            _refreshTokenSettingsMock.Object,
             _loggerMock.Object);
     }
 

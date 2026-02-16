@@ -5,6 +5,7 @@ namespace Edificia.Application.Auth.DTOs;
 /// </summary>
 public sealed record LoginResponse(
     string AccessToken,
+    string? RefreshToken,
     int ExpiresInMinutes,
     bool MustChangePassword,
     UserInfo User);

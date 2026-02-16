@@ -16,15 +16,21 @@ public sealed class LoginHandler : IRequestHandler<LoginCommand, Result<LoginRes
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IJwtTokenService _jwtTokenService;
+    private readonly IRefreshTokenRepository _refreshTokenRepository;
+    private readonly IRefreshTokenSettings _refreshTokenSettings;
     private readonly ILogger<LoginHandler> _logger;
 
     public LoginHandler(
         UserManager<ApplicationUser> userManager,
         IJwtTokenService jwtTokenService,
+        IRefreshTokenRepository refreshTokenRepository,
+        IRefreshTokenSettings refreshTokenSettings,
         ILogger<LoginHandler> logger)
     {
         _userManager = userManager;
         _jwtTokenService = jwtTokenService;
+        _refreshTokenRepository = refreshTokenRepository;
+        _refreshTokenSettings = refreshTokenSettings;
         _logger = logger;
     }
 
@@ -80,9 +86,17 @@ public sealed class LoginHandler : IRequestHandler<LoginCommand, Result<LoginRes
         // 7. Generate JWT (includes MustChangePassword claim if needed)
         var token = _jwtTokenService.GenerateAccessToken(user, roles);
 
-        // 8. Build response
+        // 8. Create refresh token
+        var refreshToken = new Domain.Entities.RefreshToken(
+            user.Id, _refreshTokenSettings.ExpirationDays);
+
+        await _refreshTokenRepository.AddAsync(refreshToken, cancellationToken);
+        await _refreshTokenRepository.SaveChangesAsync(cancellationToken);
+
+        // 9. Build response
         var response = new LoginResponse(
             AccessToken: token,
+            RefreshToken: refreshToken.Token,
             ExpiresInMinutes: 60,
             MustChangePassword: user.MustChangePassword,
             User: new UserInfo(
@@ -119,4 +133,10 @@ public static class AuthErrors
 
     public static readonly Error InvalidCurrentPassword =
         Error.Unauthorized("Auth.InvalidCurrentPassword", "La contraseña actual es incorrecta.");
+
+    public static readonly Error InvalidRefreshToken =
+        Error.Unauthorized("Auth.InvalidRefreshToken", "El token de actualización no es válido.");
+
+    public static readonly Error RefreshTokenExpired =
+        Error.Unauthorized("Auth.RefreshTokenExpired", "El token de actualización ha expirado.");
 }
