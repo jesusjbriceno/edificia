@@ -199,8 +199,8 @@ Configura estas variables de entorno en la instancia de n8n (via docker-compose,
 
 | Variable | Descripción | Ejemplo |
 |----------|-------------|---------|
-| `FLUX_EMAIL` | Email de la cuenta Flux Gateway | `usuario@ejemplo.com` |
-| `FLUX_PASSWORD` | Contraseña de la cuenta Flux Gateway | `mi-password` |
+| `FLUX_CLIENT_ID` | Client ID de la aplicación registrada en Flux Gateway | `app_abc123` |
+| `FLUX_CLIENT_SECRET` | Client Secret de la aplicación registrada en Flux Gateway | `shh-very-secret` |
 | `FLUX_MODEL` | Modelo a usar (opcional, default: `flux-pro`) | `flux-pro` |
 
 ### 6.4 Configuración en Docker Compose
@@ -218,8 +218,8 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.0-flash}
       # Para workflow Flux (si se usa)
-      - FLUX_EMAIL=${FLUX_EMAIL}
-      - FLUX_PASSWORD=${FLUX_PASSWORD}
+      - FLUX_CLIENT_ID=${FLUX_CLIENT_ID}
+      - FLUX_CLIENT_SECRET=${FLUX_CLIENT_SECRET}
       - FLUX_MODEL=${FLUX_MODEL:-flux-pro}
 ```
 
@@ -344,7 +344,7 @@ Para cambiar entre Gemini y Flux:
 | Problema | Causa probable | Solución |
 |----------|---------------|----------|
 | 403 Forbidden | `EDIFICIA_API_SECRET` no coincide con `AI__ApiSecret` | Verificar que ambos valores son idénticos |
-| 500 Error n8n | Variables de entorno no configuradas | Revisar que `GEMINI_API_KEY` o `FLUX_EMAIL`/`FLUX_PASSWORD` existen |
+| 500 Error n8n | Variables de entorno no configuradas | Revisar que `GEMINI_API_KEY` o `FLUX_CLIENT_ID`/`FLUX_CLIENT_SECRET` existen |
 | Timeout | Modelo lento o red | Aumentar `AI__TimeoutSeconds` y el timeout del nodo HTTP Request |
 | Respuesta vacía | El modelo no generó contenido | Revisar ejecución en n8n → Executions para ver el response completo |
 | Bloques ```` ```html ```` ``` en respuesta | Modelo envuelve HTML en markdown | El nodo Format Response ya limpia esto automáticamente |
