@@ -1,17 +1,40 @@
-FROM node:20-alpine
+# ============================================================
+# EDIFICIA Web — Multi-stage Dockerfile (Production)
+# Target: Astro 4 SSR (Node adapter)
+# ============================================================
 
+# --- ETAPA 1: DEPENDENCIAS ---
+FROM node:20-alpine AS deps
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+# --- ETAPA 2: BUILD ---
+FROM node:20-alpine AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+# --- ETAPA 3: RUNTIME ---
+FROM node:20-alpine AS runtime
 WORKDIR /app
 
-# Copiamos package.json primero
-COPY package*.json ./
+# Copiar solo lo necesario para ejecutar el servidor SSR
+COPY --from=build /app/dist ./dist
+COPY --from=deps  /app/node_modules ./node_modules
+COPY --from=build /app/package.json ./package.json
 
-RUN npm install
+# Usuario no-root
+RUN addgroup -S astro && adduser -S astro -G astro
+USER astro
 
-# Copiamos el resto
-COPY . .
-
-# Exponemos puerto Astro default
+ENV HOST=0.0.0.0
+ENV PORT=4321
 EXPOSE 4321
 
-# Ejecutamos en modo dev (con host expuesto para Docker)
-CMD ["npm", "run", "dev", "--", "--host"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:4321/ || exit 1
+
+CMD ["node", "./dist/server/entry.mjs"]

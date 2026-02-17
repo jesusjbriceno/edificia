@@ -5,7 +5,7 @@ namespace Edificia.Application.Ai.Commands.GenerateSectionText;
 
 /// <summary>
 /// Command to generate AI text for a specific section of a project's content tree.
-/// Uses FluxAiService (Infrastructure) via IAiService interface.
+/// Delegates to IAiService (n8n webhook) via Infrastructure layer.
 /// </summary>
 public sealed record GenerateSectionTextCommand(
     Guid ProjectId,

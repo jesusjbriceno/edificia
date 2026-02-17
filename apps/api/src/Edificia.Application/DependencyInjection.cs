@@ -1,4 +1,3 @@
-using Edificia.Application.Ai.Services;
 using Edificia.Application.Behaviors;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,9 +20,6 @@ public static class DependencyInjection
 
         // Register all FluentValidation validators from this assembly
         services.AddValidatorsFromAssembly(assembly);
-
-        // Application services
-        services.AddSingleton<IPromptTemplateService, PromptTemplateService>();
 
         return services;
     }

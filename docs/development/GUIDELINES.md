@@ -83,29 +83,42 @@ public class CreateProjectValidator : AbstractValidator\<CreateProjectCommand\>
 
 ## **3\. Estándares de Frontend (React/TS)**
 
-### **3.1. Tipado y Zod**
+### **3.1. Validación con Zod + react-hook-form**
 
-Todo formulario o entrada de datos externa debe tener un esquema Zod.
+Todo formulario debe tener un esquema Zod resuelto con `@hookform/resolvers/zod`.
 
-// definition  
+```typescript
 import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 
-export const ProjectSchema \= z.object({  
-  title: z.string().min(5, "Título muy corto"),  
-  interventionType: z.enum(\['New', 'Reform'\])  
+const projectSchema = z.object({
+  title: z.string().min(1, 'El título es obligatorio'),
+  status: z.enum(['Active', 'OnHold', 'Completed']),
 });
 
-export type ProjectForm \= z.infer\<typeof ProjectSchema\>;
+type ProjectFormData = z.infer<typeof projectSchema>;
+
+const { register, handleSubmit, formState: { errors } } = useForm<ProjectFormData>({
+  resolver: zodResolver(projectSchema),
+});
+```
+
+**Regla de orden en Zod:** Colocar `.min(1)` antes de `.email()` para que los mensajes de campo obligatorio tengan prioridad sobre los de formato.
 
 ### **3.2. Componentes y Tailwind v4**
 
-* Usar la sintaxis de **Tailwind v4**.  
-* **Diseño Atómico:** Crear componentes pequeños en /components/ui (Button, Input, Card) que encapsulen los estilos de Tailwind para evitar "sopa de clases" repetida.
+* Usar la sintaxis de **Tailwind v4** con tema oscuro premium (`bg-dark-bg`, `text-white`, `border-white/5`).
+* **Diseño Atómico:** Los componentes base residen en `components/ui/` (Button, Input, Card, Badge).
+* **Editor Enriquecido:** El editor de memorias usa **TipTap** con extensiones (StarterKit, Underline). La barra de herramientas (`EditorToolbar`) se renderiza como componente independiente.
 
 ### **3.3. Testing (Vitest)**
 
-* Tests unitarios para hooks de lógica de negocio (ej: useProjectFilters).  
-* Tests de integración para flujos críticos (ej: rellenar formulario \-\> validación Zod \-\> envío a store).
+* **Ubicación centralizada:** Todos los archivos `.test.tsx` / `.test.ts` residen en `src/tests/`.
+* **Imports absolutos:** Los tests usan el alias `@/` (resuelto a `src/`) para importar componentes.
+* **Configuración:** `vitest.config.ts` apunta a `./src/tests/setup.ts`.
+* Tests unitarios para stores de estado (ej: `useAuthStore`).
+* Tests de integración para flujos críticos (ej: rellenar formulario → validación Zod → envío).
 
 ## **4. Git Workflow (Git Flow \ Estricto)**
 

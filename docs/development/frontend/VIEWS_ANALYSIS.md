@@ -1,51 +1,93 @@
-# **🗺️ Análisis de Vistas y Navegación \- EDIFICIA**
+# **🗺️ Análisis de Vistas y Navegación — EDIFICIA**
 
-**Versión:** 1.1 (Incluye Admin y Auth Flows)
+**Versión:** 2.0 (Actualizado con Editor Premium, Admin Projects y Tests Centralizados)
 
-## **1\. Mapa de Navegación (Sitemap)**
+## **1. Mapa de Navegación (Sitemap)**
 
-graph TD  
-    root\[/\] \--\> Auth  
-      
-    subgraph "Public Zone"  
-        Auth\[Login\]  
-        Forgot\[Recuperar Contraseña\]  
-        Reset\[Reset Password\]  
+```mermaid
+graph TD
+    root[/] --> Auth
+
+    subgraph "Public Zone"
+        Auth[Login /]
+        Forgot[Recuperar Contraseña /forgot-password]
     end
 
-    Auth \--\>|User| Dash\[Dashboard Proyectos\]  
-    Auth \--\>|Admin| AdminDash\[Panel Administración\]
+    Auth -->|User| Dash[Dashboard Proyectos /dashboard]
+    Auth -->|Admin| AdminDash[Panel Administración]
+    Auth -->|User| Profile[Perfil /profile]
 
-    subgraph "Admin Zone (DashboardLayout)"  
-        AdminDash \--\> Users\[Gestión Usuarios\]  
-        AdminDash \--\> Audit\[Auditoría Proyectos\]  
+    subgraph "Admin Zone"
+        AdminDash --> Users[Gestión Usuarios /admin/users]
+        AdminDash --> Projects[Gestión Proyectos /admin/projects]
     end
 
-## **3\. Catálogo de Vistas (Views)**
+    Dash --> Editor[Editor de Memoria /projects/:id]
+```
 
-### **🟢 V-Auth-01: Login (/)**
+## **2. Catálogo de Vistas (Views)**
 
-* Formulario estándar (Email/Pass).  
-* Enlace "¿Olvidaste tu contraseña?" \-\> Ir a V-Auth-02.
+### **🟢 V-Auth-01: Login (`/`)**
 
-### **🟢 V-Auth-02: Recuperación (/auth/recovery)**
+* Formulario estándar (Email/Pass) con fondo arquitectónico premium.
+* Enlace "¿Olvidaste tu contraseña?" → Ir a V-Auth-02.
+* **Componentes:** `LoginForm`, `AuthGuard`.
 
-* **Paso 1:** Input Email \-\> Acción: Enviar correo.  
-* **Paso 2 (Ruta con Token):** /auth/reset?token=... \-\> Input Nueva Password \+ Confirmación.
+### **🟢 V-Auth-02: Recuperación (`/forgot-password`)**
 
-### **🟣 V-Admin-01: Gestión de Usuarios (/admin/users)**
+* Input de Email → Acción: Enviar correo de recuperación.
+* **Componentes:** `ForgotPassword`.
 
-* **Acceso:** Solo rol SuperAdmin.  
-* **Layout:** DashboardLayout (con menú lateral extendido).  
-* **Componentes:**  
-  * UserTable: Columnas (Nombre, Email, Rol, Estado, Último Acceso).  
-  * Actions: Botones Editar, Bloquear, Eliminar.  
-  * CreateUserModal: Formulario para dar de alta nuevos arquitectos o supervisores manualmente.
+### **🔵 V-Dash-01: Dashboard de Proyectos (`/dashboard`)**
 
-### **🟣 V-Admin-02: Auditoría (/admin/audit)**
+* Grid de tarjetas de proyectos activos del usuario.
+* Botón "Nuevo Proyecto" que lanza el Wizard.
+* **Componentes:** `ProjectCard`, `ProjectWizard`, `AuthGuard`.
 
-* **Acceso:** Roles SuperAdmin y Supervisor.  
-* **Componente:** GlobalProjectGrid.  
-* **Diferencia:** Muestra TODOS los proyectos de TODOS los usuarios en modo "Solo Lectura". Al hacer clic, abre el Editor pero sin permisos de escritura.
+### **🟡 V-Profile-01: Perfil de Usuario (`/profile`)**
 
-*(Resto del documento: Dashboard, Wizard y Editor se mantienen...)*
+* Vista de información personal del usuario.
+* **Componentes:** `ProfileView`.
+
+### **🟣 V-Admin-01: Gestión de Usuarios (`/admin/users`)**
+
+* **Acceso:** Solo rol SuperAdmin.
+* **Layout:** Con Sidebar de navegación y menú lateral.
+* **Componentes:**
+  * `UserTable`: Columnas (Nombre, Email, Rol, Estado, Último Acceso).
+  * `UserRow`: Fila extraída con acciones Editar/Bloquear.
+  * `UserForm`: Formulario validado con Zod (modal/in-page) para alta y edición.
+
+### **🟣 V-Admin-02: Gestión de Proyectos (`/admin/projects`)**
+
+* **Acceso:** Rol Admin o SuperAdmin.
+* **Componentes:**
+  * `ProjectManagement`: Orquestador (listado + creación).
+  * `ProjectRow`: Fila premium con estado visual (En Ejecución / En Espera / Finalizado).
+  * `ProjectForm`: Formulario validado con Zod (Título, Descripción, Estado, Presupuesto).
+* **Funcionalidades:** Búsqueda por título/descripción, filtrado, creación inline.
+
+### **🔵 V-Editor-01: Editor de Memoria Técnica (`/projects/:id`)**
+
+* **Layout:** Sidebar (Capítulos) + Editor central (TipTap).
+* **Componentes:**
+  * `SidebarNavigation`: Árbol recursivo de capítulos CTE con enlace a zona Admin.
+  * `EditorShell`: Contenedor principal con Header de estado y botones de acción.
+  * `EditorToolbar`: Barra de herramientas de formato (Negrita, Cursiva, H1-H3, Listas, Citas, Undo/Redo).
+* **Estado:** Zustand (`useEditorStore`) con persistencia IndexedDB vía `idb-keyval`.
+
+## **3. Inventario de Componentes UI**
+
+| Componente | Ubicación | Propósito |
+| :--- | :--- | :--- |
+| `Button` | `ui/Button.tsx` | Botón reutilizable con variantes y estados |
+| `Input` | `ui/Input.tsx` | Campo de entrada estilizado |
+| `Card` | `ui/Card.tsx` | Tarjeta contenedora |
+| `Badge` | `ui/Badge.tsx` | Etiqueta de estado |
+
+## **4. Stores (Zustand)**
+
+| Store | Ubicación | Datos Gestionados |
+| :--- | :--- | :--- |
+| `useAuthStore` | `store/useAuthStore.ts` | Token, usuario, login/logout, isAuthenticated |
+| `useEditorStore` | `store/useEditorStore.ts` | Sección activa, contenido por sección, estado de guardado |

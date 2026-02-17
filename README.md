@@ -46,19 +46,30 @@ Todo el entorno está contenerizado.
 
 ## **📂 Estructura del Monorepo**
 
-/  
-├── apps/  
-│   ├── api/            \# Backend .NET 8 (Clean Architecture)  
-│   └── web/            \# Frontend Astro \+ React  
-├── docs/               \# Documentación de Análisis y Diseño  
-└── docker-compose.yml  \# Orquestador de Servicios
+```
+/
+├── apps/
+│   ├── api/             # Backend .NET 8 (Clean Architecture)
+│   └── web/             # Frontend Astro + React
+│       ├── src/
+│       │   ├── components/  # Admin, Editor, Profile, auth, ui
+│       │   ├── pages/       # Rutas Astro (login, dashboard, admin/*)
+│       │   ├── store/       # Zustand (useAuthStore, useEditorStore)
+│       │   ├── tests/       # Tests centralizados (Vitest)
+│       │   └── lib/         # Utilidades (cn, helpers)
+│       └── vitest.config.ts
+├── docs/                # Documentación de Análisis y Diseño
+└── docker-compose.yml   # Orquestador de Servicios
+```
 
 ## **🛠️ Stack Tecnológico**
 
-* **Backend:** .NET 8, EF Core (Writes), Dapper (Reads).  
-* **Frontend:** Astro 4, React 18, Tailwind CSS v4, Zustand.  
-* **Base de Datos:** PostgreSQL 16 (Híbrida Relacional/JSONB).  
-* **IA:** Flux Gateway (OAuth2).  
+* **Backend:** .NET 8, EF Core (Writes), Dapper (Reads).
+* **Frontend:** Astro 4, React 18, Tailwind CSS v4, Zustand, TipTap (Editor).
+* **Formularios:** react-hook-form + Zod.
+* **Testing:** xUnit + Moq (Back) / Vitest + Testing Library (Front).
+* **Base de Datos:** PostgreSQL 16 (Híbrida Relacional/JSONB).
+* **IA:** Flux Gateway (OAuth2).
 * **Validación:** FluentValidation (Back) / Zod (Front).
 
 ## **🤝 Contribución**

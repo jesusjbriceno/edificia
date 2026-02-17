@@ -25,6 +25,7 @@ desktop.ini
 appsettings.Development.json
 appsettings.Local.json
 appsettings.Production.json
+!apps/api/src/Edificia.API/appsettings.Production.json
 
 
 # BACKEND (.NET / C#)
@@ -81,3 +82,5 @@ docker-context/
 # Scripts temporales
 scripts/
 scaffold.sh
+/apps/api/src/Edificia.API/appsettings.Local.json
+/apps/api/src/Edificia.API/appsettings.Local.json
