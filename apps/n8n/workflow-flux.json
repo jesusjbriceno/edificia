@@ -89,10 +89,10 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://dashboard-flux.jesusjbriceno.dev/api/v1/auth/login",
+        "url": "https://dashboard-flux.jesusjbriceno.dev/api/v1/auth/app",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ email: $env.FLUX_EMAIL, password: $env.FLUX_PASSWORD }) }}",
+        "jsonBody": "={{ JSON.stringify({ clientId: $env.FLUX_CLIENT_ID, clientSecret: $env.FLUX_CLIENT_SECRET }) }}",
         "options": {
           "timeout": 30000
         }
@@ -116,7 +116,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://dashboard-flux.jesusjbriceno.dev/api/v1/chat/completions",
+        "url": "https://dashboard-flux.jesusjbriceno.dev/api/v1/chat",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -141,7 +141,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ─────────────────────────────────────────────\n// Format the Flux Gateway (OpenAI-compatible) response into\n// the EDIFICIA N8nAiResponse contract:\n// { generatedText: string, usage?: { model: string, tokens: number } }\n// ─────────────────────────────────────────────\nconst response = $input.first().json;\nconst choices = response.choices || [];\n\nlet generatedText = '';\nif (choices.length > 0 && choices[0].message) {\n  generatedText = choices[0].message.content || '';\n}\n\n// Strip markdown code fences if the model wraps output in ```html ... ```\ngeneratedText = generatedText\n  .replace(/^```html\\s*/i, '')\n  .replace(/^```\\s*/i, '')\n  .replace(/\\s*```$/i, '')\n  .trim();\n\nconst model = response.model || $env.FLUX_MODEL || 'flux';\nconst totalTokens = response.usage?.total_tokens || 0;\n\nreturn [{\n  json: {\n    generatedText: generatedText,\n    usage: {\n      model: model,\n      tokens: totalTokens\n    }\n  }\n}];"
+        "jsCode": "// ─────────────────────────────────────────────\n// Format the Flux Gateway response into the EDIFICIA N8nAiResponse contract:\n// { generatedText: string, usage?: { model: string, tokens: number } }\n// Supports responses with { content, usage, model_used, provider } or OpenAI-like choices\n// ─────────────────────────────────────────────\nconst response = $input.first().json || {};\n\n// Prefer explicit `content` field (Flux OpenAPI / simple response)\nlet generatedText = response.content || '';\n\n// Fallback to OpenAI-style choices (compatibility)\nconst choices = response.choices || [];\nif (!generatedText) {\n  if (choices.length > 0 && choices[0].message) {\n    generatedText = choices[0].message.content || '';\n  } else if (Array.isArray(response.messages) && response.messages.length > 0) {\n    generatedText = response.messages[0].content || '';\n  }\n}\n\n// Strip markdown code fences if the model wraps output in ```html ... ```\ngeneratedText = (generatedText || '')\n  .replace(/^```html\\s*/i, '')\n  .replace(/^```\\s*/i, '')\n  .replace(/\\s*```$/i, '')\n  .trim();\n\n// Determine model and tokens if available\nconst model = response.model_used || response.model || $env.FLUX_MODEL || 'flux';\nconst totalTokens = response.usage?.total_tokens || response.usage?.tokens || 0;\n\nreturn [{\n  json: {\n    generatedText: generatedText,\n    usage: {\n      model: model,\n      tokens: totalTokens\n    }\n  }\n}];"
       },
       "id": "9c0d1e2f-3a4b-4c5d-6e7f-8a9b0c1d2e3f",
       "name": "Format Response",
