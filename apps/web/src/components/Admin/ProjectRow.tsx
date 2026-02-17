@@ -1,5 +1,4 @@
-import { Project } from '@/types'; // Suponiendo que existe o se creará
-import { MoreVertical, Folder, Calendar, User, Rocket } from 'lucide-react';
+import { MoreVertical, Folder, Calendar, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ProjectRowProps {
