@@ -1,0 +1,573 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Flux Gate API",
+    "version": "1.0.0",
+    "description": "API for model rotation system to maximize free-tier usage across multiple providers."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local server"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Root status",
+        "responses": {
+          "200": {
+            "description": "API is online",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "Health status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "database": { "type": "string" },
+                    "timestamp": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/google": {
+      "get": {
+        "summary": "Start Google OAuth flow",
+        "responses": {
+          "302": {
+            "description": "Redirects to Google"
+          }
+        }
+      }
+    },
+    "/auth/google/callback": {
+      "get": {
+        "summary": "Google OAuth callback",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirects to dashboard with token"
+          },
+          "400": { "description": "Code missing" },
+          "401": { "description": "Failed to exchange code or user not authorized" },
+          "403": { "description": "Invalid domain" }
+        }
+      }
+    },
+    "/auth/app": {
+      "post": {
+        "summary": "Application Login (ClientId/Secret)",
+        "description": "Exchange application credentials for a JWT token to be used in /api/v1/chat.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "clientId": { "type": "string" },
+                  "clientSecret": { "type": "string" }
+                },
+                "required": ["clientId", "clientSecret"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": { "type": "string" },
+                    "expires_in": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Invalid credentials" }
+        }
+      }
+    },
+    "/metrics": {
+      "get": {
+        "summary": "Prometheus metrics",
+        "responses": {
+          "200": {
+            "description": "Metrics in text format",
+            "content": {
+              "text/plain": {
+                "schema": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/errors/recent": {
+      "get": {
+        "summary": "Get recent errors",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Recent errors",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "type": "object" } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/errors/stats": {
+      "get": {
+        "summary": "Get error stats",
+        "responses": {
+          "200": {
+            "description": "Error stats",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/chat": {
+      "post": {
+        "summary": "Chat with a rotated model",
+        "description": "Supports multi-turn conversations with a history of messages, or a single prompt for backward compatibility.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": { "type": "string", "description": "Deprecated: Use 'messages' for multi-turn support." },
+                  "messages": {
+                    "type": "array",
+                    "items": { "$ref": "#/components/schemas/Message" },
+                    "description": "Array of messages representing the conversation history."
+                  }
+                },
+                "oneOf": [
+                  { "required": ["message"] },
+                  { "required": ["messages"] }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Chat response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "content": { "type": "string" },
+                    "usage": {
+                      "type": "object",
+                      "properties": {
+                        "promptTokens": { "type": "integer" },
+                        "completionTokens": { "type": "integer" },
+                        "totalTokens": { "type": "integer" }
+                      }
+                    },
+                    "model_used": { "type": "string" },
+                    "provider": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/stats": {
+      "get": {
+        "summary": "Get admin statistics",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Stats",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/models": {
+      "get": {
+        "summary": "List all models",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "List of models",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/AIModel" } }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new model",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateAIModel" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Model created" },
+          "400": { "description": "Invalid key or data" }
+        }
+      }
+    },
+    "/api/v1/admin/models/{id}": {
+      "patch": {
+        "summary": "Update a model",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateAIModel" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Model updated" },
+          "400": { "description": "Invalid key" }
+        }
+      },
+      "delete": {
+        "summary": "Delete a model",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Model deleted" }
+        }
+      }
+    },
+    "/api/v1/admin/apps": {
+      "get": {
+        "summary": "List all applications",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { 
+            "description": "List of apps",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Application" } }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create an application",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateApplication" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "App created" }
+        }
+      }
+    },
+    "/api/v1/admin/apps/{id}/rotate-secret": {
+      "post": {
+        "summary": "Rotate application secret",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Secret rotated" }
+        }
+      }
+    },
+    "/api/v1/admin/apps/{id}": {
+      "patch": {
+        "summary": "Update an application",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateApplication" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "App updated" }
+        }
+      },
+      "delete": {
+        "summary": "Delete an application",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "App deleted" }
+        }
+      }
+    },
+    "/api/v1/admin/users": {
+      "get": {
+        "summary": "List all users (whitelist)",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "List of users",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/User" } }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a user",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateUser" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "User created" },
+          "400": { "description": "Invalid email" }
+        }
+      }
+    },
+    "/api/v1/admin/users/{id}": {
+        "patch": {
+          "summary": "Update a user role/pref",
+          "security": [{ "bearerAuth": [] }],
+          "parameters": [
+            { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+          ],
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UpdateUser" }
+              }
+            }
+          },
+          "responses": {
+            "200": { "description": "User updated" }
+          }
+        },
+        "delete": {
+            "summary": "Remove a user from whitelist",
+            "security": [{ "bearerAuth": [] }],
+            "parameters": [
+                { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+            ],
+            "responses": {
+                "200": { "description": "User deleted" }
+            }
+        }
+    },
+    "/api/v1/admin/me/language": {
+      "patch": {
+        "summary": "Update current user language",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "lang": { "type": "string" } },
+                "required": ["lang"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Language updated" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Message": {
+        "type": "object",
+        "required": ["role", "content"],
+        "properties": {
+          "role": { "type": "string", "enum": ["system", "user", "assistant"] },
+          "content": { "type": "string" }
+        }
+      },
+      "AIModel": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "provider": { "type": "string" },
+          "priority": { "type": "integer" },
+          "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "ERROR"] },
+          "config": { "type": "object", "nullable": true }
+        }
+      },
+      "CreateAIModel": {
+        "type": "object",
+        "required": ["name", "provider", "providerKey", "priority", "status"],
+        "properties": {
+          "name": { "type": "string" },
+          "provider": { "type": "string" },
+          "providerKey": { "type": "string" },
+          "priority": { "type": "integer" },
+          "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "ERROR"] },
+          "config": { "type": "object" }
+        }
+      },
+      "UpdateAIModel": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "provider": { "type": "string" },
+          "providerKey": { "type": "string" },
+          "priority": { "type": "integer" },
+          "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "ERROR"] },
+          "config": { "type": "object" },
+          "updatedAt": { "type": "string" }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "email": { "type": "string" },
+          "name": { "type": "string", "nullable": true },
+          "role": { "type": "string", "enum": ["ROOT", "ADMIN", "APP"] },
+          "lang_preference": { "type": "string", "enum": ["ES", "EN", "IT", "FR", "PT", "DE"] }
+        }
+      },
+      "UpdateUser": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "lang_preference": { "type": "string", "enum": ["ES", "EN", "IT", "FR", "PT", "DE"] },
+          "updatedAt": { "type": "string" }
+        }
+      },
+      "CreateUser": {
+        "type": "object",
+        "required": ["email", "name", "lang_preference"],
+        "properties": {
+          "email": { "type": "string" },
+          "name": { "type": "string" },
+          "lang_preference": { "type": "string", "enum": ["ES", "EN", "IT", "FR", "PT", "DE"] }
+        }
+      },
+      "Application": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "clientId": { "type": "string" },
+          "clientSecret": { "type": "string" },
+          "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "ERROR"] }
+        }
+      },
+      "CreateApplication": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string" }
+        }
+      },
+      "UpdateApplication": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "ERROR"] },
+          "updatedAt": { "type": "string" }
+        }
+      }
+    }
+  }
+}

@@ -42,8 +42,8 @@ El nodo Webhook recibirá este JSON:
 ### **Opción B: Integración vía Flux Gateway**
 
 1. **Webhook:** Recibe datos.  
-2. **HTTP Request (Auth):** POST https://flux.../login (Credenciales guardadas en n8n Credentials).  
-3. **HTTP Request (Chat):** POST https://flux.../chat con el Bearer Token.  
+2. **HTTP Request (Auth):** POST https://flux.../api/v1/auth/app con `{ clientId, clientSecret }` (credenciales guardadas en n8n Credentials).  
+3. **HTTP Request (Chat):** POST https://flux.../api/v1/chat con el Bearer Token obtenido en el paso anterior.  
 4. **Response:** Devuelve el JSON final.
 
 ## **4\. Estructura de Salida (Response)**
