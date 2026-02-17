@@ -25,9 +25,10 @@ services:
       Jwt__SecretKey: ${JWT_SECRET}
       Jwt__Issuer: "https://api-edificia.jesusjbriceno.dev"
       Jwt__Audience: "https://edificia.jesusjbriceno.dev"
-      # ── Flux AI Gateway ──
-      FluxGateway__ClientId: ${FLUX_CLIENT_ID}
-      FluxGateway__ClientSecret: ${FLUX_CLIENT_SECRET}
+      # ── AI (n8n Webhook) ──
+      AI__WebhookUrl: ${N8N_WEBHOOK_URL}
+      AI__ApiSecret: ${N8N_API_SECRET}
+      AI__TimeoutSeconds: ${N8N_TIMEOUT:-120}
       # ── Email ──
       Email__Provider: ${EMAIL_PROVIDER:-Smtp}
       Email__BrevoApiKey: ${BREVO_API_KEY:-}

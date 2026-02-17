@@ -21,7 +21,7 @@ public sealed class AiController : BaseApiController
 
     /// <summary>
     /// Generates AI-assisted text for a section of a project's content tree.
-    /// Uses the Flux AI Gateway to produce content following CTE/LOE standards.
+    /// Delegates to n8n webhook to produce content following CTE/LOE standards.
     /// </summary>
     /// <param name="id">The project ID.</param>
     /// <param name="request">The text generation request with prompt and optional context.</param>
