@@ -1,10 +1,20 @@
-# **📅 Plan de Implementación Detallado \- EDIFICIA**
+# **📅 Plan de Implementación Detallado — EDIFICIA**
 
-**Estado:** Pendiente de Inicio
+**Estado:** En Progreso (Frontend: Fases 1-4 completadas)
 
-**Metodología:** Git Flow (feature/... \-\> develop \-\> main)
+**Metodología:** Git Flow (feature/... → develop → main)
 
-**Sprint 0:** Configuración y Andamiaje (Completado).
+**Sprint 0:** Configuración y Andamiaje (✅ Completado).
+
+**Progreso Frontend Actual:**
+- ✅ Componentes UI atómicos (Button, Input, Card, Badge)
+- ✅ Flujos de autenticación (Login, ForgotPassword, AuthGuard)
+- ✅ Dashboard de Proyectos con Wizard
+- ✅ Editor de Memorias con TipTap + Toolbar Premium
+- ✅ Administración de Usuarios (UserTable, UserRow, UserForm)
+- ✅ Administración de Proyectos (ProjectManagement, ProjectRow, ProjectForm)
+- ✅ Stores Zustand (useAuthStore, useEditorStore)
+- ✅ Suite de tests centralizada en src/tests (Vitest)
 
 ## **🏁 Fase 1: Cimientos del Sistema (Core & Shared)**
 
@@ -41,7 +51,7 @@
 | ID | Feature Branch | Tareas Backend (.NET) | Tareas Frontend (Astro/React) |
 | :---- | :---- | :---- | :---- |
 | **3.1** | feature/normative-tree | • Crear estructura JSON ContentTree en Entidad. • Endpoint GET /projects/{id}/tree. | • Crear archivo estático cte\_2024.json en /public. • Implementar utilidad TS filterTree(nodes, config) para ocultar ramas según Obra/Reforma. |
-| **3.2** | feature/editor-shell | N/A | • Crear EditorLayout.astro. • Implementar **Sidebar de Navegación** (React) recursivo. • Gestionar selección de capítulo activo en Zustand. |
+| **3.2** | feature/editor-shell | N/A | ✅ • Crear EditorLayout.astro. • Implementar **Sidebar de Navegación** (React) recursivo con enlaces Admin. • Gestionar selección de capítulo activo en Zustand (`useEditorStore`). |
 
 ## **📝 Fase 4: Editor y Persistencia (The Core)**
 
@@ -49,8 +59,8 @@
 
 | ID | Feature Branch | Tareas Backend (.NET) | Tareas Frontend (Astro/React) |
 | :---- | :---- | :---- | :---- |
-| **4.1** | feature/editor-tiptap | N/A | • Integrar **TipTap** en componente React. • Crear Toolbar flotante. • Conectar editor al Store de Zustand. |
-| **4.2** | feature/offline-sync | • Crear endpoint PATCH /projects/{id}/sections. • Optimizar update con ExecuteUpdate de EF Core o SQL Raw para JSONB. | • Configurar idb-keyval en Zustand. • Implementar lógica "Debounce Save": Guardar en local al escribir, sincronizar con API cada 5s si hay red. |
+| **4.1** | feature/editor-tiptap | N/A | ✅ • Integrar **TipTap** en `EditorShell`. • Crear `EditorToolbar` con formato (Negrita, Cursiva, H1-H3, Listas, Citas, Undo/Redo). • Conectar editor al Store de Zustand. |
+| **4.2** | feature/offline-sync | • Crear endpoint PATCH /projects/{id}/sections. • Optimizar update con ExecuteUpdate de EF Core o SQL Raw para JSONB. | ⏳ • Configurar idb-keyval en Zustand. • Implementar lógica "Debounce Save": Guardar en local al escribir, sincronizar con API cada 5s si hay red. |
 
 ## **🤖 Fase 5: Inteligencia Artificial (Flux Gateway)**
 

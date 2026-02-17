@@ -81,3 +81,4 @@ docker-context/
 # Scripts temporales
 scripts/
 scaffold.sh
+/apps/api/src/Edificia.API/appsettings.Local.json
