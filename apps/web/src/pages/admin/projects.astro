@@ -1,0 +1,23 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { AuthGuard } from '../../components/auth/AuthGuard';
+import ProjectManagement from '../../components/Admin/ProjectManagement';
+import SidebarNavigation from '../../components/Editor/SidebarNavigation';
+
+const title = "Administración de Proyectos | EDIFICIA";
+---
+
+<Layout title={title}>
+  <AuthGuard client:load>
+    <div className="flex h-screen bg-dark-bg font-inter overflow-hidden">
+      <!-- Reutilizamos la Sidebar para consistencia -->
+      <SidebarNavigation client:load />
+
+      <main className="flex-1 overflow-y-auto bg-dark-bg/50">
+        <div className="max-w-6xl mx-auto px-6 py-12">
+          <ProjectManagement client:load />
+        </div>
+      </main>
+    </div>
+  </AuthGuard>
+</Layout>

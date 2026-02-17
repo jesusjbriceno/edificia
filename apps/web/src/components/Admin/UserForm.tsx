@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 
 const userSchema = z.object({
   name: z.string().min(1, 'El nombre es obligatorio'),
-  email: z.string().email('Email inválido').min(1, 'El email es obligatorio'),
+  email: z.string().min(1, 'El email es obligatorio').email('Email inválido'),
   role: z.enum(['Admin', 'Architect', 'Collaborator', 'Supervisor']),
 });
 
@@ -31,6 +31,7 @@ export function UserForm({ initialData, onSubmit, isLoading }: UserFormProps) {
     },
   });
 
+
   return (
     <form 
       onSubmit={handleSubmit(onSubmit)} 
@@ -52,7 +53,6 @@ export function UserForm({ initialData, onSubmit, isLoading }: UserFormProps) {
         <label htmlFor="email" className="text-sm font-medium text-gray-300">Correo Electrónico</label>
         <input
           id="email"
-          type="email"
           {...register('email')}
           className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:border-brand-primary outline-none transition-colors"
           placeholder="ana@edificia.es"
