@@ -1,5 +1,5 @@
 import { useEditorStore } from "@/store/useEditorStore";
-import { ChevronRight, FileText, ChevronDown } from "lucide-react";
+import { ChevronRight, FileText, ChevronDown, Folder, Users } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -47,6 +47,30 @@ export default function SidebarNavigation() {
           />
         ))}
       </nav>
+
+      <div className="mt-8 p-4 border-t border-white/5">
+        <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-4 px-2">Administración</h3>
+        <div className="space-y-1">
+          <a
+            href="/admin/projects"
+            className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all group"
+          >
+            <div className="p-2 bg-brand-primary/10 rounded-lg group-hover:bg-brand-primary/20 transition-colors">
+              <Folder size={16} className="text-brand-primary" />
+            </div>
+            <span>Proyectos</span>
+          </a>
+          <a
+            href="/admin/users"
+            className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all group"
+          >
+            <div className="p-2 bg-emerald-500/10 rounded-lg group-hover:bg-emerald-500/20 transition-colors">
+              <Users size={16} className="text-emerald-500" />
+            </div>
+            <span>Usuarios</span>
+          </a>
+        </div>
+      </div>
     </div>
   );
 }

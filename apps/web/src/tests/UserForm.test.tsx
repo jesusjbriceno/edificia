@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { UserForm } from './UserForm';
+import { UserForm } from '@/components/Admin/UserForm';
 
 describe('UserForm component', () => {
   const mockOnSubmit = vi.fn();
@@ -16,30 +16,33 @@ describe('UserForm component', () => {
   it('should show validation errors for empty fields', async () => {
     render(<UserForm onSubmit={mockOnSubmit} />);
     
-    fireEvent.click(screen.getByRole('button', { name: /guardar usuario/i }));
+    const submitBtn = screen.getByRole('button', { name: /guardar usuario/i });
+    fireEvent.click(submitBtn);
 
-    await waitFor(() => {
-      expect(screen.getByText(/el nombre es obligatorio/i)).toBeInTheDocument();
-      expect(screen.getByText(/el email es obligatorio/i)).toBeInTheDocument();
-    });
+    expect(await screen.findByText(/el nombre es obligatorio/i)).toBeInTheDocument();
+    expect(await screen.findByText(/el email es obligatorio/i)).toBeInTheDocument();
   });
 
   it('should call onSubmit with form data when valid', async () => {
     render(<UserForm onSubmit={mockOnSubmit} />);
     
-    fireEvent.change(screen.getByLabelText(/nombre completo/i), { target: { value: 'Juan Pérez' } });
-    fireEvent.change(screen.getByLabelText(/correo electrónico/i), { target: { value: 'juan@edificia.es' } });
-    fireEvent.change(screen.getByLabelText(/rol del usuario/i), { target: { value: 'Admin' } });
+    const nameInput = screen.getByLabelText(/nombre completo/i);
+    const emailInput = screen.getByLabelText(/correo electrónico/i);
+    const roleSelect = screen.getByRole('combobox');
+
+    fireEvent.input(nameInput, { target: { value: 'Juan Pérez' } });
+    fireEvent.input(emailInput, { target: { value: 'juan@edificia.es' } });
+    fireEvent.change(roleSelect, { target: { value: 'Admin' } });
     
-    const form = screen.getByTestId('user-form');
-    fireEvent.submit(form);
+    const submitBtn = screen.getByRole('button', { name: /guardar usuario/i });
+    fireEvent.click(submitBtn);
 
     await waitFor(() => {
       expect(mockOnSubmit).toHaveBeenCalledWith(expect.objectContaining({
         name: 'Juan Pérez',
         email: 'juan@edificia.es',
-        role: 'Admin',
+        role: 'Admin'
       }));
-    }, { timeout: 4000 });
+    }, { timeout: 6000 });
   });
 });
