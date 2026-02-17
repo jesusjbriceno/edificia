@@ -1,46 +1,83 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import type { UserInfo, Role, LoginResponse } from '@/lib/types';
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-}
+// ─── State shape ─────────────────────────────────────────
 
 interface AuthState {
-  user: User | null;
+  // Data
+  user: UserInfo | null;
   accessToken: string | null;
   refreshToken: string | null;
+  mustChangePassword: boolean;
+
+  // Computed-like getters (derived from data)
   isAuthenticated: boolean;
-  login: (user: User, accessToken: string, refreshToken: string) => void;
+
+  // Actions
+  /** Hydrate from a LoginResponse (after login or refresh). */
+  setAuth: (response: LoginResponse) => void;
+  /** Update only the token pair (used by the refresh interceptor). */
+  setTokens: (accessToken: string, refreshToken: string | null) => void;
+  /** Partially update the user profile (after PUT /auth/profile). */
+  updateUser: (patch: Partial<UserInfo>) => void;
+  /** Clear session completely. */
   logout: () => void;
+
+  // Helpers
+  hasRole: (...roles: Role[]) => boolean;
 }
+
+// ─── Store ───────────────────────────────────────────────
+
+const INITIAL_STATE = {
+  user: null,
+  accessToken: null,
+  refreshToken: null,
+  mustChangePassword: false,
+  isAuthenticated: false,
+};
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
-      user: null,
-      accessToken: null,
-      refreshToken: null,
-      isAuthenticated: false,
+    (set, get) => ({
+      ...INITIAL_STATE,
 
-      login: (user, accessToken, refreshToken) => set({
-        user,
-        accessToken,
-        refreshToken,
-        isAuthenticated: true,
-      }),
+      setAuth: (response: LoginResponse) =>
+        set({
+          user: response.user,
+          accessToken: response.accessToken,
+          refreshToken: response.refreshToken,
+          mustChangePassword: response.mustChangePassword,
+          isAuthenticated: true,
+        }),
 
-      logout: () => set({
-        user: null,
-        accessToken: null,
-        refreshToken: null,
-        isAuthenticated: false,
-      }),
+      setTokens: (accessToken, refreshToken) =>
+        set({ accessToken, refreshToken }),
+
+      updateUser: (patch) =>
+        set((state) => ({
+          user: state.user ? { ...state.user, ...patch } : null,
+        })),
+
+      logout: () => set({ ...INITIAL_STATE }),
+
+      hasRole: (...roles: Role[]) => {
+        const user = get().user;
+        if (!user) return false;
+        return user.roles.some((r) => roles.includes(r));
+      },
     }),
     {
       name: 'edificia-auth-storage',
-    }
-  )
+      // Only persist the essential serialisable fields
+      partialize: (state) => ({
+        user: state.user,
+        accessToken: state.accessToken,
+        refreshToken: state.refreshToken,
+        mustChangePassword: state.mustChangePassword,
+        isAuthenticated: state.isAuthenticated,
+      }),
+    },
+  ),
 );

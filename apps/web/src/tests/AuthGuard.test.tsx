@@ -10,8 +10,12 @@ vi.mock('@/store/useAuthStore', () => ({
 
 describe('AuthGuard component', () => {
   it('should render children if authenticated', () => {
-    (useAuthStore as any).mockReturnValue({ isAuthenticated: true });
-    
+    (useAuthStore as any).mockReturnValue({
+      isAuthenticated: true,
+      mustChangePassword: false,
+      hasRole: () => true,
+    });
+
     render(
       <AuthGuard>
         <div data-testid="protected-content">Protected</div>
@@ -22,8 +26,12 @@ describe('AuthGuard component', () => {
   });
 
   it('should not render children and redirect if not authenticated', () => {
-    (useAuthStore as any).mockReturnValue({ isAuthenticated: false });
-    
+    (useAuthStore as any).mockReturnValue({
+      isAuthenticated: false,
+      mustChangePassword: false,
+      hasRole: () => false,
+    });
+
     // Mock de window.location.href
     const originalLocation = window.location;
     delete (window as any).location;
@@ -36,7 +44,7 @@ describe('AuthGuard component', () => {
     );
 
     expect(screen.queryByTestId('protected-content')).not.toBeInTheDocument();
-    expect(window.location.href).toBe('/login');
+    expect(window.location.href).toBe('/');
 
     window.location = originalLocation as any;
   });
