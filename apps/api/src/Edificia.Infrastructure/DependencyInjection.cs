@@ -150,15 +150,17 @@ public static class DependencyInjection
         // ---------- Document Export ----------
         services.AddScoped<IDocumentExportService, DocxExportService>();
 
-        // ---------- AI Service (Flux Gateway) ----------
-        services.Configure<FluxGatewaySettings>(
-            configuration.GetSection(FluxGatewaySettings.SectionName));
+        // ---------- AI Service (n8n Webhook) ----------
+        services.Configure<N8nAiSettings>(
+            configuration.GetSection(N8nAiSettings.SectionName));
 
-        services.AddMemoryCache();
+        var aiSettings = configuration
+            .GetSection(N8nAiSettings.SectionName)
+            .Get<N8nAiSettings>() ?? new N8nAiSettings();
 
-        services.AddHttpClient<IAiService, FluxAiService>(client =>
+        services.AddHttpClient<IAiService, N8nAiService>(client =>
         {
-            client.Timeout = TimeSpan.FromSeconds(60);
+            client.Timeout = TimeSpan.FromSeconds(aiSettings.TimeoutSeconds);
             client.DefaultRequestHeaders.Add("Accept", "application/json");
         });
 

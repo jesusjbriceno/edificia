@@ -1,5 +1,5 @@
 using Edificia.Application.Ai.Commands.GenerateSectionText;
-using Edificia.Application.Ai.Services;
+using Edificia.Application.Ai.Dtos;
 using Edificia.Application.Interfaces;
 using Edificia.Domain.Entities;
 using Edificia.Domain.Enums;
@@ -13,18 +13,15 @@ public class GenerateSectionTextHandlerTests
 {
     private readonly Mock<IAiService> _aiServiceMock;
     private readonly Mock<IProjectRepository> _repositoryMock;
-    private readonly Mock<IPromptTemplateService> _templateServiceMock;
     private readonly GenerateSectionTextHandler _handler;
 
     public GenerateSectionTextHandlerTests()
     {
         _aiServiceMock = new Mock<IAiService>();
         _repositoryMock = new Mock<IProjectRepository>();
-        _templateServiceMock = new Mock<IPromptTemplateService>();
         _handler = new GenerateSectionTextHandler(
             _aiServiceMock.Object,
             _repositoryMock.Object,
-            _templateServiceMock.Object,
             Mock.Of<ILogger<GenerateSectionTextHandler>>());
     }
 
@@ -36,7 +33,6 @@ public class GenerateSectionTextHandlerTests
             project.Id, "md-1", "Describe los agentes", "Vivienda unifamiliar");
 
         SetupProjectFound(project);
-        SetupTemplateService("Prompt formateado completo");
         SetupAiResponse("<p>Los agentes intervinientes en el proyecto son...</p>");
 
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -53,7 +49,6 @@ public class GenerateSectionTextHandlerTests
             project.Id, "md-1", "Describe agentes", null);
 
         SetupProjectFound(project);
-        SetupTemplateService("Prompt formateado");
         SetupAiResponse("Texto generado");
 
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -71,7 +66,6 @@ public class GenerateSectionTextHandlerTests
             project.Id, "md-1", "Describe agentes", null);
 
         SetupProjectFound(project);
-        SetupTemplateService("Prompt");
         SetupAiResponse("Respuesta");
 
         await _handler.Handle(command, CancellationToken.None);
@@ -98,45 +92,51 @@ public class GenerateSectionTextHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ShouldBuildPrompt_UsingTemplateService()
+    public async Task Handle_ShouldBuildAiRequest_WithProjectMetadata()
     {
-        var project = CreateProject();
+        var project = CreateProject(
+            address: "Calle Serrano 10, Madrid",
+            localRegulations: "PGOU Madrid 2024");
         var command = new GenerateSectionTextCommand(
             project.Id, "DB-HE-01", "Redacta ahorro energético", "Contenido previo");
 
         SetupProjectFound(project);
-        SetupTemplateService("Prompt enriquecido con contexto");
         SetupAiResponse("Respuesta IA");
 
         await _handler.Handle(command, CancellationToken.None);
 
-        _templateServiceMock.Verify(
-            t => t.BuildSectionPrompt(It.Is<SectionPromptContext>(c =>
-                c.SectionId == "DB-HE-01" &&
-                c.UserPrompt == "Redacta ahorro energético" &&
-                c.ExistingContent == "Contenido previo" &&
-                c.ProjectTitle == project.Title &&
-                c.InterventionType == project.InterventionType &&
-                c.IsLoeRequired == project.IsLoeRequired)),
+        _aiServiceMock.Verify(
+            s => s.GenerateTextAsync(
+                It.Is<AiGenerationRequest>(r =>
+                    r.SectionCode == "DB-HE-01" &&
+                    r.ProjectType == "NewConstruction" &&
+                    r.UserInstructions == "Redacta ahorro energético" &&
+                    r.TechnicalContext != null &&
+                    r.TechnicalContext.ProjectTitle == project.Title &&
+                    r.TechnicalContext.InterventionType == "Obra Nueva" &&
+                    r.TechnicalContext.IsLoeRequired == true &&
+                    r.TechnicalContext.Address == "Calle Serrano 10, Madrid" &&
+                    r.TechnicalContext.LocalRegulations == "PGOU Madrid 2024" &&
+                    r.TechnicalContext.ExistingContent == "Contenido previo"),
+                It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
     [Fact]
-    public async Task Handle_ShouldSendTemplateResult_ToAiService()
+    public async Task Handle_ShouldSendAiRequest_ToAiService()
     {
         var project = CreateProject();
         var command = new GenerateSectionTextCommand(
             project.Id, "md-1", "Prompt usuario", null);
 
         SetupProjectFound(project);
-        SetupTemplateService("Prompt enriquecido por template service");
         SetupAiResponse("Respuesta");
 
         await _handler.Handle(command, CancellationToken.None);
 
         _aiServiceMock.Verify(
             s => s.GenerateTextAsync(
-                "Prompt enriquecido por template service",
+                It.Is<AiGenerationRequest>(r => r.SectionCode == "md-1"),
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -149,11 +149,10 @@ public class GenerateSectionTextHandlerTests
             project.Id, "md-1", "Prompt", null);
 
         SetupProjectFound(project);
-        SetupTemplateService("Prompt");
 
         _aiServiceMock
             .Setup(s => s.GenerateTextAsync(
-                It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                It.IsAny<AiGenerationRequest>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("Connection refused"));
 
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -171,7 +170,6 @@ public class GenerateSectionTextHandlerTests
             project.Id, "md-1", "Prompt", null);
 
         SetupProjectFound(project);
-        SetupTemplateService("Prompt");
         SetupAiResponse(string.Empty);
 
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -188,11 +186,10 @@ public class GenerateSectionTextHandlerTests
             project.Id, "md-1", "Prompt", null);
 
         SetupProjectFound(project);
-        SetupTemplateService("Prompt");
 
         _aiServiceMock
             .Setup(s => s.GenerateTextAsync(
-                It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                It.IsAny<AiGenerationRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((string?)null!);
 
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -209,54 +206,57 @@ public class GenerateSectionTextHandlerTests
         var cts = new CancellationTokenSource();
 
         SetupProjectFound(project);
-        SetupTemplateService("Prompt");
 
         _aiServiceMock
-            .Setup(s => s.GenerateTextAsync(It.IsAny<string>(), cts.Token))
+            .Setup(s => s.GenerateTextAsync(It.IsAny<AiGenerationRequest>(), cts.Token))
             .ReturnsAsync("Respuesta");
 
         await _handler.Handle(command, cts.Token);
 
         _aiServiceMock.Verify(
-            s => s.GenerateTextAsync(It.IsAny<string>(), cts.Token),
+            s => s.GenerateTextAsync(It.IsAny<AiGenerationRequest>(), cts.Token),
             Times.Once);
     }
 
     [Fact]
-    public async Task Handle_ShouldPassProjectAddress_ToTemplateContext()
+    public async Task Handle_ShouldIncludeAddress_InTechnicalContext()
     {
         var project = CreateProject(address: "Calle Serrano 10, Madrid");
         var command = new GenerateSectionTextCommand(
             project.Id, "md-1", "Prompt", null);
 
         SetupProjectFound(project);
-        SetupTemplateService("Prompt");
         SetupAiResponse("Respuesta");
 
         await _handler.Handle(command, CancellationToken.None);
 
-        _templateServiceMock.Verify(
-            t => t.BuildSectionPrompt(It.Is<SectionPromptContext>(c =>
-                c.Address == "Calle Serrano 10, Madrid")),
+        _aiServiceMock.Verify(
+            s => s.GenerateTextAsync(
+                It.Is<AiGenerationRequest>(r =>
+                    r.TechnicalContext != null &&
+                    r.TechnicalContext.Address == "Calle Serrano 10, Madrid"),
+                It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
     [Fact]
-    public async Task Handle_ShouldPassLocalRegulations_ToTemplateContext()
+    public async Task Handle_ShouldIncludeLocalRegulations_InTechnicalContext()
     {
         var project = CreateProject(localRegulations: "PGOU Madrid 2024");
         var command = new GenerateSectionTextCommand(
             project.Id, "md-1", "Prompt", null);
 
         SetupProjectFound(project);
-        SetupTemplateService("Prompt");
         SetupAiResponse("Respuesta");
 
         await _handler.Handle(command, CancellationToken.None);
 
-        _templateServiceMock.Verify(
-            t => t.BuildSectionPrompt(It.Is<SectionPromptContext>(c =>
-                c.LocalRegulations == "PGOU Madrid 2024")),
+        _aiServiceMock.Verify(
+            s => s.GenerateTextAsync(
+                It.Is<AiGenerationRequest>(r =>
+                    r.TechnicalContext != null &&
+                    r.TechnicalContext.LocalRegulations == "PGOU Madrid 2024"),
+                It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -273,8 +273,53 @@ public class GenerateSectionTextHandlerTests
         await _handler.Handle(command, CancellationToken.None);
 
         _aiServiceMock.Verify(
-            s => s.GenerateTextAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            s => s.GenerateTextAsync(It.IsAny<AiGenerationRequest>(), It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldMapReformProject_ToCorrectProjectType()
+    {
+        var project = CreateProject(interventionType: InterventionType.Reform, isLoeRequired: false);
+        var command = new GenerateSectionTextCommand(
+            project.Id, "md-1", "Prompt", null);
+
+        SetupProjectFound(project);
+        SetupAiResponse("Respuesta");
+
+        await _handler.Handle(command, CancellationToken.None);
+
+        _aiServiceMock.Verify(
+            s => s.GenerateTextAsync(
+                It.Is<AiGenerationRequest>(r =>
+                    r.ProjectType == "Reform" &&
+                    r.TechnicalContext != null &&
+                    r.TechnicalContext.InterventionType == "Reforma" &&
+                    r.TechnicalContext.IsLoeRequired == false),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldMapExtensionProject_ToCorrectProjectType()
+    {
+        var project = CreateProject(interventionType: InterventionType.Extension);
+        var command = new GenerateSectionTextCommand(
+            project.Id, "md-1", "Prompt", null);
+
+        SetupProjectFound(project);
+        SetupAiResponse("Respuesta");
+
+        await _handler.Handle(command, CancellationToken.None);
+
+        _aiServiceMock.Verify(
+            s => s.GenerateTextAsync(
+                It.Is<AiGenerationRequest>(r =>
+                    r.ProjectType == "Extension" &&
+                    r.TechnicalContext != null &&
+                    r.TechnicalContext.InterventionType == "Ampliación"),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     // ── Helpers ──
@@ -301,18 +346,11 @@ public class GenerateSectionTextHandlerTests
             .ReturnsAsync(project);
     }
 
-    private void SetupTemplateService(string formattedPrompt)
-    {
-        _templateServiceMock
-            .Setup(t => t.BuildSectionPrompt(It.IsAny<SectionPromptContext>()))
-            .Returns(formattedPrompt);
-    }
-
     private void SetupAiResponse(string response)
     {
         _aiServiceMock
             .Setup(s => s.GenerateTextAsync(
-                It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                It.IsAny<AiGenerationRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(response);
     }
 }
