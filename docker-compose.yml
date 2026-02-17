@@ -1,0 +1,59 @@
+# ============================================================
+# EDIFICIA — Docker Compose (Desarrollo Local)
+# Uso: docker compose up -d
+# ============================================================
+
+services:
+  # ── Base de Datos ──
+  db:
+    image: postgres:16-alpine
+    container_name: edificia_dev_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: edificia
+      POSTGRES_PASSWORD: edificia_dev
+      POSTGRES_DB: edificia_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata_dev:/var/lib/postgresql/data
+    networks:
+      - edificia_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U edificia -d edificia_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Caché ──
+  redis:
+    image: redis:7-alpine
+    container_name: edificia_dev_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - edificia_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Email (MailHog — captura SMTP local) ──
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: edificia_dev_mail
+    restart: unless-stopped
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI
+    networks:
+      - edificia_net
+
+volumes:
+  pgdata_dev:
+
+networks:
+  edificia_net:
+    driver: bridge

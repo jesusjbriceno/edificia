@@ -1,0 +1,106 @@
+# ============================================================
+# EDIFICIA — Docker Compose (Producción)
+# Uso: docker compose -f docker-compose.prod.yml --env-file .env up -d
+# ============================================================
+
+services:
+  # ── Base de Datos ──
+  db:
+    image: postgres:16-alpine
+    container_name: edificia_prod_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: edificia_db
+    volumes:
+      - pgdata_prod:/var/lib/postgresql/data
+    networks:
+      - edificia_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d edificia_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Caché ──
+  redis:
+    image: redis:7-alpine
+    container_name: edificia_prod_redis
+    restart: always
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    networks:
+      - edificia_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Backend API ──
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    image: ghcr.io/jesusjbriceno/edificia-api:latest
+    container_name: edificia_prod_api
+    restart: always
+    ports:
+      - "5000:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      # ── Connection Strings ──
+      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=edificia_db;Username=${DB_USER};Password=${DB_PASSWORD}"
+      # ── JWT ──
+      Jwt__SecretKey: ${JWT_SECRET}
+      Jwt__Issuer: "https://api-edificia.jesusjbriceno.dev"
+      Jwt__Audience: "https://edificia.jesusjbriceno.dev"
+      # ── Flux AI Gateway ──
+      FluxGateway__ClientId: ${FLUX_CLIENT_ID}
+      FluxGateway__ClientSecret: ${FLUX_CLIENT_SECRET}
+      # ── Email ──
+      Email__Provider: ${EMAIL_PROVIDER:-Smtp}
+      Email__BrevoApiKey: ${BREVO_API_KEY:-}
+      Email__SmtpHost: ${SMTP_HOST:-smtp.example.com}
+      Email__SmtpPort: ${SMTP_PORT:-587}
+      Email__SmtpUsername: ${SMTP_USERNAME:-}
+      Email__SmtpPassword: ${SMTP_PASSWORD:-}
+      Email__SmtpUseSsl: ${SMTP_USE_SSL:-true}
+      # ── Security (Root user seed) ──
+      Security__RootEmail: ${ROOT_EMAIL}
+      Security__RootInitialPassword: ${ROOT_PASSWORD}
+      # ── CORS ──
+      Cors__AllowedOrigins__0: "https://edificia.jesusjbriceno.dev"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - edificia_net
+
+  # ── Frontend Web ──
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    image: ghcr.io/jesusjbriceno/edificia-web:latest
+    container_name: edificia_prod_web
+    restart: always
+    ports:
+      - "4321:4321"
+    environment:
+      PUBLIC_API_URL: "https://api-edificia.jesusjbriceno.dev"
+      HOST: "0.0.0.0"
+      PORT: "4321"
+    depends_on:
+      - api
+    networks:
+      - edificia_net
+
+volumes:
+  pgdata_prod:
+
+networks:
+  edificia_net:
+    driver: bridge

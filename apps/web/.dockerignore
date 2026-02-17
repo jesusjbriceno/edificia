@@ -1,0 +1,25 @@
+# ============================================================
+# EDIFICIA Web — .dockerignore
+# ============================================================
+
+.git
+.gitignore
+.vs/
+.vscode/
+
+node_modules/
+dist/
+
+# Tests
+src/test/
+src/tests/
+vitest.config.ts
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# Docs
+*.md
+LICENSE

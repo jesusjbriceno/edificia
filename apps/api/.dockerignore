@@ -1,0 +1,35 @@
+# ============================================================
+# EDIFICIA API — .dockerignore
+# ============================================================
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Build artifacts
+**/bin/
+**/obj/
+**/out/
+
+# Test projects (no se incluyen en la imagen de producción)
+tests/
+
+# Logs
+**/logs/
+
+# Docs
+docs/
+*.md
+LICENSE
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+.env*
