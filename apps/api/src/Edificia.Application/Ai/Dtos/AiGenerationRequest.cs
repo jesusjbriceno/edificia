@@ -1,4 +1,7 @@
 using System.Text.Json.Serialization;
+using Edificia.Application.Ai.Commands.GenerateSectionText;
+using Edificia.Domain.Entities;
+using Edificia.Domain.Enums;
 
 namespace Edificia.Application.Ai.Dtos;
 
@@ -17,7 +20,42 @@ public sealed record AiGenerationRequest(
     TechnicalContext? TechnicalContext,
 
     [property: JsonPropertyName("userInstructions")]
-    string? UserInstructions);
+    string? UserInstructions)
+{
+    /// <summary>
+    /// Creates an AiGenerationRequest from a Project entity and a GenerateSectionTextCommand.
+    /// </summary>
+    public static AiGenerationRequest FromProjectAndCommand(
+        Project project, GenerateSectionTextCommand command) => new(
+            SectionCode: command.SectionId,
+            ProjectType: FormatProjectType(project.InterventionType),
+            TechnicalContext: new TechnicalContext(
+                ProjectTitle: project.Title,
+                InterventionType: FormatInterventionType(project.InterventionType),
+                IsLoeRequired: project.IsLoeRequired,
+                Address: project.Address,
+                LocalRegulations: project.LocalRegulations,
+                ExistingContent: command.Context),
+            UserInstructions: command.Prompt);
+
+    /// <summary>Maps InterventionType to the n8n webhook projectType field.</summary>
+    internal static string FormatProjectType(InterventionType type) => type switch
+    {
+        InterventionType.NewConstruction => "NewConstruction",
+        InterventionType.Reform => "Reform",
+        InterventionType.Extension => "Extension",
+        _ => type.ToString()
+    };
+
+    /// <summary>Maps InterventionType to a human-readable Spanish label for the technical context.</summary>
+    internal static string FormatInterventionType(InterventionType type) => type switch
+    {
+        InterventionType.NewConstruction => "Obra Nueva",
+        InterventionType.Reform => "Reforma",
+        InterventionType.Extension => "Ampliación",
+        _ => type.ToString()
+    };
+}
 
 /// <summary>
 /// Typed technical context sent to n8n with project metadata.

@@ -58,11 +58,7 @@ public sealed class UpdateProfileHandler
         _logger.LogInformation("Profile updated for user {UserId}", request.UserId);
 
         // 4. Build response
-        var response = new UpdateProfileResponse(
-            Id: user.Id,
-            Email: user.Email!,
-            FullName: user.FullName,
-            CollegiateNumber: user.CollegiateNumber);
+        var response = UpdateProfileResponse.FromUser(user);
 
         return Result.Success(response);
     }

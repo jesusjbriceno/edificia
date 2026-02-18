@@ -1,6 +1,5 @@
 using Edificia.Application.Ai.Dtos;
 using Edificia.Application.Interfaces;
-using Edificia.Domain.Enums;
 using Edificia.Shared.Result;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -40,17 +39,7 @@ public sealed class GenerateSectionTextHandler
                 Error.NotFound("Project", $"No se encontró el proyecto con ID {request.ProjectId}."));
         }
 
-        var aiRequest = new AiGenerationRequest(
-            SectionCode: request.SectionId,
-            ProjectType: FormatProjectType(project.InterventionType),
-            TechnicalContext: new TechnicalContext(
-                ProjectTitle: project.Title,
-                InterventionType: FormatInterventionType(project.InterventionType),
-                IsLoeRequired: project.IsLoeRequired,
-                Address: project.Address,
-                LocalRegulations: project.LocalRegulations,
-                ExistingContent: request.Context),
-            UserInstructions: request.Prompt);
+        var aiRequest = AiGenerationRequest.FromProjectAndCommand(project, request);
 
         try
         {
@@ -71,7 +60,7 @@ public sealed class GenerateSectionTextHandler
                         "El servicio de IA no devolvió contenido. Inténtelo de nuevo."));
             }
 
-            var response = new GeneratedTextResponse(
+            var response = GeneratedTextResponse.Create(
                 request.ProjectId,
                 request.SectionId,
                 generatedText);
@@ -90,21 +79,4 @@ public sealed class GenerateSectionTextHandler
         }
     }
 
-    /// <summary>Maps InterventionType to the n8n webhook projectType field.</summary>
-    private static string FormatProjectType(InterventionType type) => type switch
-    {
-        InterventionType.NewConstruction => "NewConstruction",
-        InterventionType.Reform => "Reform",
-        InterventionType.Extension => "Extension",
-        _ => type.ToString()
-    };
-
-    /// <summary>Maps InterventionType to a human-readable Spanish label for the technical context.</summary>
-    private static string FormatInterventionType(InterventionType type) => type switch
-    {
-        InterventionType.NewConstruction => "Obra Nueva",
-        InterventionType.Reform => "Reforma",
-        InterventionType.Extension => "Ampliación",
-        _ => type.ToString()
-    };
 }

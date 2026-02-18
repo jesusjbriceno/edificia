@@ -1,3 +1,5 @@
+using Edificia.Domain.Entities;
+
 namespace Edificia.Application.Auth.DTOs;
 
 /// <summary>
@@ -8,7 +10,29 @@ public sealed record LoginResponse(
     string? RefreshToken,
     int ExpiresInMinutes,
     bool MustChangePassword,
-    UserInfo User);
+    UserInfo User)
+{
+    /// <summary>
+    /// Creates a LoginResponse from an ApplicationUser, tokens and roles.
+    /// Centralises the mapping that was previously duplicated in Login and RefreshToken handlers.
+    /// </summary>
+    public static LoginResponse FromUser(
+        ApplicationUser user,
+        string accessToken,
+        string refreshToken,
+        int expiresInMinutes,
+        IList<string> roles) => new(
+            AccessToken: accessToken,
+            RefreshToken: refreshToken,
+            ExpiresInMinutes: expiresInMinutes,
+            MustChangePassword: user.MustChangePassword,
+            User: new UserInfo(
+                Id: user.Id,
+                Email: user.Email!,
+                FullName: user.FullName,
+                CollegiateNumber: user.CollegiateNumber,
+                Roles: roles.ToList().AsReadOnly()));
+}
 
 /// <summary>
 /// Basic user information included in login response.
