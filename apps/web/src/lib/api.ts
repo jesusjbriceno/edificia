@@ -1,5 +1,6 @@
 import axios, { AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
 import type { ProblemDetails, ValidationProblemDetails } from '@/lib/types';
+import { useAuthStore } from '@/store/useAuthStore';
 
 // ─── API Error class ─────────────────────────────────────
 
@@ -30,8 +31,6 @@ const apiClient: AxiosInstance = axios.create({
 // ─── Request interceptor: inject JWT ─────────────────────
 
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  // Dynamic import to avoid circular deps at module init
-  const { useAuthStore } = require('@/store/useAuthStore');
   const { accessToken } = useAuthStore.getState();
   if (accessToken) {
     config.headers.Authorization = `Bearer ${accessToken}`;
@@ -65,7 +64,6 @@ apiClient.interceptors.response.use(
 
     // ── 401 → try token refresh ──
     if (error.response?.status === 401 && !originalRequest._retry) {
-      const { useAuthStore } = require('@/store/useAuthStore');
       const { refreshToken, setTokens, logout } = useAuthStore.getState();
 
       if (!refreshToken) {
