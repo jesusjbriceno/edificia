@@ -2,6 +2,8 @@ using Edificia.API.Configuration;
 using Edificia.API.Middleware;
 using Edificia.Application;
 using Edificia.Infrastructure;
+using Edificia.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
 
 // ---------- Bootstrap Serilog ----------
@@ -62,6 +64,13 @@ try
             tags: ["db", "ready"]);
 
     var app = builder.Build();
+
+    // ---------- Apply Pending Migrations ----------
+    using (var scope = app.Services.CreateScope())
+    {
+        var dbContext = scope.ServiceProvider.GetRequiredService<EdificiaDbContext>();
+        dbContext.Database.Migrate();
+    }
 
     // ---------- Middleware Pipeline ----------
 
