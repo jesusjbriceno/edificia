@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
+import { EditorSkeleton } from '@/components/ui/Skeleton';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { projectService } from '@/lib/services';
 import { filterTree, parseContentTree, flattenTreeContent } from '@/lib/contentTree';
 import { SyncManager, loadLocalContent } from '@/lib/syncManager';
@@ -132,14 +134,7 @@ export default function ProjectEditor({ projectId }: Readonly<ProjectEditorProps
   }, [projectId]);
 
   if (loading) {
-    return (
-      <div className="flex-1 flex items-center justify-center bg-dark-bg/20">
-        <div className="text-center space-y-4">
-          <Loader2 size={40} className="animate-spin text-brand-primary mx-auto" />
-          <p className="text-sm text-gray-400">Cargando proyecto...</p>
-        </div>
-      </div>
-    );
+    return <EditorSkeleton />;
   }
 
   if (error) {
@@ -160,9 +155,9 @@ export default function ProjectEditor({ projectId }: Readonly<ProjectEditorProps
   }
 
   return (
-    <>
+    <ErrorBoundary>
       <SidebarNavigation tree={tree} />
       <EditorShell projectTitle={project?.title} />
-    </>
+    </ErrorBoundary>
   );
 }
