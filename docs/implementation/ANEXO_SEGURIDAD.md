@@ -98,7 +98,7 @@ Configurada en Identity Options y reforzada con FluentValidation:
 - `collegiate_number` — Número de colegiado (si aplica)
 - `amr` — `pwd_change_required` si `MustChangePassword = true`
 
-**Estado actual:** ✅ Access token implementado. ⚠️ Refresh token pendiente (S.4).
+**Estado actual:** ✅ Access token y refresh token implementados.
 
 ---
 
@@ -206,7 +206,7 @@ API/Controllers/UsersController.cs
 
 ---
 
-## **7. Perfil de Usuario (Self-Service) — ⚠️ PENDIENTE**
+## **7. Perfil de Usuario (Self-Service) — ✅ IMPLEMENTADO**
 
 El usuario autenticado debe poder gestionar su propio perfil sin permisos de admin.
 
@@ -227,9 +227,9 @@ Application/Auth/Commands/UpdateProfile/
 
 ---
 
-## **8. Refresh Tokens — ⚠️ PENDIENTE**
+## **8. Refresh Tokens — ✅ IMPLEMENTADO**
 
-El sistema actual emite access tokens con 60 min de vida. Para evitar re-login constante, se implementarán refresh tokens.
+El sistema emite access tokens con 60 min de vida y refresh tokens con rotación para evitar re-login constante.
 
 ### **8.1. Modelo de datos**
 
@@ -290,6 +290,6 @@ Infrastructure/Identity/RefreshTokenRepository.cs (o EF via DbContext)
 
 | Fase | Feature Branch | Tareas Backend (.NET) | Dependencia |
 | :--- | :--- | :--- | :--- |
-| **S.3** | `feature/user-management` | • `UsersController` con 7 endpoints (CRUD + activate/deactivate + reset-password). • Commands: `CreateUser`, `UpdateUser`, `ToggleUserStatus`, `ResetUserPassword`. • Queries: `GetUsers` (paginado con Dapper + `UserSqlQueries`), `GetUserById`. • `UserResponse` DTO. • Validadores FluentValidation. • Reglas de jerarquía de roles (Admin no gestiona Root/Admin). • Email de bienvenida al crear usuario. • Email de reset al resetear password. • Tests unitarios para todos los handlers y validadores. | S.2 |
-| **S.4** | `feature/refresh-tokens` | • Entidad `RefreshToken` en Domain. • Migración EF para tabla `refresh_tokens`. • `RefreshTokenCommand` + Handler (rotación de tokens). • `RevokeTokenCommand` + Handler. • Detección de reutilización (revocar familia). • Actualizar `LoginHandler` para emitir refresh token junto al access token. • Actualizar `LoginResponse` con campo `RefreshToken`. • Endpoints `POST /auth/refresh` y `POST /auth/revoke` en `AuthController`. • Tests unitarios. | S.2 |
-| **S.5** | `feature/user-profile` | • `UpdateProfileCommand` + Handler + Validator. • `UpdateProfileRequest` DTO. • Endpoint `PUT /auth/profile` en `AuthController`. • Sólo permite actualizar `FullName` y `CollegiateNumber` del propio usuario. • Tests unitarios. | S.2 |
+| **S.3** | `feature/user-management` | CRUD de usuarios, gestión de roles, emails de bienvenida/reset. | S.2 |
+| **S.4** | `feature/refresh-tokens` | ✅ Implementado. Rotación de tokens, detección de reutilización, endpoints refresh/revoke. | S.2 |
+| **S.5** | `feature/user-profile` | ✅ Implementado. `UpdateProfileCommand`, endpoint `PUT /auth/profile`. | S.2 |
