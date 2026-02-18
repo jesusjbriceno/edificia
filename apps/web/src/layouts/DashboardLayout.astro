@@ -25,10 +25,10 @@ const { title } = Astro.props;
 					<LayoutDashboard size={18} className="text-brand-primary" />
 					Proyectos
 				</a>
-				<a href="#" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-all">
+				<span class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-500 cursor-not-allowed rounded-lg opacity-50" title="Próximamente">
 					<FolderKanban size={18} />
 					Plantillas
-				</a>
+				</span>
 				<a href="/admin/users" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-all">
 					<Users size={18} />
 					Usuarios
@@ -36,10 +36,10 @@ const { title } = Astro.props;
 			</nav>
 
 			<div class="p-4 border-t border-white/5 space-y-2">
-				<a href="#" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-all">
+				<span class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-500 cursor-not-allowed rounded-lg opacity-50" title="Próximamente">
 					<Settings size={18} />
 					Ajustes
-				</a>
+				</span>
 				<a href="/" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-400 hover:bg-red-500/10 rounded-lg transition-all">
 					<LogOut size={18} />
 					Cerrar Sesión

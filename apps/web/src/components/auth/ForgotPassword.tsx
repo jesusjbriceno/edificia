@@ -24,7 +24,7 @@ export function ForgotPassword({ onSubmit }: ForgotPasswordProps) {
         </div>
         <h2 className="text-2xl font-bold text-white">¡Enviado!</h2>
         <p className="text-gray-400">Revisa tu correo para las instrucciones de recuperación.</p>
-        <a href="/login" className="inline-block text-brand-primary hover:underline text-sm font-medium">Volver al inicio de sesión</a>
+        <a href="/" className="inline-block text-brand-primary hover:underline text-sm font-medium">Volver al inicio de sesión</a>
       </div>
     );
   }
@@ -54,7 +54,7 @@ export function ForgotPassword({ onSubmit }: ForgotPasswordProps) {
           Enviar instrucciones
         </Button>
 
-        <a href="/login" className="flex items-center justify-center gap-2 text-gray-400 hover:text-white text-sm transition-colors">
+        <a href="/" className="flex items-center justify-center gap-2 text-gray-400 hover:text-white text-sm transition-colors">
           <ArrowLeft size={14} />
           Volver atrás
         </a>
