@@ -9,9 +9,13 @@ interface AuthGuardProps {
 }
 
 export const AuthGuard: React.FC<AuthGuardProps> = ({ children, allowedRoles }) => {
-  const { isAuthenticated, mustChangePassword, hasRole } = useAuthStore();
+  const { _hasHydrated, isAuthenticated, mustChangePassword, hasRole } = useAuthStore();
 
   useEffect(() => {
+    // Wait for Zustand persist to finish rehydrating from localStorage
+    // before making any redirect decisions (Astro MPA = full page reload).
+    if (!_hasHydrated) return;
+
     if (!isAuthenticated) {
       globalThis.location.href = '/';
       return;
@@ -27,7 +31,10 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children, allowedRoles }) 
     if (allowedRoles && allowedRoles.length > 0 && !hasRole(...allowedRoles)) {
       globalThis.location.href = '/dashboard';
     }
-  }, [isAuthenticated, mustChangePassword, allowedRoles, hasRole]);
+  }, [_hasHydrated, isAuthenticated, mustChangePassword, allowedRoles, hasRole]);
+
+  // Still rehydrating — show nothing yet
+  if (!_hasHydrated) return null;
 
   if (!isAuthenticated) return null;
 

@@ -5,6 +5,10 @@ import type { UserInfo, Role, LoginResponse } from '@/lib/types';
 // ─── State shape ─────────────────────────────────────────
 
 interface AuthState {
+  // Hydration
+  /** True once Zustand persist has restored state from localStorage. */
+  _hasHydrated: boolean;
+
   // Data
   user: UserInfo | null;
   accessToken: string | null;
@@ -31,6 +35,7 @@ interface AuthState {
 // ─── Store ───────────────────────────────────────────────
 
 const INITIAL_STATE = {
+  _hasHydrated: false,
   user: null,
   accessToken: null,
   refreshToken: null,
@@ -78,6 +83,9 @@ export const useAuthStore = create<AuthState>()(
         mustChangePassword: state.mustChangePassword,
         isAuthenticated: state.isAuthenticated,
       }),
+      onRehydrateStorage: () => () => {
+        useAuthStore.setState({ _hasHydrated: true });
+      },
     },
   ),
 );
