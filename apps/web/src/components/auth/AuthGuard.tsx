@@ -13,25 +13,25 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children, allowedRoles }) 
 
   useEffect(() => {
     if (!isAuthenticated) {
-      window.location.href = '/';
+      globalThis.location.href = '/';
       return;
     }
 
     // Force password change before accessing any other page
-    if (mustChangePassword && !window.location.pathname.startsWith('/profile')) {
-      window.location.href = '/profile?tab=security';
+    if (mustChangePassword && !globalThis.location.pathname.startsWith('/profile')) {
+      globalThis.location.href = '/profile?tab=security';
       return;
     }
 
     // Check RBAC
     if (allowedRoles && allowedRoles.length > 0 && !hasRole(...allowedRoles)) {
-      window.location.href = '/dashboard';
+      globalThis.location.href = '/dashboard';
     }
   }, [isAuthenticated, mustChangePassword, allowedRoles, hasRole]);
 
   if (!isAuthenticated) return null;
 
-  if (mustChangePassword && !window.location.pathname.startsWith('/profile')) return null;
+  if (mustChangePassword && !globalThis.location.pathname.startsWith('/profile')) return null;
 
   if (allowedRoles && allowedRoles.length > 0 && !hasRole(...allowedRoles)) return null;
 

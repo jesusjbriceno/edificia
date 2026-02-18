@@ -5,7 +5,7 @@ import { useEditorStore } from '@/store/useEditorStore';
 import { useEffect } from 'react';
 import { Loader2, Sparkles, Save, FileText, Check, WifiOff, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { EditorToolbar } from './EditorToolbar';
+import { EditorToolbar } from './EditorToolbar.js';
 import type { SyncStatus } from '@/lib/syncManager';
 
 // ── Sync Status Badge ────────────────────────────────────

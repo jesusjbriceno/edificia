@@ -65,7 +65,7 @@ const INTERVENTION_OPTIONS = [
 ] as const;
 
 // ─── Component ───────────────────────────────────────────
-export default function ProjectWizard({ isOpen, onClose, onCreated }: ProjectWizardProps) {
+export default function ProjectWizard({ isOpen, onClose, onCreated }: Readonly<ProjectWizardProps>) {
   const [step, setStep] = useState(1);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -249,8 +249,9 @@ export default function ProjectWizard({ isOpen, onClose, onCreated }: ProjectWiz
 
               {/* LOE toggle */}
               <label className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5 cursor-pointer hover:border-white/10 transition-colors">
+                <span className="sr-only">¿Aplica LOE?</span>
                 <div>
-                  <p className="text-sm text-white font-medium">¿Aplica LOE?</p>
+                  <p className="text-sm text-white font-medium" aria-hidden="true">¿Aplica LOE?</p>
                   <p className="text-xs text-gray-500">
                     La Ley de Ordenación de la Edificación se aplica por defecto en Obra Nueva y Ampliación.
                   </p>

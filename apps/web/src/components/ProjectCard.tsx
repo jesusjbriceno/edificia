@@ -19,7 +19,7 @@ const statusVariant: Record<string, 'default' | 'info' | 'success' | 'warning'> 
   [ProjectStatus.Archived]: 'warning',
 };
 
-export default function ProjectCard({ project, onClick }: ProjectCardProps) {
+export default function ProjectCard({ project, onClick }: Readonly<ProjectCardProps>) {
   const label =
     ProjectStatusLabels[project.status as ProjectStatus] ?? project.status;
   const variant = statusVariant[project.status] ?? 'default';
@@ -42,10 +42,10 @@ export default function ProjectCard({ project, onClick }: ProjectCardProps) {
       });
 
   return (
-    <div
-      role="article"
+    <button
+      type="button"
       onClick={() => onClick?.(project.id)}
-      className="glass-card group p-6 rounded-xl transition-all duration-300 hover:border-brand-primary/30 hover:shadow-brand-primary/5 cursor-pointer flex flex-col justify-between h-48"
+      className="glass-card group p-6 rounded-xl transition-all duration-300 hover:border-brand-primary/30 hover:shadow-brand-primary/5 cursor-pointer flex flex-col justify-between h-48 text-left w-full"
     >
       <div className="flex justify-between items-start">
         <div className="p-2 bg-brand-primary/10 rounded-lg text-brand-primary">
@@ -75,6 +75,6 @@ export default function ProjectCard({ project, onClick }: ProjectCardProps) {
         </div>
         <Badge variant={variant}>{label}</Badge>
       </div>
-    </div>
+    </button>
   );
 }

@@ -8,7 +8,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { authService } from '@/lib/services/authService';
 import { RoleLabels, type Role } from '@/lib/types';
 import { ApiError } from '@/lib/api';
-import { ChangePassword } from './ChangePassword';
+import { ChangePassword } from './ChangePassword.js';
 
 // ─── Zod schema ──────────────────────────────────────────
 
@@ -26,11 +26,8 @@ export function ProfileView() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<'profile' | 'security'>(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      return params.get('tab') === 'security' ? 'security' : 'profile';
-    }
-    return 'profile';
+    const params = new URLSearchParams(globalThis.location?.search ?? '');
+    return params.get('tab') === 'security' ? 'security' : 'profile';
   });
 
   const {
@@ -79,7 +76,7 @@ export function ProfileView() {
 
   if (!user) return null;
 
-  const userRole = user.roles?.[0] as Role | undefined;
+  const userRole = user.roles?.[0];
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -150,12 +147,13 @@ export function ProfileView() {
           <form onSubmit={handleSubmit(onSubmit)}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-widest text-gray-500">
+                <label htmlFor="fullName" className="text-xs font-bold uppercase tracking-widest text-gray-500">
                   Nombre Completo
                 </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
                   <input
+                    id="fullName"
                     className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-3 text-white focus:border-brand-primary outline-none transition-colors"
                     {...register('fullName')}
                   />
@@ -166,12 +164,13 @@ export function ProfileView() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-widest text-gray-500">
+                <label htmlFor="email" className="text-xs font-bold uppercase tracking-widest text-gray-500">
                   Email Profesional
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
                   <input
+                    id="email"
                     defaultValue={user.email}
                     className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-3 text-white opacity-70 cursor-not-allowed"
                     readOnly
@@ -180,12 +179,13 @@ export function ProfileView() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-widest text-gray-500">
+                <label htmlFor="collegiateNumber" className="text-xs font-bold uppercase tracking-widest text-gray-500">
                   Nº Colegiado
                 </label>
                 <div className="relative">
                   <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
                   <input
+                    id="collegiateNumber"
                     className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-3 text-white focus:border-brand-primary outline-none transition-colors"
                     placeholder="Ej: 12345-M"
                     {...register('collegiateNumber')}
@@ -194,9 +194,9 @@ export function ProfileView() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-widest text-gray-500">
+                <span className="text-xs font-bold uppercase tracking-widest text-gray-500">
                   Rol asignado
-                </label>
+                </span>
                 <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-lg px-4 py-3">
                   <Shield className="text-brand-primary w-4 h-4" />
                   <span className="text-white font-medium">

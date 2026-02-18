@@ -26,7 +26,7 @@ interface ProjectFormProps {
   isLoading?: boolean;
 }
 
-export function ProjectForm({ onSubmit, isLoading: externalLoading }: ProjectFormProps) {
+export function ProjectForm({ onSubmit, isLoading: externalLoading }: Readonly<ProjectFormProps>) {
   const [apiError, setApiError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -103,7 +103,7 @@ export function ProjectForm({ onSubmit, isLoading: externalLoading }: ProjectFor
         <textarea
           id="description"
           {...register('description')}
-          className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:border-brand-primary outline-none transition-colors min-h-[80px]"
+          className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:border-brand-primary outline-none transition-colors min-h-20"
           placeholder="Breve descripción del alcance del proyecto."
         />
       </div>
