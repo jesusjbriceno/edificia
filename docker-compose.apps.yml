@@ -1,9 +1,14 @@
 # ============================================================
 # EDIFICIA — Docker Compose (Solo Apps — BD y Redis externos)
-# Uso: docker compose -f docker-compose.apps.yml --env-file .env up -d
+# Uso: docker compose -f docker-compose.apps.yml up -d
 #
-# Para entornos donde PostgreSQL y Redis ya están desplegados.
-# Ajusta las variables DB_HOST, DB_PORT, REDIS_HOST en .env
+# Variables dinámicas (DB_HOST, JWT_SECRET, etc.) se inyectan:
+#   • Desde un fichero .env en la raíz del repositorio, o
+#   • Desde la UI de Coolify / Portainer.
+#
+# Program.cs mapea los nombres cortos (DB_HOST, JWT_SECRET…)
+# a las claves de configuración de .NET automáticamente.
+# Consulta .env.example para la lista completa.
 # ============================================================
 
 services:
@@ -17,30 +22,14 @@ services:
     restart: always
     ports:
       - "5000:8080"
+    env_file:
+      - path: .env
+        required: false
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      # ── Connection Strings ──
-      ConnectionStrings__DefaultConnection: "Host=${DB_HOST};Port=${DB_PORT:-5432};Database=${DB_NAME:-edificia_db};Username=${DB_USER};Password=${DB_PASSWORD}"
-      # ── JWT ──
-      Jwt__SecretKey: ${JWT_SECRET}
+      # Fixed production values (secrets come from .env / Coolify UI)
       Jwt__Issuer: "https://api-edificia.jesusjbriceno.dev"
       Jwt__Audience: "https://edificia.jesusjbriceno.dev"
-      # ── AI (n8n Webhook) ──
-      AI__WebhookUrl: ${N8N_WEBHOOK_URL}
-      AI__ApiSecret: ${N8N_API_SECRET}
-      AI__TimeoutSeconds: ${N8N_TIMEOUT:-120}
-      # ── Email ──
-      Email__Provider: ${EMAIL_PROVIDER:-Smtp}
-      Email__BrevoApiKey: ${BREVO_API_KEY:-}
-      Email__SmtpHost: ${SMTP_HOST:-smtp.example.com}
-      Email__SmtpPort: ${SMTP_PORT:-587}
-      Email__SmtpUsername: ${SMTP_USERNAME:-}
-      Email__SmtpPassword: ${SMTP_PASSWORD:-}
-      Email__SmtpUseSsl: ${SMTP_USE_SSL:-true}
-      # ── Security (Root user seed) ──
-      Security__RootEmail: ${ROOT_EMAIL}
-      Security__RootInitialPassword: ${ROOT_PASSWORD}
-      # ── CORS ──
       Cors__AllowedOrigins__0: "https://edificia.jesusjbriceno.dev"
 
   # ── Frontend Web ──
@@ -53,6 +42,9 @@ services:
     restart: always
     ports:
       - "4321:4321"
+    env_file:
+      - path: .env
+        required: false
     environment:
       PUBLIC_API_URL: "https://api-edificia.jesusjbriceno.dev"
       HOST: "0.0.0.0"

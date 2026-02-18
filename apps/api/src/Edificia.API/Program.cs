@@ -11,6 +11,10 @@ Log.Logger = new LoggerConfiguration()
 
 try
 {
+    // Map friendly env var names (DB_HOST, JWT_SECRET…) → .NET config keys
+    // BEFORE CreateBuilder so the environment variable provider picks them up.
+    MapEnvironmentVariables();
+
     var builder = WebApplication.CreateBuilder(args);
 
     // ---------- Serilog ----------
@@ -108,4 +112,55 @@ catch (Exception ex)
 finally
 {
     Log.CloseAndFlush();
+}
+
+// ---------- Environment Variable Mapping ----------
+// Translates short, human-friendly env var names (DB_HOST, JWT_SECRET, etc.)
+// into the .NET configuration key convention (ConnectionStrings__DefaultConnection,
+// Jwt__SecretKey, etc.).  This lets .env files and container platforms (Coolify,
+// Portainer …) inject configuration without knowing .NET internals.
+//
+// Priority: if the target .NET key is already set (e.g. via
+// ConnectionStrings__DefaultConnection), the short name is ignored.
+static void MapEnvironmentVariables()
+{
+    // ── Connection string from individual DB_* vars ──
+    var dbHost = Environment.GetEnvironmentVariable("DB_HOST");
+    if (!string.IsNullOrEmpty(dbHost)
+        && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")))
+    {
+        var port = Environment.GetEnvironmentVariable("DB_PORT") ?? "5432";
+        var name = Environment.GetEnvironmentVariable("DB_NAME") ?? "edificia_db";
+        var user = Environment.GetEnvironmentVariable("DB_USER") ?? "edificia";
+        var pass = Environment.GetEnvironmentVariable("DB_PASSWORD") ?? "";
+
+        Environment.SetEnvironmentVariable(
+            "ConnectionStrings__DefaultConnection",
+            $"Host={dbHost};Port={port};Database={name};Username={user};Password={pass}");
+    }
+
+    // ── Short name → .NET config key ──
+    MapEnv("JWT_SECRET",     "Jwt__SecretKey");
+    MapEnv("N8N_WEBHOOK_URL", "AI__WebhookUrl");
+    MapEnv("N8N_API_SECRET",  "AI__ApiSecret");
+    MapEnv("N8N_TIMEOUT",     "AI__TimeoutSeconds");
+    MapEnv("EMAIL_PROVIDER",  "Email__Provider");
+    MapEnv("BREVO_API_KEY",   "Email__BrevoApiKey");
+    MapEnv("SMTP_HOST",       "Email__SmtpHost");
+    MapEnv("SMTP_PORT",       "Email__SmtpPort");
+    MapEnv("SMTP_USERNAME",   "Email__SmtpUsername");
+    MapEnv("SMTP_PASSWORD",   "Email__SmtpPassword");
+    MapEnv("SMTP_USE_SSL",    "Email__SmtpUseSsl");
+    MapEnv("ROOT_EMAIL",      "Security__RootEmail");
+    MapEnv("ROOT_PASSWORD",   "Security__RootInitialPassword");
+
+    static void MapEnv(string source, string target)
+    {
+        var value = Environment.GetEnvironmentVariable(source);
+        if (!string.IsNullOrEmpty(value)
+            && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(target)))
+        {
+            Environment.SetEnvironmentVariable(target, value);
+        }
+    }
 }
