@@ -9,7 +9,7 @@ vi.mock('@/store/useAuthStore', () => ({
 }));
 
 describe('AuthGuard component', () => {
-  it('should render children if authenticated', () => {
+  it('should render children visible if authenticated', () => {
     (useAuthStore as any).mockReturnValue({
       _hasHydrated: true,
       isAuthenticated: true,
@@ -23,10 +23,13 @@ describe('AuthGuard component', () => {
       </AuthGuard>
     );
 
-    expect(screen.getByTestId('protected-content')).toBeInTheDocument();
+    const content = screen.getByTestId('protected-content');
+    expect(content).toBeInTheDocument();
+    // The wrapper uses display:contents when visible → content is accessible
+    expect(content.closest('div[style]')?.getAttribute('style')).toContain('contents');
   });
 
-  it('should not render children and redirect if not authenticated', () => {
+  it('should hide children with CSS (not remove from DOM) when not authenticated', () => {
     (useAuthStore as any).mockReturnValue({
       _hasHydrated: true,
       isAuthenticated: false,
@@ -45,13 +48,15 @@ describe('AuthGuard component', () => {
       </AuthGuard>
     );
 
-    expect(screen.queryByTestId('protected-content')).not.toBeInTheDocument();
-    expect(window.location.href).toBe('/');
+    // Children exist in DOM but are hidden via display:none
+    const content = screen.getByTestId('protected-content');
+    expect(content).toBeInTheDocument();
+    expect(content.closest('div[style]')?.getAttribute('style')).toContain('none');
 
     window.location = originalLocation as any;
   });
 
-  it('should not render or redirect while hydrating', () => {
+  it('should hide children while hydrating (not remove from DOM)', () => {
     (useAuthStore as any).mockReturnValue({
       _hasHydrated: false,
       isAuthenticated: false,
@@ -65,8 +70,9 @@ describe('AuthGuard component', () => {
       </AuthGuard>
     );
 
-    // Should render nothing — no content, no redirect
-    expect(screen.queryByTestId('protected-content')).not.toBeInTheDocument();
+    // Children exist in DOM but are hidden — Astro can still hydrate nested islands
+    const content = screen.getByTestId('protected-content');
+    expect(content).toBeInTheDocument();
+    expect(content.closest('div[style]')?.getAttribute('style')).toContain('none');
   });
 });
-

@@ -50,13 +50,13 @@ export default function HeaderUser() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-3 pl-4 border-l border-white/10 cursor-pointer hover:opacity-90 transition-opacity"
+        className="flex items-center gap-2 md:gap-3 pl-2 md:pl-4 border-l border-white/10 cursor-pointer hover:opacity-90 transition-opacity"
       >
-        <div className="text-right">
+        <div className="text-right hidden sm:block">
           <p className="text-sm font-medium text-white">{user.fullName}</p>
           <p className="text-xs text-gray-500">{roleLabel}</p>
         </div>
-        <div className="w-10 h-10 rounded-full bg-linear-to-br from-brand-primary to-blue-600 flex items-center justify-center font-bold text-white text-sm">
+        <div className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-linear-to-br from-brand-primary to-blue-600 flex items-center justify-center font-bold text-white text-xs md:text-sm">
           {initials}
         </div>
         <ChevronDown
@@ -67,7 +67,7 @@ export default function HeaderUser() {
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-52 bg-dark-card border border-white/10 rounded-xl shadow-xl py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="absolute right-0 top-full mt-2 w-48 md:w-52 bg-dark-card border border-white/10 rounded-xl shadow-xl py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
           <a
             href="/profile"
             className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"

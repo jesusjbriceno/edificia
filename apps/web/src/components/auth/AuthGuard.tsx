@@ -8,6 +8,16 @@ interface AuthGuardProps {
   allowedRoles?: Role[];
 }
 
+/**
+ * AuthGuard – protects pages behind authentication + RBAC.
+ *
+ * IMPORTANT: In Astro's island architecture, nested `client:load` components
+ * must always be present in the DOM for Astro to hydrate them. If this
+ * component returns `null`, Astro removes the child island DOM nodes and
+ * never hydrates them → blank page. We use CSS `display: none` instead so
+ * the children always exist in the DOM but are invisible until auth is
+ * confirmed.
+ */
 export const AuthGuard: React.FC<AuthGuardProps> = ({ children, allowedRoles }) => {
   const { _hasHydrated, isAuthenticated, mustChangePassword, hasRole } = useAuthStore();
 
@@ -33,14 +43,17 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children, allowedRoles }) 
     }
   }, [_hasHydrated, isAuthenticated, mustChangePassword, allowedRoles, hasRole]);
 
-  // Still rehydrating — show nothing yet
-  if (!_hasHydrated) return null;
+  // Determine visibility — children are ALWAYS rendered in the DOM
+  // so Astro can hydrate nested client:load islands.
+  const shouldShow =
+    _hasHydrated &&
+    isAuthenticated &&
+    !(mustChangePassword && !globalThis.location.pathname.startsWith('/profile')) &&
+    !(allowedRoles && allowedRoles.length > 0 && !hasRole(...allowedRoles));
 
-  if (!isAuthenticated) return null;
-
-  if (mustChangePassword && !globalThis.location.pathname.startsWith('/profile')) return null;
-
-  if (allowedRoles && allowedRoles.length > 0 && !hasRole(...allowedRoles)) return null;
-
-  return <>{children}</>;
+  return (
+    <div style={{ display: shouldShow ? 'contents' : 'none' }}>
+      {children}
+    </div>
+  );
 };

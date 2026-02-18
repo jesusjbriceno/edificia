@@ -3,6 +3,7 @@ import BaseLayout from './BaseLayout.astro';
 import { LayoutDashboard, FolderKanban, Users, Settings, Search, Bell } from 'lucide-react';
 import HeaderUser from '@/components/HeaderUser';
 import SidebarLogout from '@/components/SidebarLogout';
+import MobileSidebar from '@/components/MobileSidebar';
 
 interface Props {
 	title: string;
@@ -22,8 +23,8 @@ const linkClass = (href: string) => {
 
 <BaseLayout title={title}>
 	<div class="flex h-screen bg-dark-bg">
-		<!-- Sidebar -->
-		<aside class="w-64 border-r border-white/5 flex flex-col bg-dark-bg/50 backdrop-blur-xl">
+		<!-- Desktop Sidebar (hidden on mobile) -->
+		<aside class="hidden md:flex w-64 border-r border-white/5 flex-col bg-dark-bg/50 backdrop-blur-xl shrink-0">
 			<div class="p-6">
 				<a href="/dashboard" class="block">
 					<h2 class="text-2xl font-bold tracking-tight text-white">
@@ -57,11 +58,15 @@ const linkClass = (href: string) => {
 		</aside>
 
 		<!-- Main Content -->
-		<div class="flex-1 flex flex-col overflow-hidden">
+		<div class="flex-1 flex flex-col overflow-hidden min-w-0">
 			<!-- Header -->
-			<header class="h-16 border-b border-white/5 flex items-center justify-between px-8 bg-dark-bg/30 backdrop-blur-md">
-				<div class="flex items-center flex-1 max-w-xl">
-					<div class="relative w-full">
+			<header class="h-16 border-b border-white/5 flex items-center justify-between px-4 md:px-8 bg-dark-bg/30 backdrop-blur-md shrink-0">
+				<div class="flex items-center gap-3 flex-1">
+					<!-- Mobile hamburger + sidebar -->
+					<MobileSidebar client:load />
+
+					<!-- Search (hidden on very small screens) -->
+					<div class="hidden sm:block relative flex-1 max-w-xl">
 						<Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
 						<input 
 							type="text" 
@@ -71,7 +76,7 @@ const linkClass = (href: string) => {
 					</div>
 				</div>
 
-				<div class="flex items-center gap-4">
+				<div class="flex items-center gap-2 md:gap-4">
 					<button class="p-2 text-gray-400 hover:text-white transition-colors relative">
 						<Bell size={20} />
 						<span class="absolute top-2 right-2 w-2 h-2 bg-brand-primary rounded-full"></span>
@@ -81,10 +86,9 @@ const linkClass = (href: string) => {
 			</header>
 
 			<!-- Scrollable Area -->
-			<main class="flex-1 overflow-y-auto p-8">
+			<main class="flex-1 overflow-y-auto p-4 md:p-8">
 				<slot />
 			</main>
 		</div>
 	</div>
 </BaseLayout>
-
