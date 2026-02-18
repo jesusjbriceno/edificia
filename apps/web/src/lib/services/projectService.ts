@@ -64,4 +64,23 @@ export const projectService = {
       payload,
     );
   },
+
+  /** GET /projects/:id/export — downloads a .docx binary blob */
+  async exportDocx(projectId: string): Promise<{ blob: Blob; fileName: string }> {
+    const response = await apiClient.get(`/projects/${projectId}/export`, {
+      responseType: 'blob',
+    });
+
+    // Extract filename from Content-Disposition header, fallback to default
+    const disposition = response.headers['content-disposition'] as string | undefined;
+    let fileName = 'memoria-proyecto.docx';
+    if (disposition) {
+      const match = /filename\*?=(?:UTF-8''|")?([^";]+)"?/i.exec(disposition);
+      if (match?.[1]) {
+        fileName = decodeURIComponent(match[1]);
+      }
+    }
+
+    return { blob: response.data as Blob, fileName };
+  },
 } as const;

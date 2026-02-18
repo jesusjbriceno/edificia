@@ -3,10 +3,11 @@ import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import { useEditorStore } from '@/store/useEditorStore';
 import { useEffect, useState, useCallback } from 'react';
-import { Loader2, Sparkles, Save, FileText, Check, WifiOff, AlertTriangle } from 'lucide-react';
+import { Loader2, Sparkles, Save, FileText, Check, WifiOff, AlertTriangle, Download } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { EditorToolbar } from './EditorToolbar.js';
 import AiAssistantPanel from './AiAssistantPanel.js';
+import { projectService } from '@/lib/services/projectService.js';
 import type { ContentTreeNode } from '@/lib/types';
 import type { SyncStatus } from '@/lib/syncManager';
 
@@ -74,8 +75,9 @@ interface EditorShellProps {
 }
 
 export default function EditorShell({ projectTitle }: Readonly<EditorShellProps>) {
-  const { activeSectionId, content, updateContent, syncStatus, pendingCount, tree } = useEditorStore();
+  const { activeSectionId, content, updateContent, syncStatus, pendingCount, tree, projectId } = useEditorStore();
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const activeSectionTitle = activeSectionId
     ? findNodeTitle(tree, activeSectionId)
@@ -129,6 +131,29 @@ export default function EditorShell({ projectTitle }: Readonly<EditorShellProps>
     [editor, activeSectionId, updateContent],
   );
 
+  // ── Export DOCX handler ──
+  const handleExport = useCallback(async () => {
+    if (!projectId || exporting) return;
+
+    setExporting(true);
+    try {
+      const { blob, fileName } = await projectService.exportDocx(projectId);
+
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = fileName;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+    } catch {
+      // Error silencioso — se podría añadir toast en el futuro
+    } finally {
+      setExporting(false);
+    }
+  }, [projectId, exporting]);
+
   if (!activeSectionId) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-gray-500 space-y-6 bg-dark-bg/20 backdrop-blur-sm">
@@ -164,8 +189,16 @@ export default function EditorShell({ projectTitle }: Readonly<EditorShellProps>
                <Sparkles size={14} className="mr-2 text-brand-primary animate-pulse" />
                Optimizar con IA
              </Button>
-             <Button size="sm" className="h-9 px-4 bg-white/10 hover:bg-white/20 text-white border border-white/10">
-               Exportar PDF
+             <Button
+               size="sm"
+               className="h-9 px-4 bg-white/10 hover:bg-white/20 text-white border border-white/10"
+               onClick={handleExport}
+               disabled={exporting || !projectId}
+             >
+               {exporting
+                 ? <><Loader2 size={14} className="mr-2 animate-spin" /> Exportando...</>
+                 : <><Download size={14} className="mr-2" /> Exportar Word</>
+               }
              </Button>
           </div>
         </div>
