@@ -2,11 +2,25 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import { useEditorStore } from '@/store/useEditorStore';
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Loader2, Sparkles, Save, FileText, Check, WifiOff, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { EditorToolbar } from './EditorToolbar.js';
+import AiAssistantPanel from './AiAssistantPanel.js';
+import type { ContentTreeNode } from '@/lib/types';
 import type { SyncStatus } from '@/lib/syncManager';
+
+// ── Helpers ──────────────────────────────────────────────
+
+/** Walk the tree recursively to find a node's title by ID. */
+function findNodeTitle(nodes: ContentTreeNode[], id: string): string | undefined {
+  for (const node of nodes) {
+    if (node.id === id) return node.title;
+    const found = findNodeTitle(node.sections, id);
+    if (found) return found;
+  }
+  return undefined;
+}
 
 // ── Sync Status Badge ────────────────────────────────────
 
@@ -60,7 +74,12 @@ interface EditorShellProps {
 }
 
 export default function EditorShell({ projectTitle }: Readonly<EditorShellProps>) {
-  const { activeSectionId, content, updateContent, syncStatus, pendingCount } = useEditorStore();
+  const { activeSectionId, content, updateContent, syncStatus, pendingCount, tree } = useEditorStore();
+  const [aiPanelOpen, setAiPanelOpen] = useState(false);
+
+  const activeSectionTitle = activeSectionId
+    ? findNodeTitle(tree, activeSectionId)
+    : undefined;
 
   const editor = useEditor({
     extensions: [
@@ -91,6 +110,25 @@ export default function EditorShell({ projectTitle }: Readonly<EditorShellProps>
     }
   }, [activeSectionId, editor]);
 
+  // ── AI content insertion handler ──
+  const handleAiInsertContent = useCallback(
+    (html: string, mode: 'replace' | 'append') => {
+      if (!editor || !activeSectionId) return;
+
+      if (mode === 'replace') {
+        editor.commands.setContent(html);
+      } else {
+        // Append: move to end, insert content
+        editor.commands.focus('end');
+        editor.commands.insertContent(html);
+      }
+
+      // Persist via store → SyncManager
+      updateContent(activeSectionId, editor.getHTML());
+    },
+    [editor, activeSectionId, updateContent],
+  );
+
   if (!activeSectionId) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-gray-500 space-y-6 bg-dark-bg/20 backdrop-blur-sm">
@@ -106,32 +144,48 @@ export default function EditorShell({ projectTitle }: Readonly<EditorShellProps>
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-dark-bg/20 overflow-hidden">
-      {/* Header del Editor */}
-      <div className="h-14 border-b border-white/5 bg-dark-card/80 backdrop-blur-xl flex items-center justify-between px-6 z-10">
-        <div className="flex items-center gap-4">
-          <div className="h-8 w-px bg-white/10 mx-2" />
-          <SyncBadge status={syncStatus} pendingCount={pendingCount} />
+    <div className="flex-1 flex h-full bg-dark-bg/20 overflow-hidden">
+      {/* Main Editor Area */}
+      <div className="flex-1 flex flex-col h-full overflow-hidden">
+        {/* Header del Editor */}
+        <div className="h-14 border-b border-white/5 bg-dark-card/80 backdrop-blur-xl flex items-center justify-between px-6 z-10">
+          <div className="flex items-center gap-4">
+            <div className="h-8 w-px bg-white/10 mx-2" />
+            <SyncBadge status={syncStatus} pendingCount={pendingCount} />
+          </div>
+
+          <div className="flex items-center gap-3">
+             <Button
+               variant="ghost"
+               size="sm"
+               className={`h-9 px-4 text-brand-primary bg-brand-primary/5 hover:bg-brand-primary/15 border border-brand-primary/10 ${aiPanelOpen ? 'ring-1 ring-brand-primary/40' : ''}`}
+               onClick={() => setAiPanelOpen((prev) => !prev)}
+             >
+               <Sparkles size={14} className="mr-2 text-brand-primary animate-pulse" />
+               Optimizar con IA
+             </Button>
+             <Button size="sm" className="h-9 px-4 bg-white/10 hover:bg-white/20 text-white border border-white/10">
+               Exportar PDF
+             </Button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
-           <Button variant="ghost" size="sm" className="h-9 px-4 text-brand-primary bg-brand-primary/5 hover:bg-brand-primary/15 border border-brand-primary/10">
-             <Sparkles size={14} className="mr-2 text-brand-primary animate-pulse" />
-             Optimizar con IA
-           </Button>
-           <Button size="sm" className="h-9 px-4 bg-white/10 hover:bg-white/20 text-white border border-white/10">
-             Exportar PDF
-           </Button>
+        {/* Area de Trabajo con Toolbar Flotante o Fija */}
+        <div className="flex-1 overflow-y-auto p-6 lg:p-10 scroll-smooth">
+          <div className="max-w-4xl mx-auto space-y-6">
+            <EditorToolbar editor={editor} />
+            <EditorContent editor={editor} className="editor-container" />
+          </div>
         </div>
       </div>
 
-      {/* Area de Trabajo con Toolbar Flotante o Fija */}
-      <div className="flex-1 overflow-y-auto p-6 lg:p-10 scroll-smooth">
-        <div className="max-w-4xl mx-auto space-y-6">
-          <EditorToolbar editor={editor} />
-          <EditorContent editor={editor} className="editor-container" />
-        </div>
-      </div>
+      {/* AI Assistant Panel (slide-in from right) */}
+      <AiAssistantPanel
+        isOpen={aiPanelOpen}
+        onClose={() => setAiPanelOpen(false)}
+        onInsertContent={handleAiInsertContent}
+        sectionTitle={activeSectionTitle}
+      />
     </div>
   );
 }
