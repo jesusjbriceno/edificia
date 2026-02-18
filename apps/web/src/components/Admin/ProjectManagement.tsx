@@ -1,58 +1,78 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ProjectRow } from './ProjectRow';
 import { ProjectForm } from './ProjectForm';
 import { Button } from '@/components/ui/Button';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus, Search, Filter, Loader2, AlertCircle } from 'lucide-react';
+import { projectService } from '@/lib/services';
+import type { ProjectResponse, PagedResponse } from '@/lib/types';
+import { ApiError } from '@/lib/api';
 
-// Mock data inicial
-const INITIAL_PROJECTS = [
-  {
-    id: '1',
-    title: 'Reforma Integral Oficina Central',
-    description: 'Proyecto de remodelación de la sede de Edificia en Madrid. Incluye nuevas salas de juntas y zona de relax.',
-    status: 'Active' as const,
-    createdAt: new Date().toISOString(),
-    owner: 'Arq. Ana Martínez',
-  },
-  {
-    id: '2',
-    title: 'Complejo Residencial Marina',
-    description: 'Estudio técnico para la cimentación y estructura de 45 viviendas unifamiliares en la costa.',
-    status: 'OnHold' as const,
-    createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
-    owner: 'Arq. Juan Pérez',
-  }
-];
+const PAGE_SIZE = 10;
 
 export default function ProjectManagement() {
-  const [projects, setProjects] = useState(INITIAL_PROJECTS);
+  const [projects, setProjects] = useState<ProjectResponse[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string | undefined>();
 
-  const handleAddProject = (data: any) => {
-    const newProject = {
-      id: Math.random().toString(36).substr(2, 9),
-      ...data,
-      createdAt: new Date().toISOString(),
-      owner: 'Admin', // Por ahora
-    };
-    setProjects([newProject, ...projects]);
+  const fetchProjects = useCallback(async (p: number, status?: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data: PagedResponse<ProjectResponse> = await projectService.list({
+        page: p,
+        pageSize: PAGE_SIZE,
+        status,
+      });
+      setProjects(data.items);
+      setTotalPages(data.totalPages);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError('No se pudieron cargar los proyectos.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchProjects(page, statusFilter);
+  }, [page, statusFilter, fetchProjects]);
+
+  const handleAddProject = async () => {
     setIsAdding(false);
+    // Refresh list after creation
+    await fetchProjects(1, statusFilter);
+    setPage(1);
   };
 
-  const filteredProjects = projects.filter(p => 
-    p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Client-side search filter (within current page)
+  const filteredProjects = searchTerm
+    ? projects.filter(
+        p =>
+          p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (p.description ?? '').toLowerCase().includes(searchTerm.toLowerCase()),
+      )
+    : projects;
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Gestión de Proyectos</h1>
-          <p className="text-gray-400 mt-1">Supervise y gestione todas las obras y proyectos técnicos activos.</p>
+          <h1 className="text-3xl font-bold text-white tracking-tight">
+            Gestión de Proyectos
+          </h1>
+          <p className="text-gray-400 mt-1">
+            Supervise y gestione todas las obras y proyectos técnicos.
+          </p>
         </div>
-        
+
         <Button onClick={() => setIsAdding(!isAdding)} className="h-12 px-6">
           <Plus size={18} className="mr-2" />
           {isAdding ? 'Volver al Listado' : 'Nuevo Proyecto'}
@@ -65,48 +85,136 @@ export default function ProjectManagement() {
             <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
               <Plus size={120} />
             </div>
-            <h2 className="text-xl font-bold text-white mb-6">Crear Nuevo Proyecto Técnico</h2>
+            <h2 className="text-xl font-bold text-white mb-6">
+              Crear Nuevo Proyecto Técnico
+            </h2>
             <ProjectForm onSubmit={handleAddProject} />
           </div>
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Barra de búsqueda y filtros */}
+          {/* Search & filter bar */}
           <div className="flex gap-4 p-2 bg-white/5 rounded-2xl border border-white/5">
             <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-              <input 
-                type="text" 
-                placeholder="Buscar por título o descripción..." 
+              <Search
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"
+                size={18}
+              />
+              <input
+                type="text"
+                placeholder="Buscar por título o descripción..."
                 className="w-full bg-transparent border-none focus:ring-0 text-white pl-12 py-3"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={e => setSearchTerm(e.target.value)}
               />
             </div>
-            <Button variant="ghost" className="hidden sm:flex text-gray-400 hover:text-white">
+            <select
+              value={statusFilter ?? ''}
+              onChange={e => {
+                setStatusFilter(e.target.value || undefined);
+                setPage(1);
+              }}
+              className="bg-transparent border-none text-gray-400 text-sm focus:ring-0 appearance-none pr-6 cursor-pointer"
+            >
+              <option value="">Todos los estados</option>
+              <option value="Draft">Borrador</option>
+              <option value="InProgress">En redacción</option>
+              <option value="Completed">Completado</option>
+              <option value="Archived">Archivado</option>
+            </select>
+            <Button
+              variant="ghost"
+              className="hidden sm:flex text-gray-400 hover:text-white"
+              onClick={() => {
+                setSearchTerm('');
+                setStatusFilter(undefined);
+                setPage(1);
+              }}
+            >
               <Filter size={18} className="mr-2" />
-              Filtrar
+              Limpiar
             </Button>
           </div>
 
-          {/* Listado de proyectos */}
-          <div className="grid gap-4">
-            {filteredProjects.length > 0 ? (
-              filteredProjects.map(project => (
-                <ProjectRow 
-                  key={project.id} 
-                  project={project}
-                  onView={(id) => console.log('Viewing project:', id)}
-                  onEdit={(id) => console.log('Editing project:', id)}
-                />
-              ))
-            ) : (
-              <div className="py-20 text-center space-y-4 bg-white/2 rounded-3xl border border-dashed border-white/10">
-                <p className="text-gray-500">No se han encontrado proyectos que coincidan con la búsqueda.</p>
-                <Button variant="outline" onClick={() => setSearchTerm('')} size="sm">Cerrar filtros</Button>
+          {/* Loading */}
+          {isLoading && (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 size={32} className="animate-spin text-brand-primary" />
+            </div>
+          )}
+
+          {/* Error */}
+          {!isLoading && error && (
+            <div className="flex flex-col items-center gap-4 py-20 text-center">
+              <AlertCircle size={40} className="text-red-400" />
+              <p className="text-red-400">{error}</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchProjects(page, statusFilter)}
+              >
+                Reintentar
+              </Button>
+            </div>
+          )}
+
+          {/* Project list */}
+          {!isLoading && !error && (
+            <>
+              <div className="grid gap-4">
+                {filteredProjects.length > 0 ? (
+                  filteredProjects.map(project => (
+                    <ProjectRow
+                      key={project.id}
+                      project={project}
+                      onView={id => (window.location.href = `/projects/${id}`)}
+                      onEdit={id => (window.location.href = `/projects/${id}`)}
+                    />
+                  ))
+                ) : (
+                  <div className="py-20 text-center space-y-4 bg-white/2 rounded-3xl border border-dashed border-white/10">
+                    <p className="text-gray-500">
+                      No se han encontrado proyectos.
+                    </p>
+                    {searchTerm && (
+                      <Button
+                        variant="outline"
+                        onClick={() => setSearchTerm('')}
+                        size="sm"
+                      >
+                        Limpiar búsqueda
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 pt-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={page === 1}
+                    onClick={() => setPage(p => p - 1)}
+                  >
+                    Anterior
+                  </Button>
+                  <span className="text-sm text-gray-400">
+                    Página {page} de {totalPages}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={page >= totalPages}
+                    onClick={() => setPage(p => p + 1)}
+                  >
+                    Siguiente
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
     </div>

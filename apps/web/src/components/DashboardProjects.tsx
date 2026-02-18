@@ -1,0 +1,146 @@
+import { useState, useEffect, useCallback } from 'react';
+import ProjectCard from '@/components/ProjectCard';
+import ProjectWizard from '@/components/ProjectWizard';
+import { Button } from '@/components/ui/Button';
+import { Plus, Loader2, AlertCircle, FolderOpen } from 'lucide-react';
+import { projectService } from '@/lib/services';
+import type { ProjectResponse, PagedResponse } from '@/lib/types';
+import { ApiError } from '@/lib/api';
+
+const PAGE_SIZE = 9;
+
+export default function DashboardProjects() {
+  const [projects, setProjects] = useState<ProjectResponse[]>([]);
+  const [totalPages, setTotalPages] = useState(0);
+  const [page, setPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
+
+  const fetchProjects = useCallback(async (p: number) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data: PagedResponse<ProjectResponse> = await projectService.list({
+        page: p,
+        pageSize: PAGE_SIZE,
+      });
+      setProjects(data.items);
+      setTotalPages(data.totalPages);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError('No se pudieron cargar los proyectos.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchProjects(page);
+  }, [page, fetchProjects]);
+
+  const handleCreated = (created: ProjectResponse) => {
+    // Navigate to the new project editor
+    window.location.href = `/projects/${created.id}`;
+  };
+
+  const handleCardClick = (id: string) => {
+    window.location.href = `/projects/${id}`;
+  };
+
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-white tracking-tight">Mis Proyectos</h1>
+          <p className="text-gray-400 mt-1">Gestiona y redacta tus memorias de proyecto.</p>
+        </div>
+        <Button onClick={() => setWizardOpen(true)} className="h-12 px-6">
+          <Plus size={18} className="mr-2" />
+          Nuevo Proyecto
+        </Button>
+      </div>
+
+      {/* Loading */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 size={32} className="animate-spin text-brand-primary" />
+        </div>
+      )}
+
+      {/* Error */}
+      {!isLoading && error && (
+        <div className="flex flex-col items-center gap-4 py-20 text-center">
+          <AlertCircle size={40} className="text-red-400" />
+          <p className="text-red-400">{error}</p>
+          <Button variant="outline" size="sm" onClick={() => fetchProjects(page)}>
+            Reintentar
+          </Button>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!isLoading && !error && projects.length === 0 && (
+        <div className="flex flex-col items-center gap-4 py-20 text-center rounded-2xl border border-dashed border-white/10 bg-white/2">
+          <FolderOpen size={48} className="text-gray-600" />
+          <p className="text-gray-400">Aún no tienes ningún proyecto.</p>
+          <Button onClick={() => setWizardOpen(true)} size="sm">
+            <Plus size={16} className="mr-1" />
+            Crear primer proyecto
+          </Button>
+        </div>
+      )}
+
+      {/* Project grid */}
+      {!isLoading && !error && projects.length > 0 && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {projects.map(project => (
+              <ProjectCard
+                key={project.id}
+                project={project}
+                onClick={handleCardClick}
+              />
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 pt-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={page === 1}
+                onClick={() => setPage(p => p - 1)}
+              >
+                Anterior
+              </Button>
+              <span className="text-sm text-gray-400">
+                Página {page} de {totalPages}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={page >= totalPages}
+                onClick={() => setPage(p => p + 1)}
+              >
+                Siguiente
+              </Button>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Wizard modal */}
+      <ProjectWizard
+        isOpen={wizardOpen}
+        onClose={() => setWizardOpen(false)}
+        onCreated={handleCreated}
+      />
+    </div>
+  );
+}
