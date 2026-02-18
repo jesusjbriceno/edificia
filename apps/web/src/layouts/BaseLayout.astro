@@ -1,5 +1,6 @@
 ---
 import '@/styles/global.css';
+import ToastContainer from '@/components/ui/ToastContainer';
 
 interface Props {
 	title: string;
@@ -24,5 +25,6 @@ const { title, description = "EDIFICIA - Redacción de Memorias de Proyecto" } =
 	</head>
 	<body class="bg-dark-bg text-white selection:bg-brand-primary/30 min-h-screen flex flex-col">
 		<slot />
+		<ToastContainer client:load />
 	</body>
 </html>

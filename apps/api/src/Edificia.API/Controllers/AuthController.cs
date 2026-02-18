@@ -74,7 +74,7 @@ public class AuthController : BaseApiController
     /// </summary>
     [HttpGet("me")]
     [Authorize(Policy = "ActiveUser")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(MeResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public IActionResult Me()
     {
@@ -83,16 +83,14 @@ public class AuthController : BaseApiController
         if (userId is null)
             return Unauthorized();
 
-        var claims = User.Claims.ToDictionary(c => c.Type, c => c.Value);
-
-        return Ok(new
-        {
-            Id = userId,
-            Email = User.FindFirstValue(ClaimTypes.Email)
+        var response = new MeResponse(
+            Id: userId.Value,
+            Email: User.FindFirstValue(ClaimTypes.Email)
                 ?? User.FindFirstValue("email"),
-            FullName = User.FindFirstValue("full_name"),
-            Roles = User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList()
-        });
+            FullName: User.FindFirstValue("full_name"),
+            Roles: User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList().AsReadOnly());
+
+        return Ok(response);
     }
 
     /// <summary>

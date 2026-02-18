@@ -1,5 +1,6 @@
 ---
 import DashboardLayout from '@/layouts/DashboardLayout.astro';
+import { AuthGuard } from '@/components/auth/AuthGuard';
 import UserTable from '@/components/UserTable';
 import { Button } from '@/components/ui/Button';
 import { UserPlus } from 'lucide-react';
@@ -12,19 +13,21 @@ const users = [
 ] as const;
 ---
 
-<DashboardLayout title="Usuarios">
-	<div class="max-w-7xl mx-auto space-y-8">
-		<div class="flex items-center justify-between">
-			<div>
-				<h1 class="text-3xl font-bold text-white tracking-tight">Gestión de Usuarios</h1>
-				<p class="text-gray-400 mt-1">Administra los accesos y roles de los arquitectos y colaboradores.</p>
+<DashboardLayout title="Admin — Usuarios">
+	<AuthGuard allowedRoles={['Root', 'Admin']} client:load>
+		<div class="max-w-7xl mx-auto space-y-8">
+			<div class="flex items-center justify-between">
+				<div>
+					<h1 class="text-3xl font-bold text-white tracking-tight">Gestión de Usuarios</h1>
+					<p class="text-gray-400 mt-1">Administra los accesos y roles de los arquitectos y colaboradores.</p>
+				</div>
+				<Button className="h-12 bg-white text-dark-bg hover:bg-gray-100 border-none">
+					<UserPlus className="w-5 h-5 mr-2" />
+					Añadir Usuario
+				</Button>
 			</div>
-			<Button className="h-12 bg-white text-dark-bg hover:bg-gray-100 border-none">
-				<UserPlus className="w-5 h-5 mr-2" />
-				Añadir Usuario
-			</Button>
-		</div>
 
-		<UserTable users={users as any} client:load />
-	</div>
+			<UserTable users={users as any} client:load />
+		</div>
+	</AuthGuard>
 </DashboardLayout>

@@ -99,17 +99,7 @@ public sealed class RefreshTokenHandler
         var accessToken = _jwtTokenService.GenerateAccessToken(user, roles);
 
         // 8. Build response
-        var response = new LoginResponse(
-            AccessToken: accessToken,
-            RefreshToken: newRefreshToken.Token,
-            ExpiresInMinutes: 60,
-            MustChangePassword: user.MustChangePassword,
-            User: new UserInfo(
-                Id: user.Id,
-                Email: user.Email!,
-                FullName: user.FullName,
-                CollegiateNumber: user.CollegiateNumber,
-                Roles: roles.ToList().AsReadOnly()));
+        var response = LoginResponse.FromUser(user, accessToken, newRefreshToken.Token, 60, roles);
 
         _logger.LogInformation("Token refreshed for user {UserId}", user.Id);
 

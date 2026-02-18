@@ -1,4 +1,4 @@
-import { UserRow } from "./Admin/UserRow";
+import { UserRow } from './Admin/UserRow.js';
 
 // ... interfaz User movida a UserRow ...
 

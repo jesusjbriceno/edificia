@@ -1,6 +1,5 @@
 using System.Text.RegularExpressions;
 using Edificia.Application.Interfaces;
-using Edificia.Domain.Enums;
 using Edificia.Shared.Result;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -50,12 +49,7 @@ public sealed partial class ExportProjectHandler : IRequestHandler<ExportProject
                     "El proyecto no tiene contenido para exportar. Añada contenido antes de exportar."));
         }
 
-        var exportData = new ExportDocumentData(
-            Title: project.Title,
-            InterventionType: FormatInterventionType(project.InterventionType),
-            IsLoeRequired: project.IsLoeRequired,
-            ContentTreeJson: project.ContentTreeJson,
-            Address: project.Address);
+        var exportData = ExportDocumentData.FromProject(project);
 
         try
         {
@@ -84,14 +78,6 @@ public sealed partial class ExportProjectHandler : IRequestHandler<ExportProject
                     $"Error al exportar el documento: {ex.Message}"));
         }
     }
-
-    private static string FormatInterventionType(InterventionType type) => type switch
-    {
-        InterventionType.NewConstruction => "Obra Nueva",
-        InterventionType.Reform => "Reforma",
-        InterventionType.Extension => "Ampliación",
-        _ => type.ToString()
-    };
 
     private static string SanitizeFileName(string title)
     {

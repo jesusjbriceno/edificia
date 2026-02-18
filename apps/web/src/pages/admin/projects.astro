@@ -1,12 +1,13 @@
 ---
 import DashboardLayout from '@/layouts/DashboardLayout.astro';
+import { AuthGuard } from '@/components/auth/AuthGuard';
 import ProjectManagement from '@/components/Admin/ProjectManagement';
-
-const title = "Administración de Proyectos | EDIFICIA";
 ---
 
-<DashboardLayout title="Proyectos">
-	<div class="max-w-7xl mx-auto space-y-8">
-		<ProjectManagement client:load />
-	</div>
+<DashboardLayout title="Admin — Proyectos">
+	<AuthGuard allowedRoles={['Root', 'Admin']} client:load>
+		<div class="max-w-7xl mx-auto space-y-8">
+			<ProjectManagement client:load />
+		</div>
+	</AuthGuard>
 </DashboardLayout>

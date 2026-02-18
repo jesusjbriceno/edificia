@@ -1,0 +1,640 @@
+{
+  "version": "CTE 2024",
+  "description": "Estructura base del Código Técnico de la Edificación para Memorias de Proyecto de Ejecución",
+  "chapters": [
+    {
+      "id": "MD",
+      "title": "Memoria Descriptiva",
+      "requiresNewWork": false,
+      "content": null,
+      "sections": [
+        {
+          "id": "MD.01",
+          "title": "Agentes intervinientes",
+          "requiresNewWork": false,
+          "content": null,
+          "sections": []
+        },
+        {
+          "id": "MD.02",
+          "title": "Información previa",
+          "requiresNewWork": false,
+          "content": null,
+          "sections": [
+            {
+              "id": "MD.02.01",
+              "title": "Antecedentes y condicionantes de partida",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "MD.02.02",
+              "title": "Emplazamiento y entorno físico",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "MD.02.03",
+              "title": "Normativa urbanística",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            }
+          ]
+        },
+        {
+          "id": "MD.03",
+          "title": "Descripción del proyecto",
+          "requiresNewWork": false,
+          "content": null,
+          "sections": [
+            {
+              "id": "MD.03.01",
+              "title": "Descripción general del edificio",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "MD.03.02",
+              "title": "Programa de necesidades",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "MD.03.03",
+              "title": "Uso característico del edificio",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "MD.03.04",
+              "title": "Relación con el entorno",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            }
+          ]
+        },
+        {
+          "id": "MD.04",
+          "title": "Prestaciones del edificio",
+          "requiresNewWork": false,
+          "content": null,
+          "sections": [
+            {
+              "id": "MD.04.01",
+              "title": "Prestaciones según CTE",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "MD.04.02",
+              "title": "Prestaciones según LOE",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "MD.04.03",
+              "title": "Limitaciones de uso",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MC",
+      "title": "Memoria Constructiva",
+      "requiresNewWork": false,
+      "content": null,
+      "sections": [
+        {
+          "id": "MC.01",
+          "title": "Sustentación del edificio",
+          "requiresNewWork": true,
+          "content": null,
+          "sections": [
+            {
+              "id": "MC.01.01",
+              "title": "Estudio geotécnico",
+              "requiresNewWork": true,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "MC.01.02",
+              "title": "Cimentación",
+              "requiresNewWork": true,
+              "content": null,
+              "sections": []
+            }
+          ]
+        },
+        {
+          "id": "MC.02",
+          "title": "Sistema estructural",
+          "requiresNewWork": true,
+          "content": null,
+          "sections": [
+            {
+              "id": "MC.02.01",
+              "title": "Estructura portante",
+              "requiresNewWork": true,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "MC.02.02",
+              "title": "Estructura horizontal",
+              "requiresNewWork": true,
+              "content": null,
+              "sections": []
+            }
+          ]
+        },
+        {
+          "id": "MC.03",
+          "title": "Sistema envolvente",
+          "requiresNewWork": false,
+          "content": null,
+          "sections": [
+            {
+              "id": "MC.03.01",
+              "title": "Fachadas",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "MC.03.02",
+              "title": "Cubiertas",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "MC.03.03",
+              "title": "Suelos en contacto con el terreno",
+              "requiresNewWork": true,
+              "content": null,
+              "sections": []
+            }
+          ]
+        },
+        {
+          "id": "MC.04",
+          "title": "Sistema de compartimentación",
+          "requiresNewWork": false,
+          "content": null,
+          "sections": [
+            {
+              "id": "MC.04.01",
+              "title": "Compartimentación interior",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            }
+          ]
+        },
+        {
+          "id": "MC.05",
+          "title": "Sistemas de acabados",
+          "requiresNewWork": false,
+          "content": null,
+          "sections": [
+            {
+              "id": "MC.05.01",
+              "title": "Revestimientos exteriores",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "MC.05.02",
+              "title": "Revestimientos interiores",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "MC.05.03",
+              "title": "Pavimentos",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            }
+          ]
+        },
+        {
+          "id": "MC.06",
+          "title": "Sistemas de acondicionamiento e instalaciones",
+          "requiresNewWork": false,
+          "content": null,
+          "sections": [
+            {
+              "id": "MC.06.01",
+              "title": "Instalación de fontanería y ACS",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "MC.06.02",
+              "title": "Instalación de saneamiento",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "MC.06.03",
+              "title": "Instalación eléctrica",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "MC.06.04",
+              "title": "Instalación de climatización y ventilación",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "MC.06.05",
+              "title": "Instalación de telecomunicaciones",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "MC.06.06",
+              "title": "Instalación de protección contra incendios",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "MC.06.07",
+              "title": "Instalación de energía solar",
+              "requiresNewWork": true,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "MC.06.08",
+              "title": "Instalación de ascensores y transporte",
+              "requiresNewWork": true,
+              "content": null,
+              "sections": []
+            }
+          ]
+        },
+        {
+          "id": "MC.07",
+          "title": "Equipamiento",
+          "requiresNewWork": false,
+          "content": null,
+          "sections": []
+        }
+      ]
+    },
+    {
+      "id": "CN",
+      "title": "Cumplimiento del CTE",
+      "requiresNewWork": false,
+      "content": null,
+      "sections": [
+        {
+          "id": "CN.01",
+          "title": "DB-SE Seguridad Estructural",
+          "requiresNewWork": true,
+          "content": null,
+          "sections": [
+            {
+              "id": "CN.01.01",
+              "title": "SE-AE Acciones en la edificación",
+              "requiresNewWork": true,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "CN.01.02",
+              "title": "SE-C Cimientos",
+              "requiresNewWork": true,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "CN.01.03",
+              "title": "SE-A Acero",
+              "requiresNewWork": true,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "CN.01.04",
+              "title": "SE-F Fábrica",
+              "requiresNewWork": true,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "CN.01.05",
+              "title": "SE-M Madera",
+              "requiresNewWork": true,
+              "content": null,
+              "sections": []
+            }
+          ]
+        },
+        {
+          "id": "CN.02",
+          "title": "DB-SI Seguridad en caso de incendio",
+          "requiresNewWork": false,
+          "content": null,
+          "sections": [
+            {
+              "id": "CN.02.01",
+              "title": "SI 1 Propagación interior",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "CN.02.02",
+              "title": "SI 2 Propagación exterior",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "CN.02.03",
+              "title": "SI 3 Evacuación de ocupantes",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "CN.02.04",
+              "title": "SI 4 Instalaciones de protección contra incendios",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "CN.02.05",
+              "title": "SI 5 Intervención de bomberos",
+              "requiresNewWork": true,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "CN.02.06",
+              "title": "SI 6 Resistencia al fuego de la estructura",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            }
+          ]
+        },
+        {
+          "id": "CN.03",
+          "title": "DB-SUA Seguridad de utilización y accesibilidad",
+          "requiresNewWork": false,
+          "content": null,
+          "sections": [
+            {
+              "id": "CN.03.01",
+              "title": "SUA 1 Seguridad frente al riesgo de caídas",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "CN.03.02",
+              "title": "SUA 2 Seguridad frente al riesgo de impacto o atrapamiento",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "CN.03.03",
+              "title": "SUA 3 Seguridad frente al riesgo de aprisionamiento",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "CN.03.04",
+              "title": "SUA 4 Seguridad frente al riesgo causado por iluminación inadecuada",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "CN.03.05",
+              "title": "SUA 5 Seguridad frente al riesgo causado por situaciones de alta ocupación",
+              "requiresNewWork": true,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "CN.03.06",
+              "title": "SUA 6 Seguridad frente al riesgo de ahogamiento",
+              "requiresNewWork": true,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "CN.03.07",
+              "title": "SUA 7 Seguridad frente al riesgo causado por vehículos en movimiento",
+              "requiresNewWork": true,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "CN.03.08",
+              "title": "SUA 8 Seguridad frente al riesgo causado por la acción del rayo",
+              "requiresNewWork": true,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "CN.03.09",
+              "title": "SUA 9 Accesibilidad",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            }
+          ]
+        },
+        {
+          "id": "CN.04",
+          "title": "DB-HS Salubridad",
+          "requiresNewWork": false,
+          "content": null,
+          "sections": [
+            {
+              "id": "CN.04.01",
+              "title": "HS 1 Protección frente a la humedad",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "CN.04.02",
+              "title": "HS 2 Recogida y evacuación de residuos",
+              "requiresNewWork": true,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "CN.04.03",
+              "title": "HS 3 Calidad del aire interior",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "CN.04.04",
+              "title": "HS 4 Suministro de agua",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "CN.04.05",
+              "title": "HS 5 Evacuación de aguas",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "CN.04.06",
+              "title": "HS 6 Protección frente a la exposición al radón",
+              "requiresNewWork": true,
+              "content": null,
+              "sections": []
+            }
+          ]
+        },
+        {
+          "id": "CN.05",
+          "title": "DB-HR Protección frente al ruido",
+          "requiresNewWork": false,
+          "content": null,
+          "sections": []
+        },
+        {
+          "id": "CN.06",
+          "title": "DB-HE Ahorro de energía",
+          "requiresNewWork": false,
+          "content": null,
+          "sections": [
+            {
+              "id": "CN.06.01",
+              "title": "HE 0 Limitación del consumo energético",
+              "requiresNewWork": true,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "CN.06.02",
+              "title": "HE 1 Condiciones para el control de la demanda energética",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "CN.06.03",
+              "title": "HE 2 Condiciones de las instalaciones térmicas (RITE)",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "CN.06.04",
+              "title": "HE 3 Condiciones de las instalaciones de iluminación",
+              "requiresNewWork": false,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "CN.06.05",
+              "title": "HE 4 Contribución mínima de energía renovable para ACS",
+              "requiresNewWork": true,
+              "content": null,
+              "sections": []
+            },
+            {
+              "id": "CN.06.06",
+              "title": "HE 5 Generación mínima de energía eléctrica",
+              "requiresNewWork": true,
+              "content": null,
+              "sections": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "AC",
+      "title": "Anejos a la Memoria",
+      "requiresNewWork": false,
+      "content": null,
+      "sections": [
+        {
+          "id": "AC.01",
+          "title": "Estudio de gestión de residuos",
+          "requiresNewWork": false,
+          "content": null,
+          "sections": []
+        },
+        {
+          "id": "AC.02",
+          "title": "Plan de control de calidad",
+          "requiresNewWork": false,
+          "content": null,
+          "sections": []
+        },
+        {
+          "id": "AC.03",
+          "title": "Estudio de Seguridad y Salud",
+          "requiresNewWork": false,
+          "content": null,
+          "sections": []
+        },
+        {
+          "id": "AC.04",
+          "title": "Certificado de eficiencia energética",
+          "requiresNewWork": false,
+          "content": null,
+          "sections": []
+        },
+        {
+          "id": "AC.05",
+          "title": "Estudio de impacto ambiental",
+          "requiresNewWork": true,
+          "content": null,
+          "sections": []
+        },
+        {
+          "id": "AC.06",
+          "title": "Estudio geotécnico",
+          "requiresNewWork": true,
+          "content": null,
+          "sections": []
+        }
+      ]
+    }
+  ]
+}
