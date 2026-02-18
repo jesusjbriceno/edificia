@@ -24,7 +24,7 @@ const statusStyles: Record<string, string> = {
     'bg-amber-400/10 text-amber-400 border-amber-400/20',
 };
 
-export function ProjectRow({ project, onEdit, onView }: ProjectRowProps) {
+export function ProjectRow({ project, onEdit, onView }: Readonly<ProjectRowProps>) {
   const statusLabel =
     ProjectStatusLabels[project.status as ProjectStatus] ?? project.status;
   const typeLabel =
@@ -32,8 +32,9 @@ export function ProjectRow({ project, onEdit, onView }: ProjectRowProps) {
     project.interventionType;
 
   return (
-    <div
-      className="group flex items-center gap-6 p-4 bg-white/2 rounded-2xl border border-white/5 hover:bg-white/5 hover:border-brand-primary/20 transition-all duration-300 cursor-pointer"
+    <button
+      type="button"
+      className="group flex items-center gap-6 p-4 bg-white/2 rounded-2xl border border-white/5 hover:bg-white/5 hover:border-brand-primary/20 transition-all duration-300 cursor-pointer w-full text-left"
       onClick={() => onView?.(project.id)}
     >
       <div className="h-14 w-14 rounded-2xl bg-brand-primary/10 flex items-center justify-center border border-brand-primary/10 group-hover:scale-110 transition-transform">
@@ -79,6 +80,6 @@ export function ProjectRow({ project, onEdit, onView }: ProjectRowProps) {
           <MoreVertical size={18} />
         </button>
       </div>
-    </div>
+    </button>
   );
 }

@@ -18,7 +18,7 @@ const changePasswordSchema = z
       .min(8, 'Mínimo 8 caracteres')
       .regex(/[A-Z]/, 'Debe contener al menos una mayúscula')
       .regex(/[a-z]/, 'Debe contener al menos una minúscula')
-      .regex(/[0-9]/, 'Debe contener al menos un número')
+      .regex(/\d/, 'Debe contener al menos un número')
       .regex(/[^A-Za-z0-9]/, 'Debe contener al menos un carácter especial'),
     confirmPassword: z.string().min(1, 'Confirma la nueva contraseña'),
   })
@@ -95,12 +95,13 @@ export function ChangePassword() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-md">
         <div className="space-y-2">
-          <label className="text-xs font-bold uppercase tracking-widest text-gray-500">
+          <label htmlFor="currentPassword" className="text-xs font-bold uppercase tracking-widest text-gray-500">
             Contraseña Actual
           </label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
             <input
+              id="currentPassword"
               type={showPass ? 'text' : 'password'}
               className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-10 py-3 text-white focus:border-brand-primary outline-none transition-colors"
               {...register('currentPassword')}
@@ -112,12 +113,13 @@ export function ChangePassword() {
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs font-bold uppercase tracking-widest text-gray-500">
+          <label htmlFor="newPassword" className="text-xs font-bold uppercase tracking-widest text-gray-500">
             Nueva Contraseña
           </label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
             <input
+              id="newPassword"
               type={showPass ? 'text' : 'password'}
               className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-10 py-3 text-white focus:border-brand-primary outline-none transition-colors"
               {...register('newPassword')}
@@ -136,12 +138,13 @@ export function ChangePassword() {
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs font-bold uppercase tracking-widest text-gray-500">
+          <label htmlFor="confirmPassword" className="text-xs font-bold uppercase tracking-widest text-gray-500">
             Confirmar Nueva Contraseña
           </label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
             <input
+              id="confirmPassword"
               type={showPass ? 'text' : 'password'}
               className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-10 py-3 text-white focus:border-brand-primary outline-none transition-colors"
               {...register('confirmPassword')}

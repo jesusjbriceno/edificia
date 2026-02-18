@@ -19,8 +19,7 @@ export class ApiError extends Error {
 
 // ─── Client factory ──────────────────────────────────────
 
-const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env?.PUBLIC_API_URL)
-  || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env?.PUBLIC_API_URL ?? 'http://localhost:5000/api';
 
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -50,7 +49,11 @@ let pendingQueue: Array<{
 
 function processQueue(error: unknown, token: string | null) {
   pendingQueue.forEach(({ resolve, reject }) => {
-    error ? reject(error) : resolve(token!);
+    if (error) {
+      reject(error);
+    } else if (token) {
+      resolve(token);
+    }
   });
   pendingQueue = [];
 }
@@ -67,8 +70,8 @@ apiClient.interceptors.response.use(
 
       if (!refreshToken) {
         logout();
-        if (typeof window !== 'undefined') window.location.href = '/';
-        return Promise.reject(error);
+        globalThis.location?.assign('/');
+        throw error;
       }
 
       if (isRefreshing) {
@@ -95,8 +98,8 @@ apiClient.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null);
         logout();
-        if (typeof window !== 'undefined') window.location.href = '/';
-        return Promise.reject(refreshError);
+        globalThis.location?.assign('/');
+        throw refreshError;
       } finally {
         isRefreshing = false;
       }
@@ -105,17 +108,16 @@ apiClient.interceptors.response.use(
     // ── Normalise API errors ──
     if (error.response) {
       const { status, data } = error.response;
-      const problem = data as ProblemDetails | ValidationProblemDetails | undefined;
 
-      const detail = problem?.detail || problem?.title || error.message;
-      const code = problem?.code;
-      const validationErrors = (problem as ValidationProblemDetails)?.errors;
+      const detail = data?.detail || data?.title || error.message;
+      const code = data?.code;
+      const validationErrors = 'errors' in (data ?? {}) ? (data as ValidationProblemDetails).errors : undefined;
 
-      return Promise.reject(new ApiError(status, detail, code, validationErrors));
+      throw new ApiError(status, detail, code, validationErrors);
     }
 
     // Network / timeout errors
-    return Promise.reject(new ApiError(0, error.message || 'Error de red'));
+    throw new ApiError(0, error.message || 'Error de red');
   },
 );
 

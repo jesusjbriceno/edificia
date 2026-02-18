@@ -40,9 +40,9 @@ export default function LoginForm() {
 
       // Redirect based on mustChangePassword
       if (response.mustChangePassword) {
-        window.location.href = '/profile?tab=security';
+        globalThis.location.href = '/profile?tab=security';
       } else {
-        window.location.href = '/dashboard';
+        globalThis.location.href = '/dashboard';
       }
     } catch (err) {
       if (err instanceof ApiError) {
@@ -100,9 +100,9 @@ export default function LoginForm() {
               Recordar acceso
             </label>
           </div>
-          <a href="#" className="text-xs text-brand-primary hover:underline">
+          <button type="button" className="text-xs text-brand-primary hover:underline">
             ¿Has olvidado la contraseña?
-          </a>
+          </button>
         </div>
 
         <Button type="submit" className="w-full h-12" isLoading={isSubmitting}>
@@ -114,9 +114,9 @@ export default function LoginForm() {
       <div className="pt-6 border-t border-white/5">
         <p className="text-xs text-center text-gray-500">
           ¿No tienes cuenta?{' '}
-          <a href="#" className="text-brand-primary hover:underline">
+          <button type="button" className="text-brand-primary hover:underline">
             Contacta con tu administrador
-          </a>
+          </button>
         </p>
       </div>
     </div>

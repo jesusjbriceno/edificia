@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ProjectRow } from './ProjectRow';
-import { ProjectForm } from './ProjectForm';
+import { ProjectRow } from './ProjectRow.js';
+import { ProjectForm } from './ProjectForm.js';
 import { Button } from '@/components/ui/Button';
 import { Plus, Search, Filter, Loader2, AlertCircle } from 'lucide-react';
 import { projectService } from '@/lib/services';
@@ -167,8 +167,8 @@ export default function ProjectManagement() {
                     <ProjectRow
                       key={project.id}
                       project={project}
-                      onView={id => (window.location.href = `/projects/${id}`)}
-                      onEdit={id => (window.location.href = `/projects/${id}`)}
+                      onView={id => (globalThis.location.href = `/projects/${id}`)}
+                      onEdit={id => (globalThis.location.href = `/projects/${id}`)}
                     />
                   ))
                 ) : (
