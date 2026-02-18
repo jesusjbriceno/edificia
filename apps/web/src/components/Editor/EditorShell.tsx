@@ -7,7 +7,11 @@ import { Loader2, Sparkles, Save, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { EditorToolbar } from './EditorToolbar';
 
-export default function EditorShell() {
+interface EditorShellProps {
+  projectTitle?: string;
+}
+
+export default function EditorShell({ projectTitle }: Readonly<EditorShellProps>) {
   const { activeSectionId, content, updateContent, isSaving } = useEditorStore();
 
   const editor = useEditor({
@@ -47,7 +51,7 @@ export default function EditorShell() {
         </div>
         <div className="text-center space-y-2">
           <h3 className="text-white/80 font-bold text-lg">Editor de Memoria</h3>
-          <p className="text-sm max-w-[280px]">Selecciona un capítulo de la barra lateral para empezar el proceso de redacción técnica.</p>
+          <p className="text-sm max-w-70">Selecciona un capítulo de la barra lateral para empezar el proceso de redacción técnica.</p>
         </div>
       </div>
     );

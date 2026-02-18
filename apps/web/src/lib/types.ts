@@ -162,6 +162,28 @@ export interface UpdateSectionRequest {
   content: string;
 }
 
+// ─── Content Tree Nodes ──────────────────────────────────
+
+/** A node in the CTE normative content tree (recursive). */
+export interface ContentTreeNode {
+  id: string;
+  title: string;
+  requiresNewWork: boolean;
+  content: string | null;
+  sections: ContentTreeNode[];
+}
+
+/** Root shape of the content tree JSON stored in the DB / cte_2024.json. */
+export interface ContentTree {
+  chapters: ContentTreeNode[];
+}
+
+/** Configuration for tree filtering based on project strategy. */
+export interface TreeFilterConfig {
+  interventionType: InterventionType;
+  isLoeRequired: boolean;
+}
+
 // ─── Users ───────────────────────────────────────────────
 
 export interface UserResponse {
