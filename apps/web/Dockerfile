@@ -7,13 +7,15 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --omit=dev
+# --force: skip EBADPLATFORM on optional win32 binaries in lockfile (generated on Windows)
+RUN npm ci --omit=dev --force
 
 # --- ETAPA 2: BUILD ---
 FROM node:20-alpine AS build
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+# --force: skip EBADPLATFORM on optional win32 binaries in lockfile (generated on Windows)
+RUN npm ci --force
 COPY . .
 RUN npm run build
 
