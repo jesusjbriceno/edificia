@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { projectService } from '@/lib/services';
 import { filterTree, parseContentTree, flattenTreeContent } from '@/lib/contentTree';
-import { useEditorStore } from '@/store/useEditorStore';
+import { SyncManager, loadLocalContent } from '@/lib/syncManager';
+import { useEditorStore, registerSyncNotify } from '@/store/useEditorStore';
 import { InterventionType } from '@/lib/types';
 import type { ContentTreeNode, TreeFilterConfig, ProjectResponse } from '@/lib/types';
 import SidebarNavigation from './SidebarNavigation';
@@ -34,6 +35,7 @@ export default function ProjectEditor({ projectId }: Readonly<ProjectEditorProps
   const [error, setError] = useState<string | null>(null);
   const initProject = useEditorStore((s) => s.initProject);
   const tree = useEditorStore((s) => s.tree);
+  const syncManagerRef = useRef<SyncManager | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,11 +87,27 @@ export default function ProjectEditor({ projectId }: Readonly<ProjectEditorProps
         // Apply filtering based on project strategy
         const filteredTree = filterTree(chapters, config);
 
-        // Extract existing content from the tree nodes
-        const existingContent = flattenTreeContent(chapters);
+        // Extract content from tree nodes, then overlay locally-cached edits
+        const apiContent = flattenTreeContent(chapters);
+        const localContent = await loadLocalContent(projectId);
+        const mergedContent = { ...apiContent, ...localContent };
+
+        if (cancelled) return;
 
         // Initialize the editor store
-        initProject(projectId, filteredTree, existingContent);
+        initProject(projectId, filteredTree, mergedContent);
+
+        // Create and start the SyncManager
+        const manager = new SyncManager({
+          projectId,
+          onStatusChange: (status, pending) => {
+            useEditorStore.getState().setSyncInfo(status, pending);
+          },
+        });
+
+        registerSyncNotify((sectionId, html) => manager.notifyChange(sectionId, html));
+        manager.start();
+        syncManagerRef.current = manager;
       } catch (err) {
         if (!cancelled) {
           setError(
@@ -106,6 +124,10 @@ export default function ProjectEditor({ projectId }: Readonly<ProjectEditorProps
     load();
     return () => {
       cancelled = true;
+      syncManagerRef.current?.stop();
+      syncManagerRef.current = null;
+      registerSyncNotify(null);
+      useEditorStore.getState().reset();
     };
   }, [projectId]);
 

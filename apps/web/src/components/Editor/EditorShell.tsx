@@ -3,16 +3,64 @@ import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import { useEditorStore } from '@/store/useEditorStore';
 import { useEffect } from 'react';
-import { Loader2, Sparkles, Save, FileText } from 'lucide-react';
+import { Loader2, Sparkles, Save, FileText, Check, WifiOff, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { EditorToolbar } from './EditorToolbar';
+import type { SyncStatus } from '@/lib/syncManager';
+
+// ── Sync Status Badge ────────────────────────────────────
+
+function SyncBadge({ status, pendingCount }: Readonly<{ status: SyncStatus; pendingCount: number }>) {
+  const base = 'flex items-center text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full border';
+
+  switch (status) {
+    case 'syncing':
+      return (
+        <span className={`${base} text-blue-400 bg-blue-400/10 border-blue-400/10`}>
+          <Loader2 size={12} className="animate-spin mr-2" /> Sincronizando...
+        </span>
+      );
+    case 'synced':
+      return (
+        <span className={`${base} text-emerald-400 bg-emerald-400/10 border-emerald-400/10 shadow-[0_0_15px_-5px_rgba(52,211,153,0.3)]`}>
+          <Check size={12} className="mr-2" /> Sincronizado
+        </span>
+      );
+    case 'modified':
+      return (
+        <span className={`${base} text-amber-400 bg-amber-400/10 border-amber-400/10`}>
+          <Save size={12} className="mr-2" /> {pendingCount} pendiente{pendingCount === 1 ? '' : 's'}
+        </span>
+      );
+    case 'offline':
+      return (
+        <span className={`${base} text-orange-400 bg-orange-400/10 border-orange-400/10`}>
+          <WifiOff size={12} className="mr-2" /> Sin conexión
+        </span>
+      );
+    case 'error':
+      return (
+        <span className={`${base} text-red-400 bg-red-400/10 border-red-400/10`}>
+          <AlertTriangle size={12} className="mr-2" /> Error al sincronizar
+        </span>
+      );
+    default:
+      return (
+        <span className={`${base} text-gray-500 bg-white/5 border-white/5`}>
+          <Save size={12} className="mr-2" /> Borrador Local
+        </span>
+      );
+  }
+}
+
+// ── Editor Shell ─────────────────────────────────────────
 
 interface EditorShellProps {
   projectTitle?: string;
 }
 
 export default function EditorShell({ projectTitle }: Readonly<EditorShellProps>) {
-  const { activeSectionId, content, updateContent, isSaving } = useEditorStore();
+  const { activeSectionId, content, updateContent, syncStatus, pendingCount } = useEditorStore();
 
   const editor = useEditor({
     extensions: [
@@ -63,15 +111,7 @@ export default function EditorShell({ projectTitle }: Readonly<EditorShellProps>
       <div className="h-14 border-b border-white/5 bg-dark-card/80 backdrop-blur-xl flex items-center justify-between px-6 z-10">
         <div className="flex items-center gap-4">
           <div className="h-8 w-px bg-white/10 mx-2" />
-          {isSaving ? (
-            <span className="flex items-center text-[10px] font-bold uppercase tracking-widest text-gray-500 bg-white/5 px-3 py-1.5 rounded-full border border-white/5">
-              <Loader2 size={12} className="animate-spin mr-2" /> Sincronizando...
-            </span>
-          ) : (
-            <span className="flex items-center text-[10px] font-bold uppercase tracking-widest text-emerald-400 bg-emerald-400/10 px-3 py-1.5 rounded-full border border-emerald-400/10 shadow-[0_0_15px_-5px_rgba(52,211,153,0.3)]">
-              <Save size={12} className="mr-2" /> Borrador Local
-            </span>
-          )}
+          <SyncBadge status={syncStatus} pendingCount={pendingCount} />
         </div>
 
         <div className="flex items-center gap-3">
