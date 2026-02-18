@@ -1,46 +1,77 @@
-import { Badge } from "@/components/ui/Badge";
-import { Calendar, MoreVertical, FileText } from "lucide-react";
+import { Badge } from '@/components/ui/Badge';
+import { Calendar, MoreVertical, FileText } from 'lucide-react';
+import {
+  ProjectStatus,
+  ProjectStatusLabels,
+  InterventionTypeLabels,
+} from '@/lib/types';
+import type { ProjectResponse, InterventionType } from '@/lib/types';
 
 interface ProjectCardProps {
-  title: string;
-  status: "Draft" | "InProgress" | "Completed";
-  lastModified: string;
-  type: string;
+  project: ProjectResponse;
+  onClick?: (id: string) => void;
 }
 
-export default function ProjectCard({ title, status, lastModified, type }: ProjectCardProps) {
-  const statusConfig = {
-    Draft: { label: "Borrador", variant: "default" as const },
-    InProgress: { label: "En curso", variant: "info" as const },
-    Completed: { label: "Completado", variant: "success" as const },
-  };
+const statusVariant: Record<string, 'default' | 'info' | 'success' | 'warning'> = {
+  [ProjectStatus.Draft]: 'default',
+  [ProjectStatus.InProgress]: 'info',
+  [ProjectStatus.Completed]: 'success',
+  [ProjectStatus.Archived]: 'warning',
+};
 
-  const { label, variant } = statusConfig[status];
+export default function ProjectCard({ project, onClick }: ProjectCardProps) {
+  const label =
+    ProjectStatusLabels[project.status as ProjectStatus] ?? project.status;
+  const variant = statusVariant[project.status] ?? 'default';
+
+  const typeLabel =
+    InterventionTypeLabels[
+      Number(project.interventionType) as InterventionType
+    ] ?? project.interventionType;
+
+  const formattedDate = project.updatedAt
+    ? new Date(project.updatedAt).toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      })
+    : new Date(project.createdAt).toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      });
 
   return (
-    <div className="glass-card group p-6 rounded-xl transition-all duration-300 hover:border-brand-primary/30 hover:shadow-brand-primary/5 cursor-pointer flex flex-col justify-between h-48">
+    <div
+      role="article"
+      onClick={() => onClick?.(project.id)}
+      className="glass-card group p-6 rounded-xl transition-all duration-300 hover:border-brand-primary/30 hover:shadow-brand-primary/5 cursor-pointer flex flex-col justify-between h-48"
+    >
       <div className="flex justify-between items-start">
         <div className="p-2 bg-brand-primary/10 rounded-lg text-brand-primary">
           <FileText className="w-5 h-5" />
         </div>
-        <button className="text-gray-500 hover:text-white transition-colors">
+        <button
+          onClick={e => e.stopPropagation()}
+          className="text-gray-500 hover:text-white transition-colors"
+        >
           <MoreVertical className="w-5 h-5" />
         </button>
       </div>
 
       <div className="space-y-1">
         <h3 className="font-semibold text-lg text-white group-hover:text-brand-primary transition-colors truncate">
-          {title}
+          {project.title}
         </h3>
         <p className="text-xs text-gray-500 uppercase tracking-widest font-medium">
-          {type}
+          {typeLabel}
         </p>
       </div>
 
       <div className="flex items-center justify-between pt-4 border-t border-white/5">
         <div className="flex items-center text-xs text-gray-500">
           <Calendar className="w-3.5 h-3.5 mr-1.5" />
-          {lastModified}
+          {formattedDate}
         </div>
         <Badge variant={variant}>{label}</Badge>
       </div>
