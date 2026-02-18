@@ -2,7 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { ProjectRow } from './ProjectRow.js';
 import { ProjectForm } from './ProjectForm.js';
 import { Button } from '@/components/ui/Button';
-import { Plus, Search, Filter, Loader2, AlertCircle } from 'lucide-react';
+import { Plus, Search, Filter, AlertCircle } from 'lucide-react';
+import { TableRowSkeleton } from '@/components/ui/Skeleton';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { projectService } from '@/lib/services';
 import type { ProjectResponse, PagedResponse } from '@/lib/types';
 import { ApiError } from '@/lib/api';
@@ -62,6 +64,7 @@ export default function ProjectManagement() {
     : projects;
 
   return (
+    <ErrorBoundary>
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -138,8 +141,10 @@ export default function ProjectManagement() {
 
           {/* Loading */}
           {isLoading && (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 size={32} className="animate-spin text-brand-primary" />
+            <div className="space-y-1">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <TableRowSkeleton key={i} />
+              ))}
             </div>
           )}
 
@@ -218,5 +223,6 @@ export default function ProjectManagement() {
         </div>
       )}
     </div>
+    </ErrorBoundary>
   );
 }

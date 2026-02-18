@@ -2,7 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import ProjectCard from '@/components/ProjectCard';
 import ProjectWizard from '@/components/ProjectWizard';
 import { Button } from '@/components/ui/Button';
-import { Plus, Loader2, AlertCircle, FolderOpen } from 'lucide-react';
+import { Plus, AlertCircle, FolderOpen } from 'lucide-react';
+import { ProjectGridSkeleton } from '@/components/ui/Skeleton';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { projectService } from '@/lib/services';
 import type { ProjectResponse, PagedResponse } from '@/lib/types';
 import { ApiError } from '@/lib/api';
@@ -52,6 +54,7 @@ export default function DashboardProjects() {
   };
 
   return (
+    <ErrorBoundary>
     <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -65,12 +68,8 @@ export default function DashboardProjects() {
         </Button>
       </div>
 
-      {/* Loading */}
-      {isLoading && (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 size={32} className="animate-spin text-brand-primary" />
-        </div>
-      )}
+      {/* Loading skeleton */}
+      {isLoading && <ProjectGridSkeleton />}
 
       {/* Error */}
       {!isLoading && error && (
@@ -142,5 +141,6 @@ export default function DashboardProjects() {
         onCreated={handleCreated}
       />
     </div>
+    </ErrorBoundary>
   );
 }

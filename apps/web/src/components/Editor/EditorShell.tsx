@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { EditorToolbar } from './EditorToolbar.js';
 import AiAssistantPanel from './AiAssistantPanel.js';
 import { projectService } from '@/lib/services/projectService.js';
+import { toast } from '@/store/useToastStore';
 import type { ContentTreeNode } from '@/lib/types';
 import type { SyncStatus } from '@/lib/syncManager';
 
@@ -147,8 +148,9 @@ export default function EditorShell({ projectTitle }: Readonly<EditorShellProps>
       anchor.click();
       document.body.removeChild(anchor);
       URL.revokeObjectURL(url);
+      toast.success(`Documento "${fileName}" descargado correctamente.`);
     } catch {
-      // Error silencioso — se podría añadir toast en el futuro
+      toast.error('No se pudo exportar el documento. Inténtalo de nuevo.');
     } finally {
       setExporting(false);
     }
