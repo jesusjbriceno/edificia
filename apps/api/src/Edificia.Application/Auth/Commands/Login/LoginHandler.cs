@@ -94,17 +94,7 @@ public sealed class LoginHandler : IRequestHandler<LoginCommand, Result<LoginRes
         await _refreshTokenRepository.SaveChangesAsync(cancellationToken);
 
         // 9. Build response
-        var response = new LoginResponse(
-            AccessToken: token,
-            RefreshToken: refreshToken.Token,
-            ExpiresInMinutes: 60,
-            MustChangePassword: user.MustChangePassword,
-            User: new UserInfo(
-                Id: user.Id,
-                Email: user.Email!,
-                FullName: user.FullName,
-                CollegiateNumber: user.CollegiateNumber,
-                Roles: roles.ToList().AsReadOnly()));
+        var response = LoginResponse.FromUser(user, token, refreshToken.Token, 60, roles);
 
         _logger.LogInformation(
             "User {UserId} logged in successfully. MustChangePassword: {MustChange}",

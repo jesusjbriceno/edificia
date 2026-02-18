@@ -1,3 +1,6 @@
+using Edificia.Domain.Entities;
+using Edificia.Domain.Enums;
+
 namespace Edificia.Application.Interfaces;
 
 /// <summary>
@@ -13,4 +16,24 @@ public sealed record ExportDocumentData(
     string InterventionType,
     bool IsLoeRequired,
     string ContentTreeJson,
-    string? Address = null);
+    string? Address = null)
+{
+    /// <summary>
+    /// Creates an ExportDocumentData from a Project entity, formatting the intervention type.
+    /// </summary>
+    public static ExportDocumentData FromProject(Project project) => new(
+        Title: project.Title,
+        InterventionType: FormatInterventionType(project.InterventionType),
+        IsLoeRequired: project.IsLoeRequired,
+        ContentTreeJson: project.ContentTreeJson!,
+        Address: project.Address);
+
+    internal static string FormatInterventionType(Edificia.Domain.Enums.InterventionType interventionType)
+        => interventionType switch
+    {
+        Edificia.Domain.Enums.InterventionType.NewConstruction => "Obra Nueva",
+        Edificia.Domain.Enums.InterventionType.Reform => "Reforma",
+        Edificia.Domain.Enums.InterventionType.Extension => "Ampliación",
+        _ => interventionType.ToString()
+    };
+}
