@@ -120,23 +120,61 @@ finally
 // Jwt__SecretKey, etc.).  This lets .env files and container platforms (Coolify,
 // Portainer …) inject configuration without knowing .NET internals.
 //
-// Priority: if the target .NET key is already set (e.g. via
-// ConnectionStrings__DefaultConnection), the short name is ignored.
+// Supports three DB connection patterns (checked in priority order):
+//   1. ConnectionStrings__DefaultConnection already set → used as-is
+//   2. DATABASE_URL in URI format (postgres://user:pass@host:port/db) → parsed
+//   3. Individual DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD → assembled
 static void MapEnvironmentVariables()
 {
-    // ── Connection string from individual DB_* vars ──
-    var dbHost = Environment.GetEnvironmentVariable("DB_HOST");
-    if (!string.IsNullOrEmpty(dbHost)
-        && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")))
-    {
-        var port = Environment.GetEnvironmentVariable("DB_PORT") ?? "5432";
-        var name = Environment.GetEnvironmentVariable("DB_NAME") ?? "edificia_db";
-        var user = Environment.GetEnvironmentVariable("DB_USER") ?? "edificia";
-        var pass = Environment.GetEnvironmentVariable("DB_PASSWORD") ?? "";
+    const string connStringKey = "ConnectionStrings__DefaultConnection";
 
-        Environment.SetEnvironmentVariable(
-            "ConnectionStrings__DefaultConnection",
-            $"Host={dbHost};Port={port};Database={name};Username={user};Password={pass}");
+    // Skip if the .NET key is already explicitly provided
+    if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable(connStringKey)))
+    {
+        // ── Option 1: DATABASE_URL in URI format ──
+        var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+        if (!string.IsNullOrEmpty(databaseUrl))
+        {
+            var parsed = ParseDatabaseUrl(databaseUrl);
+            if (parsed is not null)
+            {
+                Environment.SetEnvironmentVariable(connStringKey, parsed);
+                Log.Information("ConnectionString resolved from DATABASE_URL (host: {Host})",
+                    ExtractHost(databaseUrl));
+            }
+            else
+            {
+                Log.Warning("DATABASE_URL is set but could not be parsed: {Url}",
+                    MaskPassword(databaseUrl));
+            }
+        }
+        else
+        {
+            // ── Option 2: Individual DB_* variables ──
+            var dbHost = Environment.GetEnvironmentVariable("DB_HOST");
+            if (!string.IsNullOrEmpty(dbHost))
+            {
+                var port = Environment.GetEnvironmentVariable("DB_PORT") ?? "5432";
+                var name = Environment.GetEnvironmentVariable("DB_NAME") ?? "edificia_db";
+                var user = Environment.GetEnvironmentVariable("DB_USER") ?? "edificia";
+                var pass = Environment.GetEnvironmentVariable("DB_PASSWORD") ?? "";
+
+                Environment.SetEnvironmentVariable(connStringKey,
+                    $"Host={dbHost};Port={port};Database={name};Username={user};Password={pass}");
+
+                Log.Information("ConnectionString assembled from DB_* vars (host: {Host}:{Port})",
+                    dbHost, port);
+            }
+            else
+            {
+                Log.Warning("No database connection configured. Set DATABASE_URL, DB_HOST, " +
+                            "or ConnectionStrings__DefaultConnection");
+            }
+        }
+    }
+    else
+    {
+        Log.Information("ConnectionString provided directly via ConnectionStrings__DefaultConnection");
     }
 
     // ── Short name → .NET config key ──
@@ -154,6 +192,8 @@ static void MapEnvironmentVariables()
     MapEnv("ROOT_EMAIL",      "Security__RootEmail");
     MapEnv("ROOT_PASSWORD",   "Security__RootInitialPassword");
 
+    // ── Helpers ──
+
     static void MapEnv(string source, string target)
     {
         var value = Environment.GetEnvironmentVariable(source);
@@ -162,5 +202,64 @@ static void MapEnvironmentVariables()
         {
             Environment.SetEnvironmentVariable(target, value);
         }
+    }
+
+    // Parses postgres://user:pass@host:port/dbname → Npgsql keyword format
+    // Accepts both "postgres://" and "postgresql://" schemes.
+    static string? ParseDatabaseUrl(string url)
+    {
+        // Normalize scheme so Uri class can parse it
+        if (url.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase))
+            url = "postgresql" + url[8..]; // replace "postgres" with "postgresql"
+
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            return null;
+
+        var host = uri.Host;
+        var port = uri.Port > 0 ? uri.Port : 5432;
+        var database = uri.AbsolutePath.TrimStart('/');
+        var userInfo = uri.UserInfo.Split(':', 2);
+        var username = Uri.UnescapeDataString(userInfo.ElementAtOrDefault(0) ?? "");
+        var password = Uri.UnescapeDataString(userInfo.ElementAtOrDefault(1) ?? "");
+
+        if (string.IsNullOrEmpty(host) || string.IsNullOrEmpty(database))
+            return null;
+
+        // Preserve any query-string params (e.g. ?sslmode=require) as extra Npgsql keys
+        var extra = "";
+        if (!string.IsNullOrEmpty(uri.Query))
+        {
+            var queryParams = uri.Query.TrimStart('?')
+                .Split('&', StringSplitOptions.RemoveEmptyEntries)
+                .Select(p =>
+                {
+                    var kv = p.Split('=', 2);
+                    return kv.Length == 2
+                        ? $"{Uri.UnescapeDataString(kv[0])}={Uri.UnescapeDataString(kv[1])}"
+                        : null;
+                })
+                .Where(p => p is not null);
+            extra = ";" + string.Join(";", queryParams);
+        }
+
+        return $"Host={host};Port={port};Database={database};Username={username};Password={password}{extra}";
+    }
+
+    static string ExtractHost(string url)
+    {
+        try { return new Uri(url.Replace("postgres://", "postgresql://")).Host; }
+        catch { return "(unknown)"; }
+    }
+
+    static string MaskPassword(string url)
+    {
+        try
+        {
+            var uri = new Uri(url.Replace("postgres://", "postgresql://"));
+            return uri.UserInfo.Contains(':')
+                ? url.Replace(uri.UserInfo, uri.UserInfo.Split(':')[0] + ":****")
+                : url;
+        }
+        catch { return "(unparseable)"; }
     }
 }
