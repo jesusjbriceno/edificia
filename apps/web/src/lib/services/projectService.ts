@@ -37,20 +37,20 @@ export const projectService = {
     return data;
   },
 
-  /** GET /projects/:id/content-tree */
+  /** GET /projects/:id/tree */
   async getContentTree(projectId: string): Promise<ContentTreeResponse> {
     const { data } = await apiClient.get<ContentTreeResponse>(
-      `/projects/${projectId}/content-tree`,
+      `/projects/${projectId}/tree`,
     );
     return data;
   },
 
-  /** PUT /projects/:id/content-tree */
+  /** PUT /projects/:id/tree */
   async updateContentTree(
     projectId: string,
     payload: UpdateProjectTreeRequest,
   ): Promise<void> {
-    await apiClient.put(`/projects/${projectId}/content-tree`, payload);
+    await apiClient.put(`/projects/${projectId}/tree`, payload);
   },
 
   /** PATCH /projects/:projectId/sections/:sectionId */

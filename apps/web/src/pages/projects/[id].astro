@@ -1,43 +1,32 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import SidebarNavigation from '@/components/Editor/SidebarNavigation';
-import EditorShell from '@/components/Editor/EditorShell';
-import { ChevronLeft, Share2, Download } from 'lucide-react';
+import ProjectEditor from '@/components/Editor/ProjectEditor';
+import { AuthGuard } from '@/components/auth/AuthGuard';
+import { ChevronLeft } from 'lucide-react';
 
 const { id } = Astro.params;
 ---
 
 <BaseLayout title="Editor de Proyecto">
-	<div class="flex flex-col h-screen overflow-hidden">
-		<!-- Top Navigation Bar -->
-		<header class="h-14 border-b border-white/5 bg-dark-card flex items-center justify-between px-6 shrink-0">
-			<div class="flex items-center gap-4">
-				<a href="/dashboard" class="p-2 text-gray-400 hover:text-white transition-colors">
-					<ChevronLeft size={20} />
-				</a>
-				<div class="h-6 w-px bg-white/10"></div>
-				<div>
-					<h2 class="text-sm font-semibold text-white">Residencial Los Olivos</h2>
-					<p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Memoria de Proyecto de Ejecución</p>
+	<AuthGuard client:load>
+		<div class="flex flex-col h-screen overflow-hidden">
+			<!-- Top Navigation Bar -->
+			<header class="h-14 border-b border-white/5 bg-dark-card flex items-center justify-between px-6 shrink-0">
+				<div class="flex items-center gap-4">
+					<a href="/dashboard" class="p-2 text-gray-400 hover:text-white transition-colors">
+						<ChevronLeft size={20} />
+					</a>
+					<div class="h-6 w-px bg-white/10"></div>
+					<div>
+						<p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Memoria de Proyecto de Ejecución</p>
+					</div>
 				</div>
-			</div>
+			</header>
 
-			<div class="flex items-center gap-3">
-				<button class="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-gray-300 hover:text-white transition-colors">
-					<Share2 size={14} />
-					Compartir
-				</button>
-				<button class="flex items-center gap-2 px-4 py-1.5 text-xs font-bold text-dark-bg bg-white rounded-md hover:bg-gray-200 transition-colors">
-					<Download size={14} />
-					Exportar DOCX
-				</button>
+			<!-- Main Editor Area -->
+			<div class="flex-1 flex overflow-hidden">
+				<ProjectEditor client:only="react" projectId={id!} />
 			</div>
-		</header>
-
-		<!-- Main Editor Area -->
-		<div class="flex-1 flex overflow-hidden">
-			<SidebarNavigation client:load />
-			<EditorShell client:only="react" />
 		</div>
-	</div>
+	</AuthGuard>
 </BaseLayout>
