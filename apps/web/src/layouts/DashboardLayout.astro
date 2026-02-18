@@ -1,6 +1,7 @@
 ---
 import BaseLayout from './BaseLayout.astro';
 import { LayoutDashboard, FolderKanban, Users, Settings, LogOut, Search, Bell } from 'lucide-react';
+import HeaderUser from '@/components/HeaderUser';
 
 interface Props {
 	title: string;
@@ -66,15 +67,7 @@ const { title } = Astro.props;
 						<Bell size={20} />
 						<span class="absolute top-2 right-2 w-2 h-2 bg-brand-primary rounded-full"></span>
 					</button>
-					<div class="flex items-center gap-3 pl-4 border-l border-white/10">
-						<div class="text-right">
-							<p class="text-sm font-medium text-white">Arq. Javier López</p>
-							<p class="text-xs text-gray-500">Arquitecto Senior</p>
-						</div>
-						<div class="w-10 h-10 rounded-full bg-linear-to-br from-brand-primary to-blue-600 flex items-center justify-center font-bold text-white">
-							JL
-						</div>
-					</div>
+					<HeaderUser client:load />
 				</div>
 			</header>
 
