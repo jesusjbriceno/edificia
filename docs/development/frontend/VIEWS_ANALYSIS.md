@@ -13,7 +13,7 @@ graph TD
         Forgot[Recuperar Contraseña /forgot-password]
     end
 
-    Auth -->|User| Dash[Dashboard Proyectos /dashboard]
+    Auth -->|User| Dash[Inicio /dashboard]
     Auth -->|Admin| AdminDash[Panel Administración]
     Auth -->|User| Profile[Perfil /profile]
 
@@ -38,11 +38,13 @@ graph TD
 * Input de Email → Acción: Enviar correo de recuperación.
 * **Componentes:** `ForgotPassword`.
 
-### **🔵 V-Dash-01: Dashboard de Proyectos (`/dashboard`)**
+### **🔵 V-Dash-01: Inicio (`/dashboard`)**
 
 * Grid de tarjetas de proyectos activos del usuario.
 * Botón "Nuevo Proyecto" que lanza el Wizard.
-* **Componentes:** `ProjectCard`, `ProjectWizard`, `AuthGuard`.
+* **Sidebar:** Inicio (activo), Proyectos, Usuarios, Ajustes (deshabilitado), Cerrar Sesión.
+* **Header:** Barra de búsqueda, notificaciones, avatar con dropdown (Mi Perfil, Cerrar Sesión).
+* **Componentes:** `ProjectCard`, `ProjectWizard`, `AuthGuard`, `SidebarLogout`, `HeaderUser`.
 
 ### **🟡 V-Profile-01: Perfil de Usuario (`/profile`)**
 
@@ -84,6 +86,8 @@ graph TD
 | `Input` | `ui/Input.tsx` | Campo de entrada estilizado |
 | `Card` | `ui/Card.tsx` | Tarjeta contenedora |
 | `Badge` | `ui/Badge.tsx` | Etiqueta de estado |
+| `HeaderUser` | `HeaderUser.tsx` | Avatar con dropdown (Mi Perfil, Cerrar Sesión) |
+| `SidebarLogout` | `SidebarLogout.tsx` | Botón de logout en el sidebar con limpieza de sesión |
 
 ## **4. Stores (Zustand)**
 

@@ -1,13 +1,23 @@
 ---
 import BaseLayout from './BaseLayout.astro';
-import { LayoutDashboard, FolderKanban, Users, Settings, LogOut, Search, Bell } from 'lucide-react';
+import { LayoutDashboard, FolderKanban, Users, Settings, Search, Bell } from 'lucide-react';
 import HeaderUser from '@/components/HeaderUser';
+import SidebarLogout from '@/components/SidebarLogout';
 
 interface Props {
 	title: string;
 }
 
 const { title } = Astro.props;
+const currentPath = Astro.url.pathname;
+
+// Helper for active-link styling
+const linkClass = (href: string) => {
+	const isActive = currentPath === href || currentPath.startsWith(href + '/');
+	return isActive
+		? 'flex items-center gap-3 px-4 py-3 text-sm font-medium text-white bg-brand-primary/10 border border-brand-primary/20 rounded-lg transition-all'
+		: 'flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-all';
+};
 ---
 
 <BaseLayout title={title}>
@@ -15,22 +25,24 @@ const { title } = Astro.props;
 		<!-- Sidebar -->
 		<aside class="w-64 border-r border-white/5 flex flex-col bg-dark-bg/50 backdrop-blur-xl">
 			<div class="p-6">
-				<h2 class="text-2xl font-bold tracking-tight text-white">
-					<span class="text-brand-primary">E</span>DIFICIA
-				</h2>
+				<a href="/dashboard" class="block">
+					<h2 class="text-2xl font-bold tracking-tight text-white">
+						<span class="text-brand-primary">E</span>DIFICIA
+					</h2>
+				</a>
 			</div>
 
 			<nav class="flex-1 px-4 space-y-2 mt-4">
-				<a href="/dashboard" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-white bg-brand-primary/10 border border-brand-primary/20 rounded-lg transition-all">
-					<LayoutDashboard size={18} className="text-brand-primary" />
+				<a href="/dashboard" class={linkClass('/dashboard')}>
+					<LayoutDashboard size={18} className={currentPath === '/dashboard' ? 'text-brand-primary' : ''} />
+					Inicio
+				</a>
+				<a href="/admin/projects" class={linkClass('/admin/projects')}>
+					<FolderKanban size={18} className={currentPath.startsWith('/admin/projects') ? 'text-brand-primary' : ''} />
 					Proyectos
 				</a>
-				<span class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-500 cursor-not-allowed rounded-lg opacity-50" title="Próximamente">
-					<FolderKanban size={18} />
-					Plantillas
-				</span>
-				<a href="/admin/users" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-all">
-					<Users size={18} />
+				<a href="/admin/users" class={linkClass('/admin/users')}>
+					<Users size={18} className={currentPath.startsWith('/admin/users') ? 'text-brand-primary' : ''} />
 					Usuarios
 				</a>
 			</nav>
@@ -40,10 +52,7 @@ const { title } = Astro.props;
 					<Settings size={18} />
 					Ajustes
 				</span>
-				<a href="/" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-400 hover:bg-red-500/10 rounded-lg transition-all">
-					<LogOut size={18} />
-					Cerrar Sesión
-				</a>
+				<SidebarLogout client:load />
 			</div>
 		</aside>
 
@@ -78,3 +87,4 @@ const { title } = Astro.props;
 		</div>
 	</div>
 </BaseLayout>
+
