@@ -4,23 +4,21 @@
 # ============================================================
 
 # --- ETAPA 1: DEPENDENCIAS ---
-FROM node:20-alpine AS deps
+FROM node:22-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
-# --force: skip EBADPLATFORM on optional win32 binaries in lockfile (generated on Windows)
-RUN npm ci --omit=dev --force
+RUN npm ci --omit=dev
 
 # --- ETAPA 2: BUILD ---
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 WORKDIR /app
 COPY package*.json ./
-# --force: skip EBADPLATFORM on optional win32 binaries in lockfile (generated on Windows)
-RUN npm ci --force
+RUN npm ci
 COPY . .
 RUN npm run build
 
 # --- ETAPA 3: RUNTIME ---
-FROM node:20-alpine AS runtime
+FROM node:22-alpine AS runtime
 WORKDIR /app
 
 # Copiar solo lo necesario para ejecutar el servidor SSR
