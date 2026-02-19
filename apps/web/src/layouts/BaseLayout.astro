@@ -1,6 +1,7 @@
 ---
 import '@/styles/global.css';
 import ToastContainer from '@/components/ui/ToastContainer';
+import { SessionProvider } from '@/components/auth/SessionProvider';
 
 interface Props {
 	title: string;
@@ -8,6 +9,9 @@ interface Props {
 }
 
 const { title, description = "EDIFICIA - Redacción de Memorias de Proyecto" } = Astro.props;
+
+// Obtenemos el usuario validado por el middleware
+const serverSession = Astro.locals.user;
 ---
 
 <!doctype html>
@@ -16,7 +20,7 @@ const { title, description = "EDIFICIA - Redacción de Memorias de Proyecto" } =
 		<meta charset="UTF-8" />
 		<meta name="description" content={description} />
 		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" type="image/x-icon" href="/favicon.ico" />
 		<meta name="generator" content={Astro.generator} />
 		<title>{title} | EDIFICIA</title>
 		<link rel="preconnect" href="https://fonts.googleapis.com">
@@ -24,7 +28,9 @@ const { title, description = "EDIFICIA - Redacción de Memorias de Proyecto" } =
 		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 	</head>
 	<body class="bg-dark-bg text-white selection:bg-brand-primary/30 min-h-screen flex flex-col">
-		<slot />
+		<SessionProvider initialSession={serverSession}>
+			<slot />
+		</SessionProvider>
 		<ToastContainer client:load />
 	</body>
 </html>

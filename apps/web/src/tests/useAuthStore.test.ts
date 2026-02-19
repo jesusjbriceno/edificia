@@ -1,86 +1,89 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useAuthStore } from '@/store/useAuthStore';
-import type { LoginResponse } from '@/lib/types';
 
-// Mock de localStorage
-const localStorageMock = (() => {
-  let store: Record<string, string> = {};
-  return {
-    getItem: (key: string) => store[key] || null,
-    setItem: (key: string, value: string) => { store[key] = value.toString(); },
-    removeItem: (key: string) => { delete store[key]; },
-    clear: () => { store = {}; },
-  };
-})();
+// Mock de fetch para el logout
+global.fetch = vi.fn();
 
-Object.defineProperty(window, 'localStorage', { value: localStorageMock });
-
-const mockLoginResponse: LoginResponse = {
-  accessToken: 'access-token',
-  refreshToken: 'refresh-token',
-  expiresInMinutes: 60,
-  mustChangePassword: false,
-  user: {
-    id: '1',
-    email: 'alvaro@edificia.es',
-    fullName: 'Alvaro Arquitecto',
-    collegiateNumber: null,
-    roles: ['Architect'],
-  },
+// Mock de window.location
+const mockLocation = {
+  href: '',
+  assign: vi.fn(),
+  replace: vi.fn(),
+  reload: vi.fn(),
 };
 
-describe('AuthStore', () => {
+Object.defineProperty(window, 'location', {
+  value: mockLocation,
+  writable: true,
+});
+
+describe('useAuthStore', () => {
   beforeEach(() => {
-    localStorage.clear();
-    useAuthStore.setState({
-      user: null,
-      accessToken: null,
-      refreshToken: null,
-      mustChangePassword: false,
-      isAuthenticated: false,
-    });
+    // Resetear el store antes de cada test
+    useAuthStore.setState({ user: null, isAuthenticated: false, isHydrated: false });
+    vi.clearAllMocks();
   });
 
-  it('should initialize with default values', () => {
+  it('debe iniciar con estado por defecto (no hidratado)', () => {
     const state = useAuthStore.getState();
-    expect(state.isAuthenticated).toBe(false);
     expect(state.user).toBeNull();
+    expect(state.isAuthenticated).toBe(false);
+    expect(state.isHydrated).toBe(false);
   });
 
-  it('should set auth data correctly via setAuth', () => {
-    useAuthStore.getState().setAuth(mockLoginResponse);
+  it('syncFromServer debe hidratar el usuario desde el servidor', () => {
+    const mockUser = {
+      id: '123',
+      name: 'Test User',
+      email: 'test@edificia.com',
+      role: 'Admin'
+    };
+
+    useAuthStore.getState().syncFromServer(mockUser);
 
     const state = useAuthStore.getState();
+    expect(state.user).toEqual(mockUser);
     expect(state.isAuthenticated).toBe(true);
-    expect(state.user).toEqual(mockLoginResponse.user);
-    expect(state.accessToken).toBe('access-token');
-    expect(state.refreshToken).toBe('refresh-token');
-    expect(state.mustChangePassword).toBe(false);
+    expect(state.isHydrated).toBe(true);
   });
 
-  it('should update tokens via setTokens', () => {
-    useAuthStore.getState().setAuth(mockLoginResponse);
-    useAuthStore.getState().setTokens('new-access', 'new-refresh');
+  it('syncFromServer con null debe marcar como hidratado pero no autenticado', () => {
+    useAuthStore.getState().syncFromServer(null);
 
     const state = useAuthStore.getState();
-    expect(state.accessToken).toBe('new-access');
-    expect(state.refreshToken).toBe('new-refresh');
-  });
-
-  it('should check roles via hasRole', () => {
-    useAuthStore.getState().setAuth(mockLoginResponse);
-    expect(useAuthStore.getState().hasRole('Architect')).toBe(true);
-    expect(useAuthStore.getState().hasRole('Admin')).toBe(false);
-    expect(useAuthStore.getState().hasRole('Admin', 'Architect')).toBe(true);
-  });
-
-  it('should clear data on logout', () => {
-    useAuthStore.getState().setAuth(mockLoginResponse);
-    useAuthStore.getState().logout();
-
-    const state = useAuthStore.getState();
-    expect(state.isAuthenticated).toBe(false);
     expect(state.user).toBeNull();
-    expect(state.accessToken).toBeNull();
+    expect(state.isAuthenticated).toBe(false);
+    expect(state.isHydrated).toBe(true);
+  });
+
+  it('login debe actualizar el estado del usuario', () => {
+    const mockUser = { id: '1', name: 'User', email: 'u@test.com', role: 'User' };
+    
+    useAuthStore.getState().login(mockUser);
+    
+    const state = useAuthStore.getState();
+    expect(state.user).toEqual(mockUser);
+    expect(state.isAuthenticated).toBe(true);
+  });
+
+  it('logout debe limpiar el estado y llamar al endpoint de logout', async () => {
+    // Setup estado inicial
+    useAuthStore.setState({ 
+      user: { id: '1', name: 'User', email: 'email', role: 'User' }, 
+      isAuthenticated: true 
+    });
+
+    await useAuthStore.getState().logout();
+
+    // Validar limpieza de estado
+    const state = useAuthStore.getState();
+    expect(state.user).toBeNull();
+    expect(state.isAuthenticated).toBe(false);
+
+    // Validar llamada a API
+    expect(global.fetch).toHaveBeenCalledWith('/api/auth/logout', { method: 'POST' });
+    
+    // Validar redirección
+    expect(window.location.href).toBe('/');
   });
 });
