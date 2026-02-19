@@ -1,32 +1,30 @@
-﻿{
-  "$schema": "https://json.schemastore.org/launchsettings.json",
+{
   "profiles": {
     "http": {
       "commandName": "Project",
-      "dotnetRunMessages": true,
-      "launchBrowser": false,
-      "applicationUrl": "http://localhost:5172",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
-      }
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "http://localhost:5172"
     },
     "https": {
       "commandName": "Project",
-      "dotnetRunMessages": true,
-      "launchBrowser": false,
-      "applicationUrl": "https://localhost:7196;http://localhost:5172",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
-      }
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "https://localhost:7196;http://localhost:5172"
     },
     "local": {
       "commandName": "Project",
-      "dotnetRunMessages": true,
-      "launchBrowser": false,
-      "applicationUrl": "http://localhost:5000",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Local"
-      }
+        "ASPNETCORE_ENVIRONMENT": "Local",
+        "DATABASE_URL": "postgresql://postgres:cT5Kbx4kp9P9fYxe46F47me1VH1Of5J6osLyj658jDDgxQ3jgzHyvi74U55N4shC@127.0.0.1:5432/edificia_db?schema=public"
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "http://localhost:5000"
     }
-  }
+  },
+  "$schema": "https://json.schemastore.org/launchsettings.json"
 }

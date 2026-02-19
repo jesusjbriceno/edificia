@@ -1,91 +1,87 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import type { UserInfo, Role, LoginResponse } from '@/lib/types';
+import { devtools, persist } from 'zustand/middleware';
 
-// ─── State shape ─────────────────────────────────────────
-
-interface AuthState {
-  // Hydration
-  /** True once Zustand persist has restored state from localStorage. */
-  _hasHydrated: boolean;
-
-  // Data
-  user: UserInfo | null;
-  accessToken: string | null;
-  refreshToken: string | null;
-  mustChangePassword: boolean;
-
-  // Computed-like getters (derived from data)
-  isAuthenticated: boolean;
-
-  // Actions
-  /** Hydrate from a LoginResponse (after login or refresh). */
-  setAuth: (response: LoginResponse) => void;
-  /** Update only the token pair (used by the refresh interceptor). */
-  setTokens: (accessToken: string, refreshToken: string | null) => void;
-  /** Partially update the user profile (after PUT /auth/profile). */
-  updateUser: (patch: Partial<UserInfo>) => void;
-  /** Clear session completely. */
-  logout: () => void;
-
-  // Helpers
-  hasRole: (...roles: Role[]) => boolean;
+// Alineado con UserInfo del backend (types.ts)
+export interface User {
+  id: string;
+  email: string;
+  fullName: string;
+  collegiateNumber?: string | null;
+  roles: string[];
 }
 
-// ─── Store ───────────────────────────────────────────────
+interface AuthState {
+  // Datos de sesión
+  user: User | null;
+  accessToken: string | null;
+  refreshToken: string | null;
+  isAuthenticated: boolean;
+  isHydrated: boolean;
 
-const INITIAL_STATE = {
-  _hasHydrated: false,
-  user: null,
-  accessToken: null,
-  refreshToken: null,
-  mustChangePassword: false,
-  isAuthenticated: false,
-};
+  // Acciones
+  login: (payload: { user: User; accessToken: string; refreshToken: string | null }) => void;
+  setTokens: (accessToken: string, refreshToken: string | null) => void;
+  logout: () => void;
+  syncFromServer: (serverUser: User | null) => void;
+}
 
 export const useAuthStore = create<AuthState>()(
-  persist(
-    (set, get) => ({
-      ...INITIAL_STATE,
+  devtools(
+    persist(
+      (set) => ({
+        user: null,
+        accessToken: null,
+        refreshToken: null,
+        isAuthenticated: false,
+        isHydrated: false,
 
-      setAuth: (response: LoginResponse) =>
-        set({
-          user: response.user,
-          accessToken: response.accessToken,
-          refreshToken: response.refreshToken,
-          mustChangePassword: response.mustChangePassword,
-          isAuthenticated: true,
-        }),
+        login: ({ user, accessToken, refreshToken }) => {
+          set({
+            user,
+            accessToken,
+            refreshToken,
+            isAuthenticated: true,
+          });
+        },
 
-      setTokens: (accessToken, refreshToken) =>
-        set({ accessToken, refreshToken }),
+        setTokens: (accessToken, refreshToken) => {
+          set({ accessToken, refreshToken });
+        },
 
-      updateUser: (patch) =>
-        set((state) => ({
-          user: state.user ? { ...state.user, ...patch } : null,
-        })),
+        logout: () => {
+          set({
+            user: null,
+            accessToken: null,
+            refreshToken: null,
+            isAuthenticated: false,
+          });
+        },
 
-      logout: () => set({ ...INITIAL_STATE }),
-
-      hasRole: (...roles: Role[]) => {
-        const user = get().user;
-        if (!user) return false;
-        return user.roles.some((r) => roles.includes(r));
-      },
-    }),
-    {
-      name: 'edificia-auth-storage',
-      // Only persist the essential serialisable fields
-      partialize: (state) => ({
-        user: state.user,
-        accessToken: state.accessToken,
-        refreshToken: state.refreshToken,
-        mustChangePassword: state.mustChangePassword,
-        isAuthenticated: state.isAuthenticated,
+        syncFromServer: (serverUser) => {
+          set({
+            user: serverUser,
+            isAuthenticated: !!serverUser,
+            isHydrated: true,
+          });
+        },
       }),
-      onRehydrateStorage: () => () => {
-        useAuthStore.setState({ _hasHydrated: true });
-      },
-    },
-  ),
+      {
+        name: 'edificia-auth',
+        // Solo persistimos lo esencial en localStorage
+        partialize: (state) => ({
+          user: state.user,
+          accessToken: state.accessToken,
+          refreshToken: state.refreshToken,
+          isAuthenticated: state.isAuthenticated,
+        }),
+        onRehydrateStorage: () => (state) => {
+          // Cuando se rehidrata desde localStorage, marcamos isHydrated
+          if (state) {
+            state.isHydrated = true;
+          }
+        },
+      }
+    ),
+    { name: 'AuthStore' }
+  )
 );

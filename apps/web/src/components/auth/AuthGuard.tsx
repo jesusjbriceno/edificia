@@ -1,46 +1,42 @@
 import React, { useEffect } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
-import type { Role } from '@/lib/types';
 
 interface AuthGuardProps {
   children: React.ReactNode;
-  /** If set, at least one of these roles is required. */
-  allowedRoles?: Role[];
+  allowedRoles?: string[];
 }
 
 export const AuthGuard: React.FC<AuthGuardProps> = ({ children, allowedRoles }) => {
-  const { _hasHydrated, isAuthenticated, mustChangePassword, hasRole } = useAuthStore();
+  const { isAuthenticated, isHydrated, user } = useAuthStore();
 
   useEffect(() => {
-    // Wait for Zustand persist to finish rehydrating from localStorage
-    // before making any redirect decisions (Astro MPA = full page reload).
-    if (!_hasHydrated) return;
-
-    if (!isAuthenticated) {
-      globalThis.location.href = '/';
-      return;
+    // Si ya hidrató y no hay usuario, mandamos a la raíz (Login)
+    if (isHydrated && !isAuthenticated) {
+      window.location.href = '/';
     }
+  }, [isHydrated, isAuthenticated]);
 
-    // Force password change before accessing any other page
-    if (mustChangePassword && !globalThis.location.pathname.startsWith('/profile')) {
-      globalThis.location.href = '/profile?tab=security';
-      return;
+  // Si no está hidratado o no está autenticado, no renderizamos nada
+  // para evitar FOUC (Flash of Unauthenticated Content)
+  if (!isHydrated || !isAuthenticated) {
+    return null;
+  }
+
+  // Verificación de roles si se especifican
+  if (allowedRoles && allowedRoles.length > 0 && user) {
+    const userRoles = user.roles ?? [];
+    const hasRole = allowedRoles.some(role => userRoles.includes(role));
+    if (!hasRole) {
+      return (
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <p className="text-gray-400">No tienes permisos para acceder a esta sección.</p>
+        </div>
+      );
     }
-
-    // Check RBAC
-    if (allowedRoles && allowedRoles.length > 0 && !hasRole(...allowedRoles)) {
-      globalThis.location.href = '/dashboard';
-    }
-  }, [_hasHydrated, isAuthenticated, mustChangePassword, allowedRoles, hasRole]);
-
-  // Still rehydrating — show nothing yet
-  if (!_hasHydrated) return null;
-
-  if (!isAuthenticated) return null;
-
-  if (mustChangePassword && !globalThis.location.pathname.startsWith('/profile')) return null;
-
-  if (allowedRoles && allowedRoles.length > 0 && !hasRole(...allowedRoles)) return null;
+  }
 
   return <>{children}</>;
 };
+
+// Exportación por defecto para compatibilidad
+export default AuthGuard;

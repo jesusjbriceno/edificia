@@ -21,20 +21,20 @@ services:
     container_name: edificia_prod_api
     restart: always
     ports:
-      - "5000:8080"      
-    labels:
-      - "coolify.managed=true"
-    networks:
-      - coolify-network
-    env_file: 
+      - "5000:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    env_file:
       - path: .env
         required: false
     environment:
-      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_ENVIRONMENT: Local
+      ASPNETCORE_URLS: "http://+:8080"
       # Fixed production values (secrets come from .env / Coolify UI)
-      Jwt__Issuer: "https://api-edificia.jesusjbriceno.dev"
-      Jwt__Audience: "https://edificia.jesusjbriceno.dev"
-      Cors__AllowedOrigins__0: "https://edificia.jesusjbriceno.dev"
+      Jwt__Issuer: "http://localhost:5000"
+      Jwt__Audience: "http://localhost:5000"
+      Cors__AllowedOrigins__0: "http://localhost:4324"
+      Cors__AllowedOrigins__1: "http://localhost:4321"
 
   # ── Frontend Web ──
   web:
@@ -45,23 +45,14 @@ services:
     container_name: edificia_prod_web
     restart: always
     ports:
-      - "4321:4321"
+      - "4324:4324"
     env_file:
       - path: .env
         required: false
     environment:
-      PUBLIC_API_URL: "https://api-edificia.jesusjbriceno.dev"
+      PUBLIC_API_URL: "http://localhost:5000/api" # URL pública con /api para Axios
+      INTERNAL_API_URL: "http://api:8080"          # Red interna Docker
       HOST: "0.0.0.0"
-      PORT: "4321"
+      PORT: "4324"
     depends_on:
       - api
-    labels:
-      - "coolify.managed=true"
-    networks:
-      - coolify-network
-
-networks:
-  coolify-network:
-    external: true
-    name: coolify
-    
