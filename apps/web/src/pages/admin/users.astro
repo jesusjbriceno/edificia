@@ -1,16 +1,9 @@
 ---
 import DashboardLayout from '@/layouts/DashboardLayout.astro';
 import { AuthGuard } from '@/components/auth/AuthGuard';
-import UserTable from '@/components/UserTable';
+import UserManagement from '@/components/Admin/UserManagement';
 import { Button } from '@/components/ui/Button';
 import { UserPlus } from 'lucide-react';
-
-const users = [
-	{ id: "1", name: "Jesús Briceño", email: "jesus@edificia.es", role: "SuperAdmin", status: "Active", lastAccess: "Hoy, 14:20" },
-	{ id: "2", name: "Javier López", email: "javier@edificia.es", role: "Architect", status: "Active", lastAccess: "Ayer, 09:15" },
-	{ id: "3", name: "Ana Martínez", email: "ana@colaborador.es", role: "Collaborator", status: "Active", lastAccess: "Hace 2 días" },
-	{ id: "4", name: "Roberto García", email: "roberto@edificia.es", role: "Supervisor", status: "Inactive", lastAccess: "Hace 1 semana" },
-] as const;
 ---
 
 <DashboardLayout title="Admin — Usuarios">
@@ -27,7 +20,7 @@ const users = [
 				</Button>
 			</div>
 
-			<UserTable users={users as any} client:load />
+			<UserManagement client:load />
 		</div>
 	</AuthGuard>
 </DashboardLayout>
