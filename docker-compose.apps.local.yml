@@ -50,7 +50,8 @@ services:
       - path: .env
         required: false
     environment:
-      PUBLIC_API_URL: "http://localhost:5000/api"
+      PUBLIC_API_URL: "http://localhost:5000/api" # URL pública con /api para Axios
+      INTERNAL_API_URL: "http://api:8080"          # Red interna Docker
       HOST: "0.0.0.0"
       PORT: "4324"
     depends_on:
