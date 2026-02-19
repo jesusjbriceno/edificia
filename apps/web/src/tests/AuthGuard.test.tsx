@@ -1,78 +1,60 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { useAuthStore } from '@/store/useAuthStore';
 
-// Mock de useAuthStore
-vi.mock('@/store/useAuthStore', () => ({
-  useAuthStore: vi.fn(),
-}));
+// Mock simple para window.location
+Object.defineProperty(window, 'location', {
+  value: { href: '' },
+  writable: true,
+});
 
-describe('AuthGuard component', () => {
-  it('should render children visible if authenticated', () => {
-    (useAuthStore as any).mockReturnValue({
-      _hasHydrated: true,
+describe('AuthGuard', () => {
+  beforeEach(() => {
+    useAuthStore.setState({ user: null, isAuthenticated: false, isHydrated: false });
+    window.location.href = '';
+  });
+
+  it('no renderiza nada mientras no está hidratado (estado inicial)', () => {
+    // isHydrated es false por defecto
+    render(
+      <AuthGuard>
+        <div data-testid="protected-content">Secret</div>
+      </AuthGuard>
+    );
+
+    // Debería mostrar spinner o nada, pero NO el contenido protegido
+    expect(screen.queryByTestId('protected-content')).toBeNull();
+  });
+
+  it('redirige a la raíz si está hidratado pero no autenticado', async () => {
+    // Simular que Astro/SessionProvider ya corrió pero no había usuario
+    useAuthStore.setState({ isHydrated: true, isAuthenticated: false });
+
+    render(
+      <AuthGuard>
+        <div>Secret</div>
+      </AuthGuard>
+    );
+
+    await waitFor(() => {
+      expect(window.location.href).toBe('/');
+    });
+  });
+
+  it('renderiza el contenido si está autenticado e hidratado', () => {
+    useAuthStore.setState({ 
+      isHydrated: true, 
       isAuthenticated: true,
-      mustChangePassword: false,
-      hasRole: () => true,
+      user: { id: '1', role: 'Admin', email: 'test', name: 'test' } 
     });
 
     render(
       <AuthGuard>
-        <div data-testid="protected-content">Protected</div>
+        <div data-testid="protected-content">Secret</div>
       </AuthGuard>
     );
 
-    const content = screen.getByTestId('protected-content');
-    expect(content).toBeInTheDocument();
-    // The wrapper uses display:contents when visible → content is accessible
-    expect(content.closest('div[style]')?.getAttribute('style')).toContain('contents');
-  });
-
-  it('should hide children with CSS (not remove from DOM) when not authenticated', () => {
-    (useAuthStore as any).mockReturnValue({
-      _hasHydrated: true,
-      isAuthenticated: false,
-      mustChangePassword: false,
-      hasRole: () => false,
-    });
-
-    // Mock de window.location.href
-    const originalLocation = window.location;
-    delete (window as any).location;
-    window.location = { ...originalLocation, href: '' } as any;
-
-    render(
-      <AuthGuard>
-        <div data-testid="protected-content">Protected</div>
-      </AuthGuard>
-    );
-
-    // Children exist in DOM but are hidden via display:none
-    const content = screen.getByTestId('protected-content');
-    expect(content).toBeInTheDocument();
-    expect(content.closest('div[style]')?.getAttribute('style')).toContain('none');
-
-    window.location = originalLocation as any;
-  });
-
-  it('should hide children while hydrating (not remove from DOM)', () => {
-    (useAuthStore as any).mockReturnValue({
-      _hasHydrated: false,
-      isAuthenticated: false,
-      mustChangePassword: false,
-      hasRole: () => false,
-    });
-
-    render(
-      <AuthGuard>
-        <div data-testid="protected-content">Protected</div>
-      </AuthGuard>
-    );
-
-    // Children exist in DOM but are hidden — Astro can still hydrate nested islands
-    const content = screen.getByTestId('protected-content');
-    expect(content).toBeInTheDocument();
-    expect(content.closest('div[style]')?.getAttribute('style')).toContain('none');
+    expect(screen.getByTestId('protected-content')).toBeDefined();
   });
 });

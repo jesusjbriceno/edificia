@@ -74,9 +74,11 @@ export default function MobileSidebar() {
             {/* Header */}
             <div className="flex items-center justify-between p-6">
               <a href="/dashboard">
-                <h2 className="text-2xl font-bold tracking-tight text-white">
-                  <span className="text-brand-primary">E</span>DIFICIA
-                </h2>
+                <img 
+                  src="/logo-completo.webp" 
+                  alt="EDIFICIA" 
+                  className="h-8 w-auto object-contain"
+                />
               </a>
               <button
                 type="button"
