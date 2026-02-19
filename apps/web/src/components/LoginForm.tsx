@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
+import { authService } from '@/lib/services/authService';
+import { ApiError } from '@/lib/api';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { LogIn, AlertCircle } from 'lucide-react';
@@ -17,26 +19,26 @@ export default function LoginForm() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
+      // Llamada directa al backend .NET vía authService (Axios)
+      const data = await authService.login({ email, password });
+
+      // Guardar tokens y usuario en el store (persiste en localStorage)
+      login({
+        user: data.user,
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken ?? '',
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Error al iniciar sesión');
-      }
-
-      login(data.user);
+      // Redirigir al dashboard
       window.location.href = '/dashboard';
       
     } catch (err: any) {
       console.error('Login error:', err);
-      setError(err.message || 'Ocurrió un error inesperado');
+      if (err instanceof ApiError) {
+        setError(err.message || 'Credenciales inválidas');
+      } else {
+        setError(err.message || 'Ocurrió un error inesperado');
+      }
       setIsLoading(false);
     }
   };
@@ -104,7 +106,7 @@ export default function LoginForm() {
               Recordar acceso
             </label>
           </div>
-          <a href="/forgot-password" size="sm" className="text-xs text-brand-primary hover:text-blue-400 font-medium transition-colors">
+          <a href="/forgot-password" className="text-xs text-brand-primary hover:text-blue-400 font-medium transition-colors">
             ¿Has olvidado la contraseña?
           </a>
         </div>

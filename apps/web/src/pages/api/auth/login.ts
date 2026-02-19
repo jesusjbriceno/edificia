@@ -1,32 +1,35 @@
 import type { APIRoute } from 'astro';
-import { setAuthCookie } from '@/lib/cookie-utils';
 
-export const POST: APIRoute = async ({ request, cookies }) => {
+/**
+ * Proxy de login VESTIGIAL.
+ * 
+ * En Opción B (tokens en cliente) el LoginForm llama directamente
+ * al backend vía authService/Axios. Este endpoint se mantiene por
+ * retrocompatibilidad pero no se usa en el flujo principal.
+ * 
+ * En una futura iteración (Opción A — cookies HTTP-only) este
+ * archivo volverá a ser el proxy principal.
+ */
+export const POST: APIRoute = async ({ request }) => {
   try {
     const body = await request.json();
-    
-    // Llamada real al Backend .NET
-    // Ajusta la URL según tu variable de entorno real
-    const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://localhost:5000';
-    
+
+    const apiUrl = import.meta.env.INTERNAL_API_URL || import.meta.env.PUBLIC_API_URL || 'http://localhost:5000';
+
     const response = await fetch(`${apiUrl}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
 
-    if (!response.ok) {
-      return new Response(JSON.stringify({ error: 'Credenciales inválidas' }), { status: 401 });
-    }
-
-    const data = await response.json();
-    // Asumiendo que data tiene { token: "...", ... }
+    const rawData = await response.text();
     
-    // AQUÍ OCURRE LA MAGIA: Astro establece la cookie
-    setAuthCookie(cookies, data.token);
-
-    return new Response(JSON.stringify({ success: true, user: data.user }), { status: 200 });
-  } catch (error) {
-    return new Response(JSON.stringify({ error: 'Error del servidor' }), { status: 500 });
+    return new Response(rawData, {
+      status: response.status,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (error: any) {
+    console.error('[Auth Proxy] Error:', error.message);
+    return new Response(JSON.stringify({ error: 'Error del proxy de autenticación' }), { status: 500 });
   }
 };

@@ -1,49 +1,32 @@
 import { defineMiddleware } from 'astro:middleware';
-import { AUTH_COOKIE_NAME, parseJwt } from './lib/cookie-utils';
 
-// La raíz '/' es ahora pública (Login page)
+/**
+ * Middleware simplificado para Opción B (tokens en cliente).
+ * 
+ * La protección real de rutas la hace AuthGuard en el cliente.
+ * Este middleware solo garantiza que las rutas públicas sean accesibles
+ * y añade isAuthenticated = false a locals para SSR.
+ */
+
 const PUBLIC_ROUTES = ['/', '/forgot-password', '/404'];
-const PUBLIC_PREFIXES = ['/api/auth', '/_image', '/favicon.svg', '/images/'];
+const PUBLIC_PREFIXES = ['/api/', '/_image', '/favicon.ico', '/images/', '/logo-completo.webp'];
 
 export const onRequest = defineMiddleware(async (context, next) => {
-  const { cookies, url, locals, redirect } = context;
+  const { url, locals } = context;
 
+  // Siempre inicializar locals para que Astro no falle
+  locals.user = null;
+  locals.isAuthenticated = false;
+
+  // Las rutas públicas y prefijos públicos siempre pasan
   if (
     PUBLIC_ROUTES.includes(url.pathname) ||
     PUBLIC_PREFIXES.some(prefix => url.pathname.startsWith(prefix))
   ) {
-    // Si estamos en el Login ('/') y YA estamos autenticados, mandar al Dashboard
-    const token = cookies.get(AUTH_COOKIE_NAME)?.value;
-    if (url.pathname === '/' && token) {
-       // Opcional: Podrías validar el token aquí también para estar seguro
-       return redirect('/dashboard');
-    }
     return next();
   }
 
-  const token = cookies.get(AUTH_COOKIE_NAME)?.value;
-  locals.user = null;
-  locals.isAuthenticated = false;
-
-  if (token) {
-    const decoded = parseJwt(token);
-    const now = Math.floor(Date.now() / 1000);
-    
-    if (decoded && decoded.exp && decoded.exp > now) {
-      locals.user = {
-        id: decoded.sub || decoded.uid || decoded.id,
-        email: decoded.email,
-        role: decoded.role,
-        name: decoded.name,
-      };
-      locals.isAuthenticated = true;
-    }
-  }
-
-  // Si intenta acceder a ruta protegida sin auth, mandar a '/'
-  if (!locals.isAuthenticated) {
-    return redirect('/');
-  }
-
+  // Para rutas protegidas: dejamos pasar igualmente
+  // El AuthGuard del cliente se encargará de redirigir si no hay sesión
   return next();
 });

@@ -1,97 +1,126 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import LoginForm from '@/components/LoginForm'; // Asumiendo ruta relativa, ajustar si usas alias @
-import { useAuthStore } from '@/store/useAuthStore';
+import LoginForm from '../components/LoginForm';
+import { useAuthStore } from '../store/useAuthStore';
+
+// Mock de authService
+vi.mock('../lib/services/authService', () => ({
+  authService: {
+    login: vi.fn(),
+  },
+}));
+
+// Mock de api (para ApiError)
+vi.mock('../lib/api', () => ({
+  ApiError: class ApiError extends Error {
+    status: number;
+    constructor(status: number, message: string) {
+      super(message);
+      this.status = status;
+    }
+  },
+  default: {},
+}));
 
 // Mock de los componentes UI para aislar la lógica del formulario
-vi.mock('@/components/ui/Input', () => ({
+vi.mock('../components/ui/Input', () => ({
   Input: (props: any) => (
-    <input 
-      data-testid={props.id} 
-      onChange={props.onChange} 
-      value={props.value} 
+    <input
+      data-testid={props.id}
       type={props.type}
+      value={props.value}
+      onChange={props.onChange}
+      placeholder={props.placeholder}
       disabled={props.disabled}
     />
   )
 }));
 
+// Mock del Button para evitar problemas con iconos hijos en los tests
 vi.mock('../components/ui/Button', () => ({
   Button: (props: any) => (
     <button onClick={props.onClick} type={props.type} disabled={props.disabled}>
       {props.children}
     </button>
-  )
+  ),
 }));
 
 describe('LoginForm', () => {
-  // Mock de fetch global
-  const fetchMock = vi.fn();
-  global.fetch = fetchMock;
-
-  // Mock de window.location
-  Object.defineProperty(window, 'location', {
-    value: { href: '' },
-    writable: true,
-  });
-
   beforeEach(() => {
+    useAuthStore.setState({
+      user: null,
+      accessToken: null,
+      refreshToken: null,
+      isAuthenticated: false,
+      isHydrated: false,
+    });
     vi.clearAllMocks();
-    useAuthStore.setState({ user: null, isAuthenticated: false });
-    window.location.href = '';
   });
 
-  it('envía los datos correctamente al endpoint proxy de Astro', async () => {
-    // 1. Configurar respuesta exitosa del mock
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        success: true,
-        user: { id: '1', name: 'Admin', email: 'admin@test.com', role: 'Admin' }
-      }),
-    });
+  it('renderiza correctamente los campos de email y contraseña', () => {
+    render(<LoginForm />);
+
+    expect(screen.getByTestId('email')).toBeDefined();
+    expect(screen.getByTestId('password')).toBeDefined();
+    expect(screen.getByRole('button', { name: /entrar en edificia/i })).toBeDefined();
+  });
+
+  it('envía las credenciales y redirige al dashboard al hacer login exitoso', async () => {
+    const { authService } = await import('../lib/services/authService');
+
+    const mockResponse = {
+      accessToken: 'mock-access-token',
+      refreshToken: 'mock-refresh-token',
+      expiresInMinutes: 60,
+      mustChangePassword: false,
+      user: {
+        id: '1',
+        email: 'admin@test.com',
+        fullName: 'Admin User',
+        collegiateNumber: null,
+        roles: ['Admin'],
+      },
+    };
+
+    (authService.login as any).mockResolvedValueOnce(mockResponse);
 
     render(<LoginForm />);
 
-    // 2. Simular input
     fireEvent.change(screen.getByTestId('email'), { target: { value: 'admin@test.com' } });
     fireEvent.change(screen.getByTestId('password'), { target: { value: 'password123' } });
 
-    // 3. Submit
-    const submitBtn = screen.getByText('Ingresar');
+    const submitBtn = screen.getByRole('button', { name: /entrar en edificia/i });
     fireEvent.click(submitBtn);
 
-    // 4. Verificar que se llamó a fetch con la URL correcta (Proxy de Astro)
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith('/api/auth/login', expect.objectContaining({
-        method: 'POST',
-        body: JSON.stringify({ email: 'admin@test.com', password: 'password123' }),
-      }));
+      expect(authService.login).toHaveBeenCalledWith({
+        email: 'admin@test.com',
+        password: 'password123',
+      });
     });
 
-    // 5. Verificar redirección
     await waitFor(() => {
-      expect(window.location.href).toBe('/dashboard');
+      const state = useAuthStore.getState();
+      expect(state.isAuthenticated).toBe(true);
+      expect(state.accessToken).toBe('mock-access-token');
+      expect(state.user?.fullName).toBe('Admin User');
     });
-
-    // 6. Verificar actualización del store
-    expect(useAuthStore.getState().user?.email).toBe('admin@test.com');
   });
 
-  it('muestra error si el login falla', async () => {
-    // 1. Configurar respuesta de error
-    fetchMock.mockResolvedValueOnce({
-      ok: false,
-      json: async () => ({ error: 'Credenciales inválidas' }),
-    });
+  it('muestra un mensaje de error cuando las credenciales son inválidas', async () => {
+    const { authService } = await import('../lib/services/authService');
+
+    (authService.login as any).mockRejectedValueOnce(
+      new Error('Email o contraseña incorrectos.')
+    );
 
     render(<LoginForm />);
 
-    fireEvent.click(screen.getByText('Ingresar'));
+    const submitBtn = screen.getByRole('button', { name: /entrar en edificia/i });
+    fireEvent.click(submitBtn);
 
-    // 2. Esperar mensaje de error
     await waitFor(() => {
-      expect(screen.getByText('Credenciales inválidas')).toBeDefined();
+      expect(screen.getByText(/email o contraseña incorrectos/i)).toBeDefined();
     });
   });
 });
