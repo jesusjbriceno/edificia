@@ -1,60 +1,72 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { useAuthStore } from '@/store/useAuthStore';
 
-// Mock simple para window.location
-Object.defineProperty(window, 'location', {
-  value: { href: '' },
-  writable: true,
-});
+// Mock de useAuthStore
+vi.mock('@/store/useAuthStore', () => ({
+  useAuthStore: vi.fn(),
+}));
 
-describe('AuthGuard', () => {
-  beforeEach(() => {
-    useAuthStore.setState({ user: null, isAuthenticated: false, isHydrated: false });
-    window.location.href = '';
-  });
-
-  it('no renderiza nada mientras no está hidratado (estado inicial)', () => {
-    // isHydrated es false por defecto
-    render(
-      <AuthGuard>
-        <div data-testid="protected-content">Secret</div>
-      </AuthGuard>
-    );
-
-    // Debería mostrar spinner o nada, pero NO el contenido protegido
-    expect(screen.queryByTestId('protected-content')).toBeNull();
-  });
-
-  it('redirige a la raíz si está hidratado pero no autenticado', async () => {
-    // Simular que Astro/SessionProvider ya corrió pero no había usuario
-    useAuthStore.setState({ isHydrated: true, isAuthenticated: false });
-
-    render(
-      <AuthGuard>
-        <div>Secret</div>
-      </AuthGuard>
-    );
-
-    await waitFor(() => {
-      expect(window.location.href).toBe('/');
-    });
-  });
-
-  it('renderiza el contenido si está autenticado e hidratado', () => {
-    useAuthStore.setState({ 
-      isHydrated: true, 
+describe('AuthGuard component', () => {
+  it('should render children if authenticated', () => {
+    (useAuthStore as any).mockReturnValue({
+      _hasHydrated: true,
       isAuthenticated: true,
-      user: { id: '1', role: 'Admin', email: 'test', name: 'test' } 
+      mustChangePassword: false,
+      hasRole: () => true,
     });
 
     render(
       <AuthGuard>
-        <div data-testid="protected-content">Secret</div>
+        <div data-testid="protected-content">Protected</div>
       </AuthGuard>
     );
 
-    expect(screen.getByTestId('protected-content')).toBeDefined();
+    expect(screen.getByTestId('protected-content')).toBeInTheDocument();
+  });
+
+  it('should not render children and redirect if not authenticated', () => {
+    (useAuthStore as any).mockReturnValue({
+      _hasHydrated: true,
+      isAuthenticated: false,
+      mustChangePassword: false,
+      hasRole: () => false,
+    });
+
+    // Mock de window.location.href
+    const originalLocation = window.location;
+    delete (window as any).location;
+    window.location = { ...originalLocation, href: '' } as any;
+
+    render(
+      <AuthGuard>
+        <div data-testid="protected-content">Protected</div>
+      </AuthGuard>
+    );
+
+    expect(screen.queryByTestId('protected-content')).not.toBeInTheDocument();
+    expect(window.location.href).toBe('/');
+
+    window.location = originalLocation as any;
+  });
+
+  it('should not render or redirect while hydrating', () => {
+    (useAuthStore as any).mockReturnValue({
+      _hasHydrated: false,
+      isAuthenticated: false,
+      mustChangePassword: false,
+      hasRole: () => false,
+    });
+
+    render(
+      <AuthGuard>
+        <div data-testid="protected-content">Protected</div>
+      </AuthGuard>
+    );
+
+    // Should render nothing — no content, no redirect
+    expect(screen.queryByTestId('protected-content')).not.toBeInTheDocument();
   });
 });
+

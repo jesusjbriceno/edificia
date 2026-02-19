@@ -1,49 +1,91 @@
 import { create } from 'zustand';
-import { devtools } from 'zustand/middleware';
+import { persist } from 'zustand/middleware';
+import type { UserInfo, Role, LoginResponse } from '@/lib/types';
 
-interface User {
-  id: string;
-  email: string;
-  role: string;
-  name: string;
-}
+// ─── State shape ─────────────────────────────────────────
 
 interface AuthState {
-  user: User | null;
+  // Hydration
+  /** True once Zustand persist has restored state from localStorage. */
+  _hasHydrated: boolean;
+
+  // Data
+  user: UserInfo | null;
+  accessToken: string | null;
+  refreshToken: string | null;
+  mustChangePassword: boolean;
+
+  // Computed-like getters (derived from data)
   isAuthenticated: boolean;
-  isHydrated: boolean;
-  
-  login: (user: User) => void;
-  logout: () => Promise<void>;
-  syncFromServer: (serverUser: User | null) => void;
+
+  // Actions
+  /** Hydrate from a LoginResponse (after login or refresh). */
+  setAuth: (response: LoginResponse) => void;
+  /** Update only the token pair (used by the refresh interceptor). */
+  setTokens: (accessToken: string, refreshToken: string | null) => void;
+  /** Partially update the user profile (after PUT /auth/profile). */
+  updateUser: (patch: Partial<UserInfo>) => void;
+  /** Clear session completely. */
+  logout: () => void;
+
+  // Helpers
+  hasRole: (...roles: Role[]) => boolean;
 }
 
+// ─── Store ───────────────────────────────────────────────
+
+const INITIAL_STATE = {
+  _hasHydrated: false,
+  user: null,
+  accessToken: null,
+  refreshToken: null,
+  mustChangePassword: false,
+  isAuthenticated: false,
+};
+
 export const useAuthStore = create<AuthState>()(
-  devtools(
-    (set) => ({
-      user: null,
-      isAuthenticated: false,
-      isHydrated: false,
+  persist(
+    (set, get) => ({
+      ...INITIAL_STATE,
 
-      login: (user) => {
-        set({ user, isAuthenticated: true });
+      setAuth: (response: LoginResponse) =>
+        set({
+          user: response.user,
+          accessToken: response.accessToken,
+          refreshToken: response.refreshToken,
+          mustChangePassword: response.mustChangePassword,
+          isAuthenticated: true,
+        }),
+
+      setTokens: (accessToken, refreshToken) =>
+        set({ accessToken, refreshToken }),
+
+      updateUser: (patch) =>
+        set((state) => ({
+          user: state.user ? { ...state.user, ...patch } : null,
+        })),
+
+      logout: () => set({ ...INITIAL_STATE }),
+
+      hasRole: (...roles: Role[]) => {
+        const user = get().user;
+        if (!user) return false;
+        return user.roles.some((r) => roles.includes(r));
       },
-
-      logout: async () => {
-        set({ user: null, isAuthenticated: false });
-        await fetch('/api/auth/logout', { method: 'POST' });
-        // Redirigir a raíz
-        window.location.href = '/';
-      },
-
-      syncFromServer: (serverUser) => {
-        set({ 
-          user: serverUser, 
-          isAuthenticated: !!serverUser,
-          isHydrated: true 
-        });
-      }
     }),
-    { name: 'AuthStore' }
-  )
+    {
+      name: 'edificia-auth-storage',
+      // Only persist the essential serialisable fields
+      partialize: (state) => ({
+        user: state.user,
+        accessToken: state.accessToken,
+        refreshToken: state.refreshToken,
+        mustChangePassword: state.mustChangePassword,
+        isAuthenticated: state.isAuthenticated,
+      }),
+      onRehydrateStorage: () => () => {
+        useAuthStore.setState({ _hasHydrated: true });
+      },
+    },
+  ),
 );

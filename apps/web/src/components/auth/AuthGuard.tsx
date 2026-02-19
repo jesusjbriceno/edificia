@@ -1,28 +1,46 @@
 import React, { useEffect } from 'react';
-import { useAuthStore } from '@/store/useAuthStore'; 
+import { useAuthStore } from '@/store/useAuthStore';
+import type { Role } from '@/lib/types';
 
 interface AuthGuardProps {
   children: React.ReactNode;
+  /** If set, at least one of these roles is required. */
+  allowedRoles?: Role[];
 }
 
-export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
-  const { isAuthenticated, isHydrated } = useAuthStore();
+export const AuthGuard: React.FC<AuthGuardProps> = ({ children, allowedRoles }) => {
+  const { _hasHydrated, isAuthenticated, mustChangePassword, hasRole } = useAuthStore();
 
   useEffect(() => {
-    // Si ya hidrató y no hay usuario, mandamos a la raíz (Login)
-    if (isHydrated && !isAuthenticated) {
-      window.location.href = '/';
-    }
-  }, [isHydrated, isAuthenticated]);
+    // Wait for Zustand persist to finish rehydrating from localStorage
+    // before making any redirect decisions (Astro MPA = full page reload).
+    if (!_hasHydrated) return;
 
-  // Si no está hidratado o no está autenticado, no renderizamos nada
-  // para evitar FOUC (Flash of Unauthenticated Content) o tests fallidos
-  if (!isHydrated || !isAuthenticated) {
-    return null;
-  }
+    if (!isAuthenticated) {
+      globalThis.location.href = '/';
+      return;
+    }
+
+    // Force password change before accessing any other page
+    if (mustChangePassword && !globalThis.location.pathname.startsWith('/profile')) {
+      globalThis.location.href = '/profile?tab=security';
+      return;
+    }
+
+    // Check RBAC
+    if (allowedRoles && allowedRoles.length > 0 && !hasRole(...allowedRoles)) {
+      globalThis.location.href = '/dashboard';
+    }
+  }, [_hasHydrated, isAuthenticated, mustChangePassword, allowedRoles, hasRole]);
+
+  // Still rehydrating — show nothing yet
+  if (!_hasHydrated) return null;
+
+  if (!isAuthenticated) return null;
+
+  if (mustChangePassword && !globalThis.location.pathname.startsWith('/profile')) return null;
+
+  if (allowedRoles && allowedRoles.length > 0 && !hasRole(...allowedRoles)) return null;
 
   return <>{children}</>;
 };
-
-// CRÍTICO: Exportación por defecto para compatibilidad con los tests existentes
-export default AuthGuard;
