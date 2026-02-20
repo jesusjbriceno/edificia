@@ -18,6 +18,21 @@ namespace Edificia.Infrastructure.Persistence.Migrations
                 nullable: false,
                 defaultValue: new Guid("00000000-0000-0000-0000-000000000000"));
 
+            // Backfill existing projects: assign to the first Admin/Root user found
+            migrationBuilder.Sql("""
+                UPDATE projects
+                SET created_by_user_id = (
+                    SELECT u.id
+                    FROM asp_net_users u
+                    INNER JOIN asp_net_user_roles ur ON ur.user_id = u.id
+                    INNER JOIN asp_net_roles r ON r.id = ur.role_id
+                    WHERE r.normalized_name IN ('ROOT', 'ADMIN')
+                    ORDER BY u.created_at
+                    LIMIT 1
+                )
+                WHERE created_by_user_id = '00000000-0000-0000-0000-000000000000';
+                """);
+
             migrationBuilder.CreateTable(
                 name: "notifications",
                 columns: table => new
