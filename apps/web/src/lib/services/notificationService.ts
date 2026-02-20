@@ -8,39 +8,11 @@ export interface Notification {
 
 const STORAGE_KEY = 'edificia_notifications_v2';
 
-const INITIAL_DATA: Notification[] = [
-  {
-    id: '1',
-    title: 'Nuevo Proyecto',
-    message: 'Se ha creado el proyecto "Residencial Alhambra"',
-    isRead: false,
-    createdAt: new Date(Date.now() - 5 * 60000).toISOString(),
-  },
-  {
-    id: '2',
-    title: 'Usuario Activo',
-    message: 'El usuario "Carlos Pérez" ha iniciado sesión',
-    isRead: false,
-    createdAt: new Date(Date.now() - 60 * 60000).toISOString(),
-  },
-  {
-    id: '3',
-    title: 'Sistema Actualizado',
-    message: 'La plataforma se ha actualizado a la versión v1.2',
-    isRead: true,
-    createdAt: new Date(Date.now() - 120 * 60000).toISOString(),
-  },
-];
-
 class NotificationService {
   private getStorage(): Notification[] {
-    if (typeof window === 'undefined') return INITIAL_DATA;
+    if (typeof window === 'undefined') return [];
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_DATA));
-      return INITIAL_DATA;
-    }
-    return JSON.parse(stored);
+    return stored ? JSON.parse(stored) : [];
   }
 
   private saveStorage(notifications: Notification[]) {
@@ -51,8 +23,8 @@ class NotificationService {
   }
 
   async list(): Promise<Notification[]> {
-    // Simulamos latencia de red
-    await new Promise(resolve => setTimeout(resolve, 300));
+    // Simulamos latencia de red mínima para feedback visual
+    await new Promise(resolve => setTimeout(resolve, 150));
     return this.getStorage();
   }
 
@@ -78,6 +50,21 @@ class NotificationService {
   
   async clearAll(): Promise<void> {
     this.saveStorage([]);
+  }
+
+  /**
+   * Método útil para desarrollo/pruebas manuales sin hardcodeo inicial.
+   */
+  async addTestNotification(title: string, message: string): Promise<void> {
+    const notifications = this.getStorage();
+    const newNotification: Notification = {
+      id: crypto.randomUUID(),
+      title,
+      message,
+      isRead: false,
+      createdAt: new Date().toISOString()
+    };
+    this.saveStorage([newNotification, ...notifications]);
   }
 }
 
