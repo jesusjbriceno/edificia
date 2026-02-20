@@ -1,48 +1,63 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { notificationService } from '@/lib/services/notificationService';
+import apiClient from '@/lib/api';
 
-describe('NotificationService', () => {
+vi.mock('@/lib/api', () => ({
+  default: {
+    get: vi.fn(),
+    post: vi.fn(),
+  },
+}));
+
+describe('NotificationService (API)', () => {
+  const mockNotifications = [
+    { id: '1', title: 'T1', message: 'M1', isRead: false, createdAt: new Date().toISOString() },
+    { id: '2', title: 'T2', message: 'M2', isRead: true, createdAt: new Date().toISOString() },
+  ];
+
   beforeEach(() => {
-    localStorage.clear();
     vi.clearAllMocks();
   });
 
-  it('should list initial notifications if storage is empty', async () => {
-    const notifications = await notificationService.list();
-    expect(notifications.length).toBe(3);
-    expect(notifications[0].title).toBe('Nuevo Proyecto');
+  it('list() should fetch from API', async () => {
+    (apiClient.get as any).mockResolvedValue({ data: mockNotifications });
+    
+    const result = await notificationService.list();
+    
+    expect(apiClient.get).toHaveBeenCalledWith('/notifications');
+    expect(result.length).toBe(2);
+    expect(result[0].title).toBe('T1');
   });
 
-  it('should mark a notification as read', async () => {
-    const notifications = await notificationService.list();
-    const firstId = notifications[0].id;
+  it('markAsRead() should call correctly the endpoint', async () => {
+    (apiClient.post as any).mockResolvedValue({});
     
-    await notificationService.markAsRead(firstId);
+    await notificationService.markAsRead('123');
     
-    const updated = await notificationService.list();
-    expect(updated.find(n => n.id === firstId)?.read).toBe(true);
+    expect(apiClient.post).toHaveBeenCalledWith('/notifications/123/read');
   });
 
-  it('should mark all notifications as read', async () => {
+  it('markAllAsRead() should call correctly the endpoint', async () => {
+    (apiClient.post as any).mockResolvedValue({});
+    
     await notificationService.markAllAsRead();
-    const notifications = await notificationService.list();
-    expect(notifications.every(n => n.read)).toBe(true);
+    
+    expect(apiClient.post).toHaveBeenCalledWith('/notifications/mark-all-read');
   });
 
-  it('should delete a notification', async () => {
-    const initial = await notificationService.list();
-    const idToDelete = initial[0].id;
+  it('delete() should call correctly the endpoint', async () => {
+    (apiClient.post as any).mockResolvedValue({});
     
-    await notificationService.delete(idToDelete);
+    await notificationService.delete('123');
     
-    const updated = await notificationService.list();
-    expect(updated.find(n => n.id === idToDelete)).toBeUndefined();
-    expect(updated.length).toBe(initial.length - 1);
+    expect(apiClient.post).toHaveBeenCalledWith('/notifications/123/delete');
   });
 
-  it('should clear all notifications', async () => {
+  it('clearAll() should call correctly the endpoint', async () => {
+    (apiClient.post as any).mockResolvedValue({});
+    
     await notificationService.clearAll();
-    const notifications = await notificationService.list();
-    expect(notifications.length).toBe(0);
+    
+    expect(apiClient.post).toHaveBeenCalledWith('/notifications/clear-all');
   });
 });

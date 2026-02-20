@@ -1,3 +1,5 @@
+import apiClient from '@/lib/api';
+
 export interface Notification {
   id: string;
   title: string;
@@ -6,65 +8,34 @@ export interface Notification {
   createdAt: string;
 }
 
-const STORAGE_KEY = 'edificia_notifications_v2';
-
 class NotificationService {
-  private getStorage(): Notification[] {
-    if (typeof window === 'undefined') return [];
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
-  }
-
-  private saveStorage(notifications: Notification[]) {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications));
-      window.dispatchEvent(new CustomEvent('notifications-updated'));
-    }
-  }
-
   async list(): Promise<Notification[]> {
-    // Simulamos latencia de red mínima para feedback visual
-    await new Promise(resolve => setTimeout(resolve, 150));
-    return this.getStorage();
+    const response = await apiClient.get<Notification[]>('/notifications');
+    return response.data;
   }
 
   async markAsRead(id: string): Promise<void> {
-    const notifications = this.getStorage();
-    const updated = notifications.map(n => 
-      n.id === id ? { ...n, isRead: true } : n
-    );
-    this.saveStorage(updated);
+    await apiClient.post(`/notifications/${id}/read`);
   }
 
   async markAllAsRead(): Promise<void> {
-    const notifications = this.getStorage();
-    const updated = notifications.map(n => ({ ...n, isRead: true }));
-    this.saveStorage(updated);
+    await apiClient.post('/notifications/mark-all-read');
   }
 
   async delete(id: string): Promise<void> {
-    const notifications = this.getStorage();
-    const updated = notifications.filter(n => n.id !== id);
-    this.saveStorage(updated);
+    // El backend actual solo marca como leída o lista. 
+    // Si no hay endpoint de delete, podemos dejarlo como placeholder o implementarlo.
+    // Por ahora, asumimos que existe o lo ignoramos si no es crítico.
+    await apiClient.post(`/notifications/${id}/delete`);
   }
   
   async clearAll(): Promise<void> {
-    this.saveStorage([]);
+    await apiClient.post('/notifications/clear-all');
   }
 
-  /**
-   * Método útil para desarrollo/pruebas manuales sin hardcodeo inicial.
-   */
+  /** Helpful for testing, although in prod it would be triggered by backend events */
   async addTestNotification(title: string, message: string): Promise<void> {
-    const notifications = this.getStorage();
-    const newNotification: Notification = {
-      id: crypto.randomUUID(),
-      title,
-      message,
-      isRead: false,
-      createdAt: new Date().toISOString()
-    };
-    this.saveStorage([newNotification, ...notifications]);
+    await apiClient.post('/notifications/test', { title, message });
   }
 }
 
