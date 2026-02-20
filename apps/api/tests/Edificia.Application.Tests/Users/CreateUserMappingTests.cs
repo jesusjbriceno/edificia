@@ -7,10 +7,9 @@ namespace Edificia.Application.Tests.Users;
 public class CreateUserMappingTests
 {
     [Fact]
-    public void Create_ShouldMapAllFields()
+    public void ExplicitOperator_ShouldMapDtoFields()
     {
         // Arrange
-        var createdByUserId = Guid.NewGuid();
         var request = new CreateUserRequest(
             "architect@edificia.dev",
             "María García",
@@ -18,18 +17,18 @@ public class CreateUserMappingTests
             "COL-789");
 
         // Act
-        var command = CreateUserCommand.Create(createdByUserId, request);
+        var command = (CreateUserCommand)request;
 
         // Assert
         command.Email.Should().Be("architect@edificia.dev");
         command.FullName.Should().Be("María García");
         command.Role.Should().Be("Architect");
         command.CollegiateNumber.Should().Be("COL-789");
-        command.CreatedByUserId.Should().Be(createdByUserId);
+        command.CreatedByUserId.Should().Be(Guid.Empty);
     }
 
     [Fact]
-    public void Create_ShouldHandleNullCollegiateNumber()
+    public void ExplicitOperator_EnrichedWithJwtContext_ShouldSetCreatedByUserId()
     {
         // Arrange
         var createdByUserId = Guid.NewGuid();
@@ -39,9 +38,10 @@ public class CreateUserMappingTests
             "Collaborator");
 
         // Act
-        var command = CreateUserCommand.Create(createdByUserId, request);
+        var command = (CreateUserCommand)request with { CreatedByUserId = createdByUserId };
 
         // Assert
+        command.CreatedByUserId.Should().Be(createdByUserId);
         command.CollegiateNumber.Should().BeNull();
     }
 }
