@@ -37,6 +37,17 @@ export const projectService = {
     return data;
   },
 
+  /** PATCH /projects/:id */
+  async update(id: string, payload: Partial<CreateProjectRequest>): Promise<ProjectResponse> {
+    const { data } = await apiClient.patch<ProjectResponse>(`/projects/${id}`, payload);
+    return data;
+  },
+
+  /** DELETE /projects/:id */
+  async delete(id: string): Promise<void> {
+    await apiClient.delete(`/projects/${id}`);
+  },
+
   /** GET /projects/:id/tree */
   async getContentTree(projectId: string): Promise<ContentTreeResponse> {
     const { data } = await apiClient.get<ContentTreeResponse>(

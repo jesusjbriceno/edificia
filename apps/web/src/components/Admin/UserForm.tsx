@@ -2,6 +2,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/Button';
+import { Select } from '@/components/ui/Select';
 
 const userSchema = z.object({
   name: z.string().min(1, 'El nombre es obligatorio'),
@@ -60,20 +61,19 @@ export function UserForm({ initialData, onSubmit, isLoading }: UserFormProps) {
         {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
       </div>
 
-      <div className="space-y-2">
-        <label htmlFor="role" className="text-sm font-medium text-gray-300">Rol del Usuario</label>
-        <select
-          id="role"
-          {...register('role')}
-          className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:border-brand-primary outline-none transition-colors appearance-none"
-        >
-          <option value="Architect">Arquitecto</option>
-          <option value="Admin">Administrador</option>
-          <option value="Collaborator">Colaborador</option>
-          <option value="Supervisor">Supervisor</option>
-        </select>
-        {errors.role && <p className="text-xs text-red-500">{errors.role.message}</p>}
-      </div>
+      <Select
+        id="role"
+        label="Rol del Usuario"
+        options={[
+          { value: 'Architect', label: 'Arquitecto' },
+          { value: 'Admin', label: 'Administrador' },
+          { value: 'Collaborator', label: 'Colaborador' },
+          { value: 'Supervisor', label: 'Supervisor' },
+        ]}
+        {...register('role')}
+        error={errors.role?.message}
+      />
+
 
       <Button type="submit" className="w-full h-12 mt-6" isLoading={isLoading}>
         Guardar Usuario

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { EditorSkeleton } from '@/components/ui/Skeleton';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
@@ -10,6 +10,7 @@ import { InterventionType } from '@/lib/types';
 import type { ContentTreeNode, TreeFilterConfig, ProjectResponse } from '@/lib/types';
 import SidebarNavigation from './SidebarNavigation.js';
 import EditorShell from './EditorShell.js';
+import EditorHeader from './EditorHeader.js';
 
 interface ProjectEditorProps {
   projectId: string;
@@ -97,7 +98,13 @@ export default function ProjectEditor({ projectId }: Readonly<ProjectEditorProps
         if (cancelled) return;
 
         // Initialize the editor store
-        initProject(projectId, filteredTree, mergedContent);
+        initProject(
+          projectId, 
+          filteredTree, 
+          mergedContent, 
+          projectData.title, 
+          config.interventionType
+        );
 
         // Create and start the SyncManager
         const manager = new SyncManager({
@@ -133,6 +140,38 @@ export default function ProjectEditor({ projectId }: Readonly<ProjectEditorProps
     };
   }, [projectId]);
 
+  const [sidebarWidth, setSidebarWidth] = useState(320);
+  const isResizing = useRef(false);
+
+  const startResizing = useCallback(() => {
+    isResizing.current = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, []);
+
+  const stopResizing = useCallback(() => {
+    isResizing.current = false;
+    document.body.style.cursor = 'default';
+    document.body.style.userSelect = 'auto';
+  }, []);
+
+  const resize = useCallback((e: MouseEvent) => {
+    if (!isResizing.current) return;
+    const newWidth = e.clientX;
+    if (newWidth > 240 && newWidth < 480) {
+      setSidebarWidth(newWidth);
+    }
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('mousemove', resize);
+    window.addEventListener('mouseup', stopResizing);
+    return () => {
+      window.removeEventListener('mousemove', resize);
+      window.removeEventListener('mouseup', stopResizing);
+    };
+  }, [resize, stopResizing]);
+
   if (loading) {
     return <EditorSkeleton />;
   }
@@ -156,8 +195,25 @@ export default function ProjectEditor({ projectId }: Readonly<ProjectEditorProps
 
   return (
     <ErrorBoundary>
-      <SidebarNavigation tree={tree} />
-      <EditorShell projectTitle={project?.title} />
+      <div className="flex flex-col h-screen w-screen overflow-hidden bg-dark-bg">
+        <EditorHeader />
+        
+        <div className="flex-1 flex overflow-hidden w-full">
+          <div style={{ width: `${sidebarWidth}px` }} className="shrink-0">
+            <SidebarNavigation tree={tree} />
+          </div>
+          
+          {/* Splitter */}
+          <div
+            onMouseDown={startResizing}
+            className="w-1 hover:w-1.5 bg-white/5 hover:bg-brand-primary/40 cursor-col-resize transition-all duration-300 z-50 shrink-0"
+          />
+          
+          <div className="flex-1 min-w-0 h-full">
+            <EditorShell />
+          </div>
+        </div>
+      </div>
     </ErrorBoundary>
   );
 }

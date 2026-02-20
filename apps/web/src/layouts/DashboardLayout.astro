@@ -4,6 +4,7 @@ import { LayoutDashboard, FolderKanban, Users, Settings, Search, Bell } from 'lu
 import HeaderUser from '@/components/HeaderUser';
 import SidebarLogout from '@/components/SidebarLogout';
 import MobileSidebar from '@/components/MobileSidebar';
+import NotificationBell from '@/components/Admin/NotificationBell';
 
 interface Props {
 	title: string;
@@ -79,12 +80,10 @@ const linkClass = (href: string) => {
 				</div>
 
 				<div class="flex items-center gap-2 md:gap-4">
-					<button class="p-2 text-gray-400 hover:text-white transition-colors relative">
-						<Bell size={20} />
-						<span class="absolute top-2 right-2 w-2 h-2 bg-brand-primary rounded-full"></span>
-					</button>
+					<NotificationBell client:load />
 					<HeaderUser client:load />
 				</div>
+
 			</header>
 
 			<!-- Scrollable Area -->
