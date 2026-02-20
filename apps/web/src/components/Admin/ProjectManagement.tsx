@@ -1,14 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ProjectRow } from './ProjectRow.js';
 import { ProjectForm } from './ProjectForm.js';
+import ProjectCard from '@/components/ProjectCard';
+import { ProjectDetailsModal } from '@/components/ProjectDetailsModal';
+import { DeleteProjectModal } from '@/components/DeleteProjectModal';
+import Modal from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
-import { Plus, Search, Filter, AlertCircle } from 'lucide-react';
+import { Plus, Search, Filter, AlertCircle, LayoutGrid, List } from 'lucide-react';
 import { Select } from '@/components/ui/Select';
-import { TableRowSkeleton } from '@/components/ui/Skeleton';
+import { TableRowSkeleton, ProjectGridSkeleton } from '@/components/ui/Skeleton';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { projectService } from '@/lib/services';
 import type { ProjectResponse, PagedResponse } from '@/lib/types';
 import { ApiError } from '@/lib/api';
+import { useToastStore } from '@/store/useToastStore';
+import { cn } from '@/lib/utils';
 
 const PAGE_SIZE = 10;
 
@@ -21,6 +27,15 @@ export default function ProjectManagement() {
   const [isAdding, setIsAdding] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const { addToast } = useToastStore();
+
+  // Modal states
+  const [selectedProject, setSelectedProject] = useState<ProjectResponse | null>(null);
+  const [isViewOpen, setIsViewOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchProjects = useCallback(async (p: number, status?: string) => {
     setIsLoading(true);
@@ -48,14 +63,47 @@ export default function ProjectManagement() {
     fetchProjects(page, statusFilter);
   }, [page, statusFilter, fetchProjects]);
 
-  const handleAddProject = async () => {
-    setIsAdding(false);
-    // Refresh list after creation
-    await fetchProjects(1, statusFilter);
-    setPage(1);
+  // Action handlers
+  const handleView = (project: ProjectResponse) => {
+    setSelectedProject(project);
+    setIsViewOpen(true);
   };
 
-  // Client-side search filter (within current page)
+  const handleEdit = (project: ProjectResponse) => {
+    setSelectedProject(project);
+    setIsEditOpen(true);
+  };
+
+  const handleDeleteClick = (project: ProjectResponse) => {
+    setSelectedProject(project);
+    setIsDeleteOpen(true);
+  };
+
+  const handleCompleteMemory = (project: ProjectResponse) => {
+    window.location.href = `/projects/${project.id}`;
+  };
+
+  const confirmDelete = async (project: ProjectResponse) => {
+    setIsDeleting(true);
+    try {
+      await projectService.delete(project.id);
+      addToast('Proyecto eliminado correctamente', 'success');
+      setIsDeleteOpen(false);
+      fetchProjects(page, statusFilter);
+    } catch (err) {
+      addToast('Error al eliminar el proyecto', 'error');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleCreated = async () => {
+    setIsAdding(false);
+    await fetchProjects(1, statusFilter);
+    setPage(1);
+    addToast('Proyecto creado correctamente', 'success');
+  };
+
   const filteredProjects = searchTerm
     ? projects.filter(
         p =>
@@ -77,10 +125,36 @@ export default function ProjectManagement() {
           </p>
         </div>
 
-        <Button onClick={() => setIsAdding(!isAdding)} className="h-12 px-6">
-          <Plus size={18} className="mr-2" />
-          {isAdding ? 'Volver al Listado' : 'Nuevo Proyecto'}
-        </Button>
+        <div className="flex items-center gap-3">
+          {/* View Toggle */}
+          <div className="flex bg-white/5 rounded-xl border border-white/5 p-1 mr-2">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={cn(
+                "p-2 rounded-lg transition-all",
+                viewMode === 'grid' ? "bg-brand-primary/20 text-brand-primary" : "text-gray-500 hover:text-gray-300"
+              )}
+              title="Vista Cuadrícula"
+            >
+              <LayoutGrid size={20} />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={cn(
+                "p-2 rounded-lg transition-all",
+                viewMode === 'list' ? "bg-brand-primary/20 text-brand-primary" : "text-gray-500 hover:text-gray-300"
+              )}
+              title="Vista Lista"
+            >
+              <List size={20} />
+            </button>
+          </div>
+
+          <Button onClick={() => setIsAdding(!isAdding)} className="h-12 px-6">
+            <Plus size={18} className="mr-2" />
+            {isAdding ? 'Volver al Listado' : 'Nuevo Proyecto'}
+          </Button>
+        </div>
       </div>
 
       {isAdding ? (
@@ -92,13 +166,13 @@ export default function ProjectManagement() {
             <h2 className="text-xl font-bold text-white mb-6">
               Crear Nuevo Proyecto Técnico
             </h2>
-            <ProjectForm onSubmit={handleAddProject} />
+            <ProjectForm onSubmit={handleCreated} />
           </div>
         </div>
       ) : (
         <div className="space-y-6">
           {/* Search & filter bar */}
-          <div className="flex gap-4 p-2 bg-white/5 rounded-2xl border border-white/5">
+          <div className="flex items-center gap-4 p-2 bg-white/5 rounded-2xl border border-white/5">
             <div className="flex-1 relative">
               <Search
                 className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"
@@ -118,7 +192,7 @@ export default function ProjectManagement() {
               value={statusFilter ?? ''}
               onChange={(e) => {
                 setStatusFilter(e.target.value || undefined);
-                setPage(1);
+                setPage(page);
               }}
               options={[
                 { value: '', label: 'Todos los estados' },
@@ -146,9 +220,13 @@ export default function ProjectManagement() {
           {/* Loading */}
           {isLoading && (
             <div className="space-y-1">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <TableRowSkeleton key={i} />
-              ))}
+              {viewMode === 'list' ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRowSkeleton key={i} />
+                ))
+              ) : (
+                <ProjectGridSkeleton />
+              )}
             </div>
           )}
 
@@ -170,33 +248,44 @@ export default function ProjectManagement() {
           {/* Project list */}
           {!isLoading && !error && (
             <>
-              <div className="grid gap-4">
-                {filteredProjects.length > 0 ? (
-                  filteredProjects.map(project => (
-                    <ProjectRow
-                      key={project.id}
-                      project={project}
-                      onView={id => (globalThis.location.href = `/projects/${id}`)}
-                      onEdit={id => (globalThis.location.href = `/projects/${id}`)}
-                    />
-                  ))
-                ) : (
-                  <div className="py-20 text-center space-y-4 bg-white/2 rounded-3xl border border-dashed border-white/10">
-                    <p className="text-gray-500">
-                      No se han encontrado proyectos.
-                    </p>
-                    {searchTerm && (
-                      <Button
-                        variant="outline"
-                        onClick={() => setSearchTerm('')}
-                        size="sm"
-                      >
-                        Limpiar búsqueda
-                      </Button>
-                    )}
-                  </div>
-                )}
-              </div>
+              {viewMode === 'list' ? (
+                <div className="grid gap-4">
+                  {filteredProjects.length > 0 ? (
+                    filteredProjects.map(project => (
+                      <ProjectRow
+                        key={project.id}
+                        project={project}
+                        onView={handleView}
+                        onEdit={handleEdit}
+                        onDelete={handleDeleteClick}
+                        onCompleteMemory={handleCompleteMemory}
+                      />
+                    ))
+                  ) : (
+                    <EmptyState searchTerm={searchTerm} onClearSearch={() => setSearchTerm('')} />
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                   {filteredProjects.length > 0 ? (
+                    filteredProjects.map(project => (
+                      <ProjectCard
+                        key={project.id}
+                        project={project}
+                        onClick={() => handleView(project)}
+                        onView={handleView}
+                        onEdit={handleEdit}
+                        onDelete={handleDeleteClick}
+                        onCompleteMemory={handleCompleteMemory}
+                      />
+                    ))
+                  ) : (
+                    <div className="col-span-full">
+                      <EmptyState searchTerm={searchTerm} onClearSearch={() => setSearchTerm('')} />
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Pagination */}
               {totalPages > 1 && (
@@ -226,7 +315,58 @@ export default function ProjectManagement() {
           )}
         </div>
       )}
+
+      {/* Modals shared with Dashboard */}
+      <ProjectDetailsModal
+        isOpen={isViewOpen}
+        onClose={() => setIsViewOpen(false)}
+        project={selectedProject}
+        onCompleteMemory={handleCompleteMemory}
+      />
+
+      <Modal
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        title="Editar Datos del Proyecto"
+        className="max-w-xl"
+      >
+        <ProjectForm
+          project={selectedProject || undefined}
+          onSubmit={() => {
+            setIsEditOpen(false);
+            fetchProjects(page, statusFilter);
+            addToast('Proyecto actualizado correctamente', 'success');
+          }}
+        />
+      </Modal>
+
+      <DeleteProjectModal
+        isOpen={isDeleteOpen}
+        onClose={() => setIsDeleteOpen(false)}
+        project={selectedProject}
+        onConfirm={confirmDelete}
+        isLoading={isDeleting}
+      />
     </div>
     </ErrorBoundary>
+  );
+}
+
+function EmptyState({ searchTerm, onClearSearch }: { searchTerm: string, onClearSearch: () => void }) {
+  return (
+    <div className="py-20 text-center space-y-4 bg-white/2 rounded-3xl border border-dashed border-white/10">
+      <p className="text-gray-500">
+        No se han encontrado proyectos.
+      </p>
+      {searchTerm && (
+        <Button
+          variant="outline"
+          onClick={onClearSearch}
+          size="sm"
+        >
+          Limpiar búsqueda
+        </Button>
+      )}
+    </div>
   );
 }

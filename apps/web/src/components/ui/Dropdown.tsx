@@ -57,20 +57,31 @@ export function Dropdown({ trigger, children, className, align = 'right' }: Drop
 
   return (
     <>
-      <div ref={triggerRef} onClick={() => setIsOpen(!isOpen)} className="inline-block">
+      <div 
+        ref={triggerRef} 
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+        }} 
+        className="inline-block"
+      >
         {trigger}
       </div>
       {isOpen && createPortal(
         <div
           ref={dropdownRef}
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsOpen(false);
+          }}
           style={{
             position: 'absolute',
-            top: `${position.top + 8}px`,
+            top: `${position.top + 4}px`,
             left: align === 'right' ? 'auto' : `${position.left}px`,
             right: align === 'right' ? `${window.innerWidth - position.left}px` : 'auto',
           }}
           className={cn(
-            "z-[9999] min-w-[176px] bg-dark-card border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150",
+            "z-[9999] min-w-[176px] bg-dark-card border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-in fade-in duration-100",
             className
           )}
         >

@@ -31,7 +31,7 @@ export default function Modal({ isOpen, onClose, title, children, className }: M
           </button>
         </div>
         
-        <div className="p-6">
+        <div className="p-6 overflow-y-auto max-h-[calc(90vh-70px)]">
           {children}
         </div>
       </div>
