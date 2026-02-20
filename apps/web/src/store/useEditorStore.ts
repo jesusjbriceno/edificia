@@ -30,10 +30,20 @@ interface EditorState {
   /** Number of sections with unsaved changes. */
   pendingCount: number;
 
+  /** Project metadata for display. */
+  projectTitle: string | null;
+  interventionType: number | null; // Using number to match InterventionType enum/type
+
+  /** UI State */
+  aiPanelOpen: boolean;
+  activePath: string[];
+
   /** Initialize the store for a specific project with its filtered tree and content. */
-  initProject: (projectId: string, tree: ContentTreeNode[], content: Record<string, string>) => void;
+  initProject: (projectId: string, tree: ContentTreeNode[], content: Record<string, string>, title: string, interventionType: number) => void;
   /** Set the active section being edited. */
-  setActiveSection: (id: string) => void;
+  setActiveSection: (id: string | null) => void;
+  /** Toggle AI assistant panel. */
+  setAiPanelOpen: (open: boolean) => void;
   /** Update content for a section (notifies SyncManager for debounced persistence). */
   updateContent: (id: string, html: string) => void;
   /** Update sync status and pending count (called by SyncManager). */
@@ -42,26 +52,53 @@ interface EditorState {
   reset: () => void;
 }
 
-export const useEditorStore = create<EditorState>((setStore) => ({
+// ── Helpers ──────────────────────────────────────────────
+
+/** Walk the tree recursively to find the path of nodes to a specific ID. */
+function findNodePath(nodes: ContentTreeNode[], id: string, path: string[] = []): string[] | null {
+  for (const node of nodes) {
+    const currentPath = [...path, node.title];
+    if (node.id === id) return currentPath;
+    const found = findNodePath(node.sections, id, currentPath);
+    if (found) return found;
+  }
+  return null;
+}
+
+export const useEditorStore = create<EditorState>((setStore, getStore) => ({
   projectId: null,
   tree: [],
   activeSectionId: null,
   content: {},
   syncStatus: 'idle',
   pendingCount: 0,
+  projectTitle: null,
+  interventionType: null,
+  aiPanelOpen: false,
+  activePath: [],
 
-  initProject: (projectId, tree, content) => {
+  initProject: (projectId, tree, content, title, interventionType) => {
     setStore({
       projectId,
       tree,
       content,
+      projectTitle: title,
+      interventionType,
       activeSectionId: null,
+      activePath: [],
       syncStatus: 'idle',
       pendingCount: 0,
+      aiPanelOpen: false,
     });
   },
 
-  setActiveSection: (id) => setStore({ activeSectionId: id }),
+  setActiveSection: (id: string | null) => {
+    const { tree } = getStore();
+    const path = id ? (findNodePath(tree, id) ?? []) : [];
+    setStore({ activeSectionId: id, activePath: path });
+  },
+
+  setAiPanelOpen: (open) => setStore({ aiPanelOpen: open }),
 
   updateContent: (id, html) => {
     setStore((state) => ({
@@ -83,5 +120,9 @@ export const useEditorStore = create<EditorState>((setStore) => ({
       content: {},
       syncStatus: 'idle',
       pendingCount: 0,
+      projectTitle: null,
+      interventionType: null,
+      aiPanelOpen: false,
+      activePath: [],
     }),
-}))
+}));
