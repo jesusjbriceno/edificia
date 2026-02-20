@@ -11,6 +11,10 @@ public sealed record UpdateProjectTreeCommand(
     Guid ProjectId,
     string ContentTreeJson) : IRequest<Result>
 {
-    public static UpdateProjectTreeCommand Create(Guid projectId, UpdateProjectTreeRequest r)
-        => new(projectId, r.ContentTreeJson);
+    /// <summary>
+    /// Maps the DTO fields. <see cref="ProjectId"/> must be enriched
+    /// from the route param in the controller using a <c>with</c> expression.
+    /// </summary>
+    public static explicit operator UpdateProjectTreeCommand(UpdateProjectTreeRequest r)
+        => new(Guid.Empty, r.ContentTreeJson);
 }

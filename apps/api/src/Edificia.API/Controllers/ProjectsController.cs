@@ -120,7 +120,7 @@ public sealed class ProjectsController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateTree(Guid id, [FromBody] UpdateProjectTreeRequest request)
     {
-        var command = UpdateProjectTreeCommand.Create(id, request);
+        var command = (UpdateProjectTreeCommand)request with { ProjectId = id };
         var result = await _sender.Send(command);
 
         return HandleNoContent(result);
@@ -143,7 +143,7 @@ public sealed class ProjectsController : BaseApiController
     public async Task<IActionResult> PatchSectionContent(
         Guid id, string sectionId, [FromBody] UpdateSectionRequest request)
     {
-        var command = PatchSectionContentCommand.Create(id, sectionId, request);
+        var command = (PatchSectionContentCommand)request with { ProjectId = id, SectionId = sectionId };
         var result = await _sender.Send(command);
 
         return HandleNoContent(result);

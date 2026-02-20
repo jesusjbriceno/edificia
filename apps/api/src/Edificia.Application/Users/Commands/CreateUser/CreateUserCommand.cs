@@ -15,6 +15,10 @@ public sealed record CreateUserCommand(
     string? CollegiateNumber,
     Guid CreatedByUserId) : IRequest<Result<Guid>>
 {
-    public static CreateUserCommand Create(Guid createdByUserId, CreateUserRequest r)
-        => new(r.Email, r.FullName, r.Role, r.CollegiateNumber, createdByUserId);
+    /// <summary>
+    /// Maps the DTO fields. <see cref="CreatedByUserId"/> must be enriched
+    /// from the JWT claim in the controller using a <c>with</c> expression.
+    /// </summary>
+    public static explicit operator CreateUserCommand(CreateUserRequest r)
+        => new(r.Email, r.FullName, r.Role, r.CollegiateNumber, Guid.Empty);
 }

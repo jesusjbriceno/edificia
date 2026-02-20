@@ -12,7 +12,10 @@ public sealed record PatchSectionContentCommand(
     string SectionId,
     string Content) : IRequest<Result>
 {
-    public static PatchSectionContentCommand Create(
-        Guid projectId, string sectionId, UpdateSectionRequest r)
-        => new(projectId, sectionId, r.Content);
+    /// <summary>
+    /// Maps the DTO fields. <see cref="ProjectId"/> and <see cref="SectionId"/> must be
+    /// enriched from the route params in the controller using a <c>with</c> expression.
+    /// </summary>
+    public static explicit operator PatchSectionContentCommand(UpdateSectionRequest r)
+        => new(Guid.Empty, string.Empty, r.Content);
 }
