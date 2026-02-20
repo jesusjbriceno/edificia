@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Badge } from '@/components/ui/Badge';
 import { MoreHorizontal, UserCheck, UserX, Mail, Pencil, Trash2 } from 'lucide-react';
+import { Dropdown } from '@/components/ui/Dropdown';
 
 export interface User {
   id: string;
@@ -19,20 +20,6 @@ interface UserRowProps {
 }
 
 export function UserRow({ user, onToggleStatus, onEdit, onDelete }: UserRowProps) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  // Cierra el menú si se hace click fuera
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    }
-    if (menuOpen) document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [menuOpen]);
-
   const handleMailClick = () => {
     window.open(`mailto:${user.email}`, '_blank');
   };
@@ -82,34 +69,34 @@ export function UserRow({ user, onToggleStatus, onEdit, onDelete }: UserRowProps
           </button>
 
           {/* Menú de 3 puntos */}
-          <div className="relative" ref={menuRef}>
-            <button
-              title="Más opciones"
-              onClick={() => setMenuOpen((prev) => !prev)}
-              className="p-1.5 text-gray-500 hover:text-white transition-colors rounded-lg hover:bg-white/5"
-            >
-              <MoreHorizontal size={16} />
-            </button>
+          <Dropdown
+            trigger={
+              <button
+                title="Más opciones"
+                className="p-1.5 text-gray-500 hover:text-white transition-colors rounded-lg hover:bg-white/5"
+              >
+                <MoreHorizontal size={16} />
+              </button>
+            }
+          >
+            <div className="flex flex-col">
+              <button
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
+                onClick={() => onEdit(user)}
+              >
+                <Pencil size={14} />
+                Editar usuario
+              </button>
+              <button
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
+                onClick={() => onDelete(user)}
+              >
+                <Trash2 size={14} />
+                Eliminar usuario
+              </button>
+            </div>
+          </Dropdown>
 
-            {menuOpen && (
-              <div className="absolute right-0 top-8 z-20 w-44 bg-dark-card border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-                <button
-                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
-                  onClick={() => { setMenuOpen(false); onEdit(user); }}
-                >
-                  <Pencil size={14} />
-                  Editar usuario
-                </button>
-                <button
-                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
-                  onClick={() => { setMenuOpen(false); onDelete(user); }}
-                >
-                  <Trash2 size={14} />
-                  Eliminar usuario
-                </button>
-              </div>
-            )}
-          </div>
         </div>
       </td>
     </tr>

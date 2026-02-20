@@ -3,6 +3,7 @@ import { ProjectRow } from './ProjectRow.js';
 import { ProjectForm } from './ProjectForm.js';
 import { Button } from '@/components/ui/Button';
 import { Plus, Search, Filter, AlertCircle } from 'lucide-react';
+import { Select } from '@/components/ui/Select';
 import { TableRowSkeleton } from '@/components/ui/Skeleton';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { projectService } from '@/lib/services';
@@ -111,20 +112,23 @@ export default function ProjectManagement() {
                 onChange={e => setSearchTerm(e.target.value)}
               />
             </div>
-            <select
+            <Select
+              containerClassName="w-auto"
+              className="border-none bg-transparent pr-8 py-0 h-full text-gray-400 text-sm focus:ring-0"
               value={statusFilter ?? ''}
-              onChange={e => {
+              onChange={(e) => {
                 setStatusFilter(e.target.value || undefined);
                 setPage(1);
               }}
-              className="bg-transparent border-none text-gray-400 text-sm focus:ring-0 appearance-none pr-6 cursor-pointer"
-            >
-              <option value="">Todos los estados</option>
-              <option value="Draft">Borrador</option>
-              <option value="InProgress">En redacción</option>
-              <option value="Completed">Completado</option>
-              <option value="Archived">Archivado</option>
-            </select>
+              options={[
+                { value: '', label: 'Todos los estados' },
+                { value: 'Draft', label: 'Borrador' },
+                { value: 'InProgress', label: 'En redacción' },
+                { value: 'Completed', label: 'Completado' },
+                { value: 'Archived', label: 'Archivado' },
+              ]}
+            />
+
             <Button
               variant="ghost"
               className="hidden sm:flex text-gray-400 hover:text-white"
