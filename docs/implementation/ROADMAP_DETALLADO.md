@@ -1,6 +1,6 @@
 # **📅 Plan de Implementación Detallado — EDIFICIA**
 
-**Estado:** En Progreso (Frontend: Fases 1-4 completadas)
+**Estado:** En Progreso (Frontend: Fases 1-5 completadas + mejoras pre-release)
 
 **Metodología:** Git Flow (feature/... → develop → main)
 
@@ -8,13 +8,24 @@
 
 **Progreso Frontend Actual:**
 - ✅ Componentes UI atómicos (Button, Input, Card, Badge)
+- ✅ Componentes UI avanzados (Dropdown portal-based, Select refactorizado)
 - ✅ Flujos de autenticación (Login, ForgotPassword, AuthGuard)
 - ✅ Dashboard de Proyectos con Wizard
-- ✅ Editor de Memorias con TipTap + Toolbar Premium
-- ✅ Administración de Usuarios (UserTable, UserRow, UserForm)
+- ✅ Editor de Memorias con TipTap + Toolbar Premium + Cabecera multi-nivel
+- ✅ SidebarNavigation con búsqueda recursiva de capítulos
+- ✅ Administración de Usuarios (UserTable, UserRow, UserForm) — sin datos hardcoded
 - ✅ Administración de Proyectos (ProjectManagement, ProjectRow, ProjectForm)
+- ✅ Sistema de Notificaciones completo (NotificationBell, NotificationsList, notificationService → API)
+- ✅ Página `/admin/notifications` para gestión de notificaciones
 - ✅ Stores Zustand (useAuthStore, useEditorStore)
 - ✅ Suite de tests centralizada en src/tests (Vitest)
+- ✅ .github/copilot-instructions.md con guías del proyecto para GitHub Copilot
+
+**Progreso Backend Actual:**
+- ✅ Entidad `Notification` en Domain con métodos de fábrica y `MarkAsRead()`
+- ✅ CQRS completo para notificaciones: `GetNotificationsQuery`, `MarkAsReadCommand`, `MarkAllAsReadCommand`
+- ✅ `NotificationsController` con endpoints `GET /notifications`, `POST /{id}/read`, `POST /mark-all-read`
+- ✅ `NotificationConfiguration` (EF Core Fluent API)
 
 ## **🏁 Fase 1: Cimientos del Sistema (Core & Shared)**
 
@@ -51,7 +62,7 @@
 | ID | Feature Branch | Tareas Backend (.NET) | Tareas Frontend (Astro/React) |
 | :---- | :---- | :---- | :---- |
 | **3.1** | feature/normative-tree | • Crear estructura JSON ContentTree en Entidad. • Endpoint GET /projects/{id}/tree. | • Crear archivo estático cte\_2024.json en /public. • Implementar utilidad TS filterTree(nodes, config) para ocultar ramas según Obra/Reforma. |
-| **3.2** | feature/editor-shell | N/A | ✅ • Crear EditorLayout.astro. • Implementar **Sidebar de Navegación** (React) recursivo con enlaces Admin. • Gestionar selección de capítulo activo en Zustand (`useEditorStore`). |
+| **3.2** | feature/editor-shell | N/A | ✅ • Crear EditorLayout.astro. • Implementar **Sidebar de Navegación** (React) recursivo con enlaces Admin. • Gestionar selección de capítulo activo en Zustand (`useEditorStore`). • Añadir **búsqueda recursiva** de capítulos con filtrado en tiempo real (`searchTree`). |
 
 ## **📝 Fase 4: Editor y Persistencia (The Core)**
 
@@ -59,8 +70,16 @@
 
 | ID | Feature Branch | Tareas Backend (.NET) | Tareas Frontend (Astro/React) |
 | :---- | :---- | :---- | :---- |
-| **4.1** | feature/editor-tiptap | N/A | ✅ • Integrar **TipTap** en `EditorShell`. • Crear `EditorToolbar` con formato (Negrita, Cursiva, H1-H3, Listas, Citas, Undo/Redo). • Conectar editor al Store de Zustand. |
+| **4.1** | feature/editor-tiptap | N/A | ✅ • Integrar **TipTap** en `EditorShell`. • Crear `EditorToolbar` con formato (Negrita, Cursiva, H1-H3, Listas, Citas, Undo/Redo). • Conectar editor al Store de Zustand. • `EditorHeader` multi-nivel con breadcrumbs contextuales (proyecto, tipo de intervención). |
 | **4.2** | feature/offline-sync | • Crear endpoint PATCH /projects/{id}/sections. • Optimizar update con ExecuteUpdate de EF Core o SQL Raw para JSONB. | ⏳ • Configurar idb-keyval en Zustand. • Implementar lógica "Debounce Save": Guardar en local al escribir, sincronizar con API cada 5s si hay red. |
+
+## **🔔 Fase 4.3: Sistema de Notificaciones (Completado)**
+
+**Objetivo:** Sistema completo de notificaciones en tiempo real para alertar al usuario de eventos relevantes.
+
+| ID | Feature Branch | Tareas Backend (.NET) | Tareas Frontend (Astro/React) |
+| :---- | :---- | :---- | :---- |
+| **4.3** | feature/pre-release-fixes | ✅ • Entidad `Notification` (Domain) con `Create()`, `MarkAsRead()`. • `NotificationConfiguration` (EF Core). • `GetNotificationsQuery` con Dapper. • `MarkAsReadCommand` + `MarkAllAsReadCommand`. • `NotificationsController`: `GET /notifications`, `POST /{id}/read`, `POST /mark-all-read`. | ✅ • `NotificationBell` (icono con contador de no leídas). • `NotificationsList` (dropdown con lista paginada). • `notificationService` conectado a API real. • Página `/admin/notifications` para administración. • Tests unitarios para `NotificationBell`, `NotificationsList` y `notificationService`. |
 
 ## **🤖 Fase 5: Inteligencia Artificial (Flux Gateway)**
 

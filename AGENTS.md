@@ -51,11 +51,12 @@
 
 /  
 ├── AGENTS.md                   \# Contexto Maestro (Este archivo)  
+├── .github/copilot-instructions.md  \# Instrucciones de estilo para GitHub Copilot  
 ├── docker-compose.yml          \# Orquestador  
 ├── apps/  
 │   ├── api/                    \# Solución .NET  
 │   │   ├── src/  
-│   │   │   ├── Edificia.Domain         \# Entidades Puras, ValueObjects  
+│   │   │   ├── Edificia.Domain         \# Entidades Puras, ValueObjects (Project, Notification, User...)  
 │   │   │   ├── Edificia.Shared         \# Kernel compartido (Result\<T\>, Utils)  
 │   │   │   ├── Edificia.Application    \# CQRS Handlers, Validators, Interfaces  
 │   │   │   ├── Edificia.Infrastructure \# EF Context, Dapper, Flux Service  
@@ -65,7 +66,8 @@
 │       ├── public/normativa/   \# JSONs estáticos (cte\_2024.json)  
 │       ├── src/  
 │       │   ├── components/ui/  \# Componentes Atómicos (Tailwind)  
-│       │   ├── islands/        \# Features React (Editor, Wizard)  
+│       │   ├── components/Admin/  \# Componentes de administración (Users, Projects, Notifications)  
+│       │   ├── components/Editor/  \# Componentes del editor (EditorShell, SidebarNavigation, EditorHeader)  
 │       │   ├── pages/          \# Rutas Astro  
 │       │   └── store/          \# Zustand Stores  
 └── docs/                       \# Documentación Funcional y Técnica
