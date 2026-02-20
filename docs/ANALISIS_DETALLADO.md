@@ -1,8 +1,8 @@
 # **Análisis Detallado \- EDIFICIA**
 
-**Versión:** 2.0
+**Versión:** 2.1 (Sistema de Notificaciones, Mejoras de UI/UX del Editor)
 
-**Foco:** Integración Flux Gateway y Lógica de Intervención
+**Foco:** Integración Flux Gateway, Lógica de Intervención, Sistema de Notificaciones
 
 ## **2\. Análisis Técnico: La Pasarela de IA (Flux Gateway)**
 
@@ -24,3 +24,21 @@ Para cumplir con la visión del cliente ("No pedir hormigón en una reforma de b
   * El frontend (React) recibe el árbol completo del CTE.  
   * Aplica una función recursiva filterTree(nodes, projectConfig).  
   * Si Project.InterventionType \== Reform Y el nodo tiene requiresNewWork: true, el nodo se elimina de la UI.
+
+## **4\. Sistema de Notificaciones**
+
+**Decisión arquitectónica:** Notificaciones persistidas en base de datos (no WebSockets en v1).
+
+* **Entidad Domain:** `Notification` en `Edificia.Domain.Entities` con `AuditableEntity` como base. Métodos de fábrica `Create()` y de comportamiento `MarkAsRead()`.  
+* **Patrón CQRS:**  
+  * **Query:** `GetNotificationsQuery` — recupera notificaciones del usuario autenticado via Dapper para máximo rendimiento de lectura.  
+  * **Commands:** `MarkAsReadCommand` y `MarkAllAsReadCommand` — actualizan estado via EF Core.  
+* **API:** `NotificationsController` expone 3 endpoints: `GET /api/notifications`, `POST /api/notifications/{id}/read`, `POST /api/notifications/mark-all-read`.  
+* **Frontend:** `NotificationBell` (indicador con contador de no leídas) + `NotificationsList` (dropdown con acciones). El `notificationService` llama directamente a la API real sin persistencia local.
+
+## **5\. Mejoras de UI/UX del Editor (pre-release)**
+
+* **Búsqueda en SidebarNavigation:** Función recursiva `searchTree(nodes, query)` que filtra el árbol de capítulos CTE en tiempo real sin afectar al estado global. Implementada con `useMemo` para optimización de renders.  
+* **EditorHeader multi-nivel:** Cabecera con contexto completo del proyecto (nombre + tipo de intervención), botón de retorno al dashboard y separadores visuales.  
+* **Portal-based Dropdown:** `ui/Dropdown.tsx` usa `ReactDOM.createPortal` para evitar clipping en tablas (gestión de usuarios) y selectores dentro de contenedores con `overflow: hidden`.  
+* **Limpieza de datos hardcoded:** Eliminación de usuarios y notificaciones hardcodeados en las vistas admin, dando paso a datos reales desde la API.

@@ -42,6 +42,8 @@ tags:
     description: Generación de texto con IA
   - name: Export
     description: Exportación de proyectos a DOCX
+  - name: Notifications
+    description: Sistema de notificaciones del usuario autenticado
   - name: Health
     description: Health checks
 
@@ -1153,3 +1155,30 @@ components:
         generatedText:
           type: string
           description: Texto HTML generado por IA
+
+    NotificationResponse:
+      type: object
+      description: Notificación del sistema para el usuario autenticado.
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          example: Proyecto actualizado
+        message:
+          type: string
+          example: El proyecto "Casa García" ha sido modificado por un administrador.
+        isRead:
+          type: boolean
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-02-20T10:00:00Z'
+      required:
+        - id
+        - title
+        - message
+        - isRead
+        - createdAt
