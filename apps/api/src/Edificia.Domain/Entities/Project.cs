@@ -45,6 +45,16 @@ public sealed class Project : AuditableEntity
     /// </summary>
     public string? ContentTreeJson { get; private set; }
 
+    /// <summary>ID del usuario que creó el proyecto (propietario original).</summary>
+    public Guid CreatedByUserId { get; private set; }
+
+    /// <summary>Navegación al usuario creador.</summary>
+    public ApplicationUser CreatedByUser { get; private set; } = null!;
+
+    /// <summary>Miembros del proyecto con sus roles.</summary>
+    private readonly List<ProjectMember> _members = [];
+    public IReadOnlyCollection<ProjectMember> Members => _members.AsReadOnly();
+
     // EF Core requires parameterless constructor
     private Project() { }
 
@@ -55,6 +65,7 @@ public sealed class Project : AuditableEntity
         string title,
         InterventionType interventionType,
         bool isLoeRequired,
+        Guid createdByUserId,
         string? description = null,
         string? address = null,
         string? cadastralReference = null,
@@ -65,12 +76,30 @@ public sealed class Project : AuditableEntity
             Title = title,
             InterventionType = interventionType,
             IsLoeRequired = isLoeRequired,
+            CreatedByUserId = createdByUserId,
             Description = description,
             Address = address,
             CadastralReference = cadastralReference,
             LocalRegulations = localRegulations,
             Status = ProjectStatus.Draft
         };
+    }
+
+    /// <summary>Adds a member to the project.</summary>
+    public void AddMember(Guid userId, ProjectMemberRole role)
+    {
+        if (_members.Any(m => m.UserId == userId))
+            return;
+
+        _members.Add(ProjectMember.Create(Id, userId, role));
+    }
+
+    /// <summary>Removes a member from the project.</summary>
+    public void RemoveMember(Guid userId)
+    {
+        var member = _members.FirstOrDefault(m => m.UserId == userId);
+        if (member is not null)
+            _members.Remove(member);
     }
 
     private Project(Guid id) : base(id) { }

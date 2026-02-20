@@ -51,8 +51,24 @@ public sealed class ProjectConfiguration : IEntityTypeConfiguration<Project>
         builder.Property(p => p.CreatedAt)
             .IsRequired();
 
+        // Ownership: CreatedByUserId FK
+        builder.Property(p => p.CreatedByUserId)
+            .IsRequired();
+
+        builder.HasOne(p => p.CreatedByUser)
+            .WithMany()
+            .HasForeignKey(p => p.CreatedByUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Members navigation
+        builder.HasMany(p => p.Members)
+            .WithOne(m => m.Project)
+            .HasForeignKey(m => m.ProjectId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         // Indexes
         builder.HasIndex(p => p.Status);
         builder.HasIndex(p => p.CreatedAt);
+        builder.HasIndex(p => p.CreatedByUserId);
     }
 }

@@ -8,7 +8,7 @@ public class ProjectSectionContentTests
 {
     private static Project CreateProjectWithTree(string contentTreeJson)
     {
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
         project.UpdateContentTree(contentTreeJson);
         return project;
     }
@@ -136,7 +136,7 @@ public class ProjectSectionContentTests
     [Fact]
     public void UpdateSectionContent_ShouldReturnFalse_WhenContentTreeIsNull()
     {
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
 
         var result = project.UpdateSectionContent("md-1", "<p>Algo</p>");
 

@@ -13,6 +13,7 @@ public class ProjectTests
             title: "Vivienda Unifamiliar",
             interventionType: InterventionType.NewConstruction,
             isLoeRequired: true,
+            createdByUserId: Guid.NewGuid(),
             description: "Proyecto de obra nueva",
             address: "Calle Mayor 1, Madrid",
             cadastralReference: "1234567AB1234N",
@@ -36,7 +37,8 @@ public class ProjectTests
         var project = Project.Create(
             title: "Reforma local",
             interventionType: InterventionType.Reform,
-            isLoeRequired: false);
+            isLoeRequired: false,
+            createdByUserId: Guid.NewGuid());
 
         project.Title.Should().Be("Reforma local");
         project.InterventionType.Should().Be(InterventionType.Reform);
@@ -51,8 +53,8 @@ public class ProjectTests
     [Fact]
     public void Create_ShouldGenerateUniqueIds()
     {
-        var project1 = Project.Create("P1", InterventionType.NewConstruction, true);
-        var project2 = Project.Create("P2", InterventionType.Reform, false);
+        var project1 = Project.Create("P1", InterventionType.NewConstruction, true, Guid.NewGuid());
+        var project2 = Project.Create("P2", InterventionType.Reform, false, Guid.NewGuid());
 
         project1.Id.Should().NotBe(project2.Id);
     }
@@ -60,7 +62,7 @@ public class ProjectTests
     [Fact]
     public void UpdateSettings_ShouldModifyAllProperties()
     {
-        var project = Project.Create("Original", InterventionType.NewConstruction, true);
+        var project = Project.Create("Original", InterventionType.NewConstruction, true, Guid.NewGuid());
 
         project.UpdateSettings(
             title: "Actualizado",
@@ -87,6 +89,7 @@ public class ProjectTests
             "Con datos",
             InterventionType.NewConstruction,
             true,
+            Guid.NewGuid(),
             description: "Algo",
             address: "Calle X");
 
@@ -101,7 +104,7 @@ public class ProjectTests
     [Fact]
     public void StartRedaction_ShouldTransitionToInProgress()
     {
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
 
         project.StartRedaction();
 
@@ -111,7 +114,7 @@ public class ProjectTests
     [Fact]
     public void Complete_ShouldTransitionToCompleted()
     {
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
         project.StartRedaction();
 
         project.Complete();
@@ -122,7 +125,7 @@ public class ProjectTests
     [Fact]
     public void Archive_ShouldTransitionToArchived()
     {
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
 
         project.Archive();
 
@@ -132,7 +135,7 @@ public class ProjectTests
     [Fact]
     public void UpdateContentTree_ShouldSetContentTreeJson()
     {
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
         var json = """{"chapters":[{"id":"cap1","title":"Memoria Descriptiva"}]}""";
 
         project.UpdateContentTree(json);
@@ -143,11 +146,83 @@ public class ProjectTests
     [Fact]
     public void UpdateContentTree_ShouldAllowOverwrite()
     {
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
         project.UpdateContentTree("""{"v":1}""");
 
         project.UpdateContentTree("""{"v":2}""");
 
         project.ContentTreeJson.Should().Be("""{"v":2}""");
+    }
+
+    [Fact]
+    public void Create_ShouldSetCreatedByUserId()
+    {
+        var userId = Guid.NewGuid();
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, userId);
+
+        project.CreatedByUserId.Should().Be(userId);
+    }
+
+    [Fact]
+    public void AddMember_ShouldAddMemberToProject()
+    {
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
+        var userId = Guid.NewGuid();
+
+        project.AddMember(userId, ProjectMemberRole.Editor);
+
+        project.Members.Should().HaveCount(1);
+        project.Members.First().UserId.Should().Be(userId);
+        project.Members.First().Role.Should().Be(ProjectMemberRole.Editor);
+    }
+
+    [Fact]
+    public void AddMember_ShouldNotDuplicate_WhenUserAlreadyAdded()
+    {
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
+        var userId = Guid.NewGuid();
+
+        project.AddMember(userId, ProjectMemberRole.Editor);
+        project.AddMember(userId, ProjectMemberRole.Viewer);
+
+        project.Members.Should().HaveCount(1);
+        project.Members.First().Role.Should().Be(ProjectMemberRole.Editor);
+    }
+
+    [Fact]
+    public void RemoveMember_ShouldRemoveMemberFromProject()
+    {
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
+        var userId = Guid.NewGuid();
+        project.AddMember(userId, ProjectMemberRole.Editor);
+
+        project.RemoveMember(userId);
+
+        project.Members.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void RemoveMember_ShouldDoNothing_WhenUserNotMember()
+    {
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
+
+        project.RemoveMember(Guid.NewGuid());
+
+        project.Members.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void AddMember_ShouldAllowMultipleMembers()
+    {
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
+        var user1 = Guid.NewGuid();
+        var user2 = Guid.NewGuid();
+        var user3 = Guid.NewGuid();
+
+        project.AddMember(user1, ProjectMemberRole.Owner);
+        project.AddMember(user2, ProjectMemberRole.Editor);
+        project.AddMember(user3, ProjectMemberRole.Viewer);
+
+        project.Members.Should().HaveCount(3);
     }
 }

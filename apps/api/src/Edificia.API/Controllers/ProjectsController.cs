@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Edificia.Application.Common;
 using Edificia.Application.Projects.Commands.CreateProject;
 using Edificia.Application.Projects.Commands.PatchSectionContent;
@@ -80,7 +81,12 @@ public sealed class ProjectsController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create([FromBody] CreateProjectRequest request)
     {
-        var command = (CreateProjectCommand)request;
+        var userId = Guid.Parse(
+            User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.FindFirstValue("sub")
+            ?? throw new UnauthorizedAccessException());
+
+        var command = (CreateProjectCommand)request with { CreatedByUserId = userId };
         var result = await _sender.Send(command);
 
         return HandleCreated(result, nameof(GetById), id => new { id });
