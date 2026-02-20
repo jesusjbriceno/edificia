@@ -10,7 +10,7 @@ import type { User } from '@/components/Admin/UserRow';
 
 /**
  * Componente completo de gestión de usuarios.
- * Incluye: carga desde API, añadir, editar, activar/desactivar y eliminar.
+ * Incluye: carga desde API, añadir, editar y activar/desactivar.
  */
 export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
@@ -21,10 +21,6 @@ export default function UserManagement() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-
-  // Modal de confirmación de eliminación
-  const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     loadUsers();
@@ -68,19 +64,21 @@ export default function UserManagement() {
     setModalOpen(true);
   }
 
-  async function handleSaveUser(formData: { name: string; email: string; role: string }) {
+  async function handleSaveUser(formData: { name: string; email: string; role: string; collegiateNumber?: string }) {
     setIsSaving(true);
     try {
       if (editingUser) {
         await userService.update(editingUser.id, {
           fullName: formData.name,
           role: formData.role,
+          collegiateNumber: formData.collegiateNumber || null,
         });
       } else {
         await userService.create({
           fullName: formData.name,
           email: formData.email,
           role: formData.role,
+          collegiateNumber: formData.collegiateNumber || null,
         });
       }
       setModalOpen(false);
@@ -104,22 +102,6 @@ export default function UserManagement() {
       await loadUsers();
     } catch (err: any) {
       console.error('Error cambiando estado del usuario:', err);
-    }
-  }
-
-  // ── Eliminar ─────────────────────────────────────────────
-
-  async function handleConfirmDelete() {
-    if (!deleteTarget) return;
-    setIsDeleting(true);
-    try {
-      await userService.remove(deleteTarget.id);
-      setDeleteTarget(null);
-      await loadUsers();
-    } catch (err: any) {
-      console.error('Error eliminando usuario:', err);
-    } finally {
-      setIsDeleting(false);
     }
   }
 
@@ -183,7 +165,6 @@ export default function UserManagement() {
           users={users}
           onToggleStatus={handleToggleStatus}
           onEdit={handleOpenEdit}
-          onDelete={setDeleteTarget}
         />
       )}
 
@@ -198,35 +179,6 @@ export default function UserManagement() {
           onSubmit={handleSaveUser}
           isLoading={isSaving}
         />
-      </Modal>
-
-      {/* Modal de confirmación de eliminación */}
-      <Modal
-        isOpen={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        title="¿Eliminar usuario?"
-      >
-        <div className="space-y-4">
-          <p className="text-gray-300 text-sm">
-            Estás a punto de eliminar a <span className="font-semibold text-white">{deleteTarget?.name}</span>.
-            Esta acción no se puede deshacer.
-          </p>
-          <div className="flex gap-3 justify-end pt-2">
-            <Button
-              onClick={() => setDeleteTarget(null)}
-              className="bg-white/10 hover:bg-white/20 border-none text-white"
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleConfirmDelete}
-              isLoading={isDeleting}
-              className="bg-red-500 hover:bg-red-600 border-none text-white"
-            >
-              Sí, eliminar
-            </Button>
-          </div>
-        </div>
       </Modal>
     </>
   );

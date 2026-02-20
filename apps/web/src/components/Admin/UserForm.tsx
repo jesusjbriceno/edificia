@@ -1,4 +1,4 @@
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/Button';
@@ -7,7 +7,8 @@ import { Select } from '@/components/ui/Select';
 const userSchema = z.object({
   name: z.string().min(1, 'El nombre es obligatorio'),
   email: z.string().min(1, 'El email es obligatorio').email('Email inválido'),
-  role: z.enum(['Admin', 'Architect', 'Collaborator', 'Supervisor']),
+  role: z.enum(['Admin', 'Architect', 'Collaborator']),
+  collegiateNumber: z.string().optional(),
 });
 
 type UserFormData = z.infer<typeof userSchema>;
@@ -22,6 +23,7 @@ export function UserForm({ initialData, onSubmit, isLoading }: UserFormProps) {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm<UserFormData>({
     resolver: zodResolver(userSchema),
@@ -29,9 +31,11 @@ export function UserForm({ initialData, onSubmit, isLoading }: UserFormProps) {
       name: initialData?.name || '',
       email: initialData?.email || '',
       role: initialData?.role || 'Architect',
+      collegiateNumber: initialData?.collegiateNumber || '',
     },
   });
 
+  const selectedRole = useWatch({ control, name: 'role' });
 
   return (
     <form 
@@ -68,12 +72,25 @@ export function UserForm({ initialData, onSubmit, isLoading }: UserFormProps) {
           { value: 'Architect', label: 'Arquitecto' },
           { value: 'Admin', label: 'Administrador' },
           { value: 'Collaborator', label: 'Colaborador' },
-          { value: 'Supervisor', label: 'Supervisor' },
         ]}
         {...register('role')}
         error={errors.role?.message}
       />
 
+      {selectedRole === 'Architect' && (
+        <div className="space-y-2">
+          <label htmlFor="collegiateNumber" className="text-sm font-medium text-gray-300">
+            Número de Colegiado
+          </label>
+          <input
+            id="collegiateNumber"
+            {...register('collegiateNumber')}
+            className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:border-brand-primary outline-none transition-colors"
+            placeholder="Ej: 12345-M"
+          />
+          {errors.collegiateNumber && <p className="text-xs text-red-500">{errors.collegiateNumber.message}</p>}
+        </div>
+      )}
 
       <Button type="submit" className="w-full h-12 mt-6" isLoading={isLoading}>
         Guardar Usuario

@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React from 'react';
 import { Badge } from '@/components/ui/Badge';
-import { MoreHorizontal, UserCheck, UserX, Mail, Pencil, Trash2 } from 'lucide-react';
+import { MoreHorizontal, UserCheck, UserX, Mail, Pencil } from 'lucide-react';
 import { Dropdown } from '@/components/ui/Dropdown';
 
 export interface User {
@@ -16,10 +16,9 @@ interface UserRowProps {
   user: User;
   onToggleStatus: (user: User) => void;
   onEdit: (user: User) => void;
-  onDelete: (user: User) => void;
 }
 
-export function UserRow({ user, onToggleStatus, onEdit, onDelete }: UserRowProps) {
+export function UserRow({ user, onToggleStatus, onEdit }: UserRowProps) {
   const handleMailClick = () => {
     window.open(`mailto:${user.email}`, '_blank');
   };
@@ -86,13 +85,6 @@ export function UserRow({ user, onToggleStatus, onEdit, onDelete }: UserRowProps
               >
                 <Pencil size={14} />
                 Editar usuario
-              </button>
-              <button
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
-                onClick={() => onDelete(user)}
-              >
-                <Trash2 size={14} />
-                Eliminar usuario
               </button>
             </div>
           </Dropdown>
