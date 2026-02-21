@@ -31,15 +31,15 @@ export const projectService = {
     return data;
   },
 
-  /** POST /projects */
-  async create(payload: CreateProjectRequest): Promise<ProjectResponse> {
-    const { data } = await apiClient.post<ProjectResponse>('/projects', payload);
+  /** POST /projects — returns the new project ID (GUID) */
+  async create(payload: CreateProjectRequest): Promise<string> {
+    const { data } = await apiClient.post<string>('/projects', payload);
     return data;
   },
 
-  /** PATCH /projects/:id */
+  /** PUT /projects/:id */
   async update(id: string, payload: Partial<CreateProjectRequest>): Promise<ProjectResponse> {
-    const { data } = await apiClient.patch<ProjectResponse>(`/projects/${id}`, payload);
+    const { data } = await apiClient.put<ProjectResponse>(`/projects/${id}`, payload);
     return data;
   },
 

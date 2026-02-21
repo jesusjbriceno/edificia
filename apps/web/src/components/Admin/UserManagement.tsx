@@ -18,6 +18,8 @@ export default function UserManagement() {
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
+  const [resetPwdTarget, setResetPwdTarget] = useState<User | null>(null);
+  const [isResettingPwd, setIsResettingPwd] = useState(false);
 
   useEffect(() => {
     loadUsers();
@@ -90,6 +92,21 @@ export default function UserManagement() {
     }
   }
 
+  // ── Restablecer contraseña ───────────────────────────────
+
+  async function handleConfirmResetPassword() {
+    if (!resetPwdTarget) return;
+    setIsResettingPwd(true);
+    try {
+      await userService.resetPassword(resetPwdTarget.id);
+      setResetPwdTarget(null);
+    } catch (err: any) {
+      console.error('Error restableciendo contraseña:', err);
+    } finally {
+      setIsResettingPwd(false);
+    }
+  }
+
   // ── Render ───────────────────────────────────────────────
 
   return (
@@ -151,6 +168,7 @@ export default function UserManagement() {
           onToggleStatus={handleToggleStatus}
           onEdit={handleOpenEdit}
           onDelete={setDeleteTarget}
+          onResetPassword={setResetPwdTarget}
         />
       )}
 
@@ -178,6 +196,35 @@ export default function UserManagement() {
               className="bg-red-500 hover:bg-red-600 border-none text-white"
             >
               Sí, eliminar
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal de confirmación de restablecimiento de contraseña */}
+      <Modal
+        isOpen={!!resetPwdTarget}
+        onClose={() => setResetPwdTarget(null)}
+        title="¿Restablecer contraseña?"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-300 text-sm">
+            Se generará una nueva contraseña temporal para <span className="font-semibold text-white">{resetPwdTarget?.name}</span> y
+            se le enviará por email. El usuario deberá cambiarla en su próximo inicio de sesión.
+          </p>
+          <div className="flex gap-3 justify-end pt-2">
+            <Button
+              onClick={() => setResetPwdTarget(null)}
+              className="bg-white/10 hover:bg-white/20 border-none text-white"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleConfirmResetPassword}
+              isLoading={isResettingPwd}
+              className="bg-brand-primary hover:bg-brand-primary/90 border-none text-white"
+            >
+              Sí, restablecer
             </Button>
           </div>
         </div>

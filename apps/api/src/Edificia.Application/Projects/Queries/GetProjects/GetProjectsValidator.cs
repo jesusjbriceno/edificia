@@ -8,7 +8,7 @@ namespace Edificia.Application.Projects.Queries.GetProjects;
 public sealed class GetProjectsValidator : AbstractValidator<GetProjectsQuery>
 {
     private static readonly string[] AllowedStatuses =
-        ["Draft", "InProgress", "Completed", "Archived"];
+        ["Draft", "InProgress", "PendingReview", "Completed", "Archived"];
 
     public GetProjectsValidator()
     {
@@ -22,7 +22,7 @@ public sealed class GetProjectsValidator : AbstractValidator<GetProjectsQuery>
 
         RuleFor(x => x.Status)
             .Must(s => AllowedStatuses.Contains(s!))
-            .WithMessage("El estado no es válido. Valores permitidos: Draft, InProgress, Completed, Archived.")
+            .WithMessage("El estado no es válido. Valores permitidos: Draft, InProgress, PendingReview, Completed, Archived.")
             .When(x => x.Status is not null);
     }
 }

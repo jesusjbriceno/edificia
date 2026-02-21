@@ -1,9 +1,11 @@
 using Edificia.Application.Common;
 using Edificia.Application.Projects.Commands.ApproveProject;
 using Edificia.Application.Projects.Commands.CreateProject;
+using Edificia.Application.Projects.Commands.DeleteProject;
 using Edificia.Application.Projects.Commands.PatchSectionContent;
 using Edificia.Application.Projects.Commands.RejectProject;
 using Edificia.Application.Projects.Commands.SubmitForReview;
+using Edificia.Application.Projects.Commands.UpdateProject;
 using Edificia.Application.Projects.Commands.UpdateProjectTree;
 using Edificia.Application.Projects.Queries;
 using Edificia.Application.Projects.Queries.GetProjectById;
@@ -87,6 +89,43 @@ public sealed class ProjectsController : BaseApiController
         var result = await _sender.Send(command);
 
         return HandleCreated(result, nameof(GetById), id => new { id });
+    }
+
+    /// <summary>
+    /// Updates a project's settings (title, intervention type, LOE, etc.).
+    /// </summary>
+    /// <param name="id">The project ID.</param>
+    /// <param name="request">The project update data.</param>
+    /// <response code="204">Project updated successfully.</response>
+    /// <response code="400">Validation error in the request data.</response>
+    /// <response code="404">Project not found.</response>
+    [HttpPut("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProjectRequest request)
+    {
+        var command = UpdateProjectCommand.Create(id, request);
+        var result = await _sender.Send(command);
+
+        return HandleNoContent(result);
+    }
+
+    /// <summary>
+    /// Deletes a project permanently.
+    /// </summary>
+    /// <param name="id">The project ID.</param>
+    /// <response code="204">Project deleted successfully.</response>
+    /// <response code="404">Project not found.</response>
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        var command = new DeleteProjectCommand(id);
+        var result = await _sender.Send(command);
+
+        return HandleNoContent(result);
     }
 
     /// <summary>

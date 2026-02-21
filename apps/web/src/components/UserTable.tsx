@@ -5,9 +5,10 @@ interface UserTableProps {
   onToggleStatus: (user: User) => void;
   onEdit: (user: User) => void;
   onDelete: (user: User) => void;
+  onResetPassword: (user: User) => void;
 }
 
-export default function UserTable({ users, onToggleStatus, onEdit, onDelete }: UserTableProps) {
+export default function UserTable({ users, onToggleStatus, onEdit, onDelete, onResetPassword }: UserTableProps) {
   return (
     <div className="w-full overflow-x-auto rounded-xl border border-white/5 bg-dark-card/30 backdrop-blur-md">
       <table className="w-full text-left text-sm">
@@ -28,6 +29,7 @@ export default function UserTable({ users, onToggleStatus, onEdit, onDelete }: U
               onToggleStatus={onToggleStatus}
               onEdit={onEdit}
               onDelete={onDelete}
+              onResetPassword={onResetPassword}
             />
           ))}
         </tbody>

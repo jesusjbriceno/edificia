@@ -52,8 +52,8 @@ export default function DashboardProjects() {
     fetchProjects(page);
   }, [page, fetchProjects]);
 
-  const handleCreated = (created: ProjectResponse) => {
-    window.location.href = `/projects/${created.id}`;
+  const handleCreated = (projectId: string) => {
+    window.location.href = `/projects/${projectId}`;
   };
 
   const handleCardClick = (id: string) => {
