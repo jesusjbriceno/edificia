@@ -26,7 +26,7 @@ appsettings.Development.json
 appsettings.Local.json
 appsettings.Production.json
 !apps/api/src/Edificia.API/appsettings.Production.json
-
+local-*.sh
 
 # BACKEND (.NET / C#)
 # Ignorar bin/ y obj/ en cualquier profundidad
