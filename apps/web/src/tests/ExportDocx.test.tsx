@@ -55,7 +55,8 @@ function setupStore() {
     ], 
     { 'sec-1': '<p>Hello</p>' },
     'Proyecto de Prueba',
-    0 // OBRA_NUEVA
+    0, // OBRA_NUEVA
+    'Draft'
   );
   store.setActiveSection('sec-1');
 }

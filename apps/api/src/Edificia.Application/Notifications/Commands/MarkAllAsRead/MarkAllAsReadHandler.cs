@@ -1,31 +1,29 @@
-using Edificia.Infrastructure.Persistence;
+using Edificia.Application.Interfaces;
 using Edificia.Shared.Result;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 
 namespace Edificia.Application.Notifications.Commands.MarkAllAsRead;
 
 internal sealed class MarkAllAsReadHandler : IRequestHandler<MarkAllAsReadCommand, Result>
 {
-    private readonly EdificiaDbContext _dbContext;
+    private readonly INotificationRepository _notificationRepository;
 
-    public MarkAllAsReadHandler(EdificiaDbContext dbContext)
+    public MarkAllAsReadHandler(INotificationRepository notificationRepository)
     {
-        _dbContext = dbContext;
+        _notificationRepository = notificationRepository;
     }
 
     public async Task<Result> Handle(MarkAllAsReadCommand request, CancellationToken cancellationToken)
     {
-        var unreadNotifications = await _dbContext.Notifications
-            .Where(n => n.UserId == request.UserId && !n.IsRead)
-            .ToListAsync(cancellationToken);
+        var unreadNotifications = await _notificationRepository.GetUnreadByUserIdAsync(
+            request.UserId, cancellationToken);
 
         foreach (var notification in unreadNotifications)
         {
             notification.MarkAsRead();
         }
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _notificationRepository.SaveChangesAsync(cancellationToken);
 
         return Result.Success();
     }

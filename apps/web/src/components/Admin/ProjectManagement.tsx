@@ -6,6 +6,7 @@ import { ProjectDetailsModal } from '@/components/ProjectDetailsModal';
 import { DeleteProjectModal } from '@/components/DeleteProjectModal';
 import Modal from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { Plus, Search, Filter, AlertCircle, LayoutGrid, List } from 'lucide-react';
 import { Select } from '@/components/ui/Select';
 import { TableRowSkeleton, ProjectGridSkeleton } from '@/components/ui/Skeleton';
@@ -36,6 +37,11 @@ export default function ProjectManagement() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Review workflow states
+  const [isRejectOpen, setIsRejectOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [isProcessingReview, setIsProcessingReview] = useState(false);
 
   const fetchProjects = useCallback(async (p: number, status?: string) => {
     setIsLoading(true);
@@ -81,6 +87,40 @@ export default function ProjectManagement() {
 
   const handleCompleteMemory = (project: ProjectResponse) => {
     window.location.href = `/projects/${project.id}`;
+  };
+
+  const handleApprove = async (project: ProjectResponse) => {
+    setIsProcessingReview(true);
+    try {
+      await projectService.approveProject(project.id);
+      addToast('Memoria aprobada correctamente', 'success');
+      fetchProjects(page, statusFilter);
+    } catch {
+      addToast('Error al aprobar la memoria', 'error');
+    } finally {
+      setIsProcessingReview(false);
+    }
+  };
+
+  const handleRejectClick = (project: ProjectResponse) => {
+    setSelectedProject(project);
+    setRejectReason('');
+    setIsRejectOpen(true);
+  };
+
+  const confirmReject = async () => {
+    if (!selectedProject || !rejectReason.trim()) return;
+    setIsProcessingReview(true);
+    try {
+      await projectService.rejectProject(selectedProject.id, rejectReason.trim());
+      addToast('Memoria rechazada correctamente', 'success');
+      setIsRejectOpen(false);
+      fetchProjects(page, statusFilter);
+    } catch {
+      addToast('Error al rechazar la memoria', 'error');
+    } finally {
+      setIsProcessingReview(false);
+    }
   };
 
   const confirmDelete = async (project: ProjectResponse) => {
@@ -198,6 +238,7 @@ export default function ProjectManagement() {
                 { value: '', label: 'Todos los estados' },
                 { value: 'Draft', label: 'Borrador' },
                 { value: 'InProgress', label: 'En redacción' },
+                { value: 'PendingReview', label: 'Pendiente de revisión' },
                 { value: 'Completed', label: 'Completado' },
                 { value: 'Archived', label: 'Archivado' },
               ]}
@@ -259,6 +300,9 @@ export default function ProjectManagement() {
                         onEdit={handleEdit}
                         onDelete={handleDeleteClick}
                         onCompleteMemory={handleCompleteMemory}
+                        onApprove={handleApprove}
+                        onReject={handleRejectClick}
+                        isAdmin
                       />
                     ))
                   ) : (
@@ -277,6 +321,9 @@ export default function ProjectManagement() {
                         onEdit={handleEdit}
                         onDelete={handleDeleteClick}
                         onCompleteMemory={handleCompleteMemory}
+                        onApprove={handleApprove}
+                        onReject={handleRejectClick}
+                        isAdmin
                       />
                     ))
                   ) : (
@@ -347,6 +394,51 @@ export default function ProjectManagement() {
         onConfirm={confirmDelete}
         isLoading={isDeleting}
       />
+
+      {/* Reject Reason Modal */}
+      <Modal
+        isOpen={isRejectOpen}
+        onClose={() => setIsRejectOpen(false)}
+        title="Rechazar Memoria"
+        className="max-w-lg"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-400 text-sm">
+            Indique el motivo del rechazo. El proyecto volverá al estado de borrador para correcciones.
+          </p>
+          <div>
+            <label htmlFor="reject-reason" className="block text-sm font-medium text-gray-300 mb-2">
+              Motivo del rechazo
+            </label>
+            <textarea
+              id="reject-reason"
+              className="w-full rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/40 focus:border-brand-primary/40 transition-all resize-none"
+              rows={4}
+              maxLength={2000}
+              placeholder="Describa las correcciones necesarias..."
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+            />
+            <p className="text-xs text-gray-500 mt-1 text-right">{rejectReason.length}/2000</p>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button
+              variant="ghost"
+              onClick={() => setIsRejectOpen(false)}
+              disabled={isProcessingReview}
+            >
+              Cancelar
+            </Button>
+            <Button
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+              onClick={confirmReject}
+              disabled={!rejectReason.trim() || isProcessingReview}
+            >
+              {isProcessingReview ? 'Rechazando...' : 'Confirmar Rechazo'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
     </ErrorBoundary>
   );

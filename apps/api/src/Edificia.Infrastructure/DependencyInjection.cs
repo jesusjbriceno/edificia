@@ -146,6 +146,11 @@ public static class DependencyInjection
         // ---------- Repositories ----------
         services.AddScoped<IProjectRepository, ProjectRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
+
+        // ---------- Application Services ----------
+        services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<IUserQueryService, UserQueryService>();
 
         // ---------- Document Export ----------
         services.AddScoped<IDocumentExportService, DocxExportService>();

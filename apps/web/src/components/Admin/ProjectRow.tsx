@@ -14,6 +14,9 @@ interface ProjectRowProps {
   onView?: (project: ProjectResponse) => void;
   onCompleteMemory?: (project: ProjectResponse) => void;
   onDelete?: (project: ProjectResponse) => void;
+  onApprove?: (project: ProjectResponse) => void;
+  onReject?: (project: ProjectResponse) => void;
+  isAdmin?: boolean;
 }
 
 const statusStyles: Record<string, string> = {
@@ -25,6 +28,8 @@ const statusStyles: Record<string, string> = {
     'bg-blue-400/10 text-blue-400 border-blue-400/20',
   [ProjectStatus.Archived]:
     'bg-amber-400/10 text-amber-400 border-amber-400/20',
+  [ProjectStatus.PendingReview]:
+    'bg-yellow-400/10 text-yellow-400 border-yellow-400/20 shadow-[0_0_10px_-2px_rgba(250,204,21,0.2)]',
 };
 
 export function ProjectRow({ 
@@ -32,7 +37,10 @@ export function ProjectRow({
   onEdit, 
   onView,
   onCompleteMemory,
-  onDelete
+  onDelete,
+  onApprove,
+  onReject,
+  isAdmin = false
 }: Readonly<ProjectRowProps>) {
   const statusLabel =
     ProjectStatusLabels[project.status as ProjectStatus] ?? project.status;
@@ -84,6 +92,9 @@ export function ProjectRow({
           onEdit={onEdit}
           onCompleteMemory={onCompleteMemory}
           onDelete={onDelete}
+          onApprove={onApprove}
+          onReject={onReject}
+          isAdmin={isAdmin}
         />
       </div>
     </div>

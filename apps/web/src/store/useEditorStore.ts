@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ContentTreeNode } from '@/lib/types';
+import type { ContentTreeNode, ProjectStatus } from '@/lib/types';
 import type { SyncStatus } from '@/lib/syncManager';
 
 // ── Sync notification bridge ─────────────────────────────
@@ -33,13 +33,16 @@ interface EditorState {
   /** Project metadata for display. */
   projectTitle: string | null;
   interventionType: number | null; // Using number to match InterventionType enum/type
+  projectStatus: ProjectStatus | null;
 
   /** UI State */
   aiPanelOpen: boolean;
   activePath: string[];
 
   /** Initialize the store for a specific project with its filtered tree and content. */
-  initProject: (projectId: string, tree: ContentTreeNode[], content: Record<string, string>, title: string, interventionType: number) => void;
+  initProject: (projectId: string, tree: ContentTreeNode[], content: Record<string, string>, title: string, interventionType: number, status: ProjectStatus) => void;
+  /** Update the project status in the store (after review actions). */
+  setProjectStatus: (status: ProjectStatus) => void;
   /** Set the active section being edited. */
   setActiveSection: (id: string | null) => void;
   /** Toggle AI assistant panel. */
@@ -74,16 +77,18 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => ({
   pendingCount: 0,
   projectTitle: null,
   interventionType: null,
+  projectStatus: null,
   aiPanelOpen: false,
   activePath: [],
 
-  initProject: (projectId, tree, content, title, interventionType) => {
+  initProject: (projectId, tree, content, title, interventionType, status) => {
     setStore({
       projectId,
       tree,
       content,
       projectTitle: title,
       interventionType,
+      projectStatus: status,
       activeSectionId: null,
       activePath: [],
       syncStatus: 'idle',
@@ -91,6 +96,8 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => ({
       aiPanelOpen: false,
     });
   },
+
+  setProjectStatus: (status) => setStore({ projectStatus: status }),
 
   setActiveSection: (id: string | null) => {
     const { tree } = getStore();
@@ -122,6 +129,7 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => ({
       pendingCount: 0,
       projectTitle: null,
       interventionType: null,
+      projectStatus: null,
       aiPanelOpen: false,
       activePath: [],
     }),

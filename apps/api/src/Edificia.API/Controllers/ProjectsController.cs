@@ -1,6 +1,9 @@
 using Edificia.Application.Common;
+using Edificia.Application.Projects.Commands.ApproveProject;
 using Edificia.Application.Projects.Commands.CreateProject;
 using Edificia.Application.Projects.Commands.PatchSectionContent;
+using Edificia.Application.Projects.Commands.RejectProject;
+using Edificia.Application.Projects.Commands.SubmitForReview;
 using Edificia.Application.Projects.Commands.UpdateProjectTree;
 using Edificia.Application.Projects.Queries;
 using Edificia.Application.Projects.Queries.GetProjectById;
@@ -144,6 +147,71 @@ public sealed class ProjectsController : BaseApiController
         Guid id, string sectionId, [FromBody] UpdateSectionRequest request)
     {
         var command = PatchSectionContentCommand.Create(id, sectionId, request);
+        var result = await _sender.Send(command);
+
+        return HandleNoContent(result);
+    }
+
+    /// <summary>
+    /// Submits a project for review. Transitions status to PendingReview.
+    /// Available from Draft or InProgress states.
+    /// </summary>
+    /// <param name="id">The project ID.</param>
+    /// <response code="204">Project submitted for review successfully.</response>
+    /// <response code="404">Project not found.</response>
+    /// <response code="422">Invalid state transition.</response>
+    [HttpPost("{id:guid}/submit-review")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> SubmitForReview(Guid id)
+    {
+        var command = new SubmitForReviewCommand(id);
+        var result = await _sender.Send(command);
+
+        return HandleNoContent(result);
+    }
+
+    /// <summary>
+    /// Approves a project under review. Transitions status to Completed.
+    /// Only available from PendingReview state. Requires Admin or Root role.
+    /// </summary>
+    /// <param name="id">The project ID.</param>
+    /// <response code="204">Project approved successfully.</response>
+    /// <response code="404">Project not found.</response>
+    /// <response code="422">Invalid state transition.</response>
+    [HttpPost("{id:guid}/approve")]
+    [Authorize(Policy = AppPolicies.RequireAdmin)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> ApproveProject(Guid id)
+    {
+        var command = new ApproveProjectCommand(id);
+        var result = await _sender.Send(command);
+
+        return HandleNoContent(result);
+    }
+
+    /// <summary>
+    /// Rejects a project under review. Transitions status back to Draft.
+    /// Only available from PendingReview state. Requires Admin or Root role.
+    /// </summary>
+    /// <param name="id">The project ID.</param>
+    /// <param name="request">The rejection reason.</param>
+    /// <response code="204">Project rejected successfully.</response>
+    /// <response code="400">Validation error (reason required).</response>
+    /// <response code="404">Project not found.</response>
+    /// <response code="422">Invalid state transition.</response>
+    [HttpPost("{id:guid}/reject")]
+    [Authorize(Policy = AppPolicies.RequireAdmin)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> RejectProject(Guid id, [FromBody] RejectProjectRequest request)
+    {
+        var command = new RejectProjectCommand(id, request.Reason);
         var result = await _sender.Send(command);
 
         return HandleNoContent(result);

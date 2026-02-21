@@ -15,5 +15,8 @@ public enum ProjectStatus
     Completed = 2,
 
     /// <summary>Archivado — proyecto cerrado/entregado.</summary>
-    Archived = 3
+    Archived = 3,
+
+    /// <summary>Pendiente de revisión — esperando aprobación de un administrador.</summary>
+    PendingReview = 4
 }

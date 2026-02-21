@@ -7,7 +7,7 @@ import { filterTree, parseContentTree, flattenTreeContent } from '@/lib/contentT
 import { SyncManager, loadLocalContent } from '@/lib/syncManager';
 import { useEditorStore, registerSyncNotify } from '@/store/useEditorStore';
 import { InterventionType } from '@/lib/types';
-import type { ContentTreeNode, TreeFilterConfig, ProjectResponse } from '@/lib/types';
+import type { ContentTreeNode, TreeFilterConfig, ProjectResponse, ProjectStatus } from '@/lib/types';
 import SidebarNavigation from './SidebarNavigation.js';
 import EditorShell from './EditorShell.js';
 import EditorHeader from './EditorHeader.js';
@@ -103,7 +103,8 @@ export default function ProjectEditor({ projectId }: Readonly<ProjectEditorProps
           filteredTree, 
           mergedContent, 
           projectData.title, 
-          config.interventionType
+          config.interventionType,
+          projectData.status as ProjectStatus
         );
 
         // Create and start the SyncManager

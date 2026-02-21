@@ -3,13 +3,14 @@ import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import { useEditorStore } from '@/store/useEditorStore';
 import { useEffect, useState, useCallback } from 'react';
-import { Loader2, FileText, Download, Sparkles, Check, Save, WifiOff, AlertTriangle, ChevronRight } from 'lucide-react';
+import { Loader2, FileText, Download, Sparkles, Check, Save, WifiOff, AlertTriangle, ChevronRight, SendHorizonal } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { EditorToolbar } from './EditorToolbar.js';
 import AiAssistantPanel from './AiAssistantPanel.js';
 import { projectService } from '@/lib/services/projectService.js';
 import { toast } from '@/store/useToastStore';
 import { cn } from '@/lib/utils';
+import { ProjectStatus } from '@/lib/types';
 import type { SyncStatus } from '@/lib/syncManager';
 
 // ── Sync Status Badge ────────────────────────────────────
@@ -69,10 +70,16 @@ export default function EditorShell() {
     setAiPanelOpen,
     activePath,
     syncStatus,
-    pendingCount
+    pendingCount,
+    projectStatus,
+    setProjectStatus
   } = useEditorStore();
 
   const [exporting, setExporting] = useState(false);
+  const [submittingReview, setSubmittingReview] = useState(false);
+
+  const canSubmitForReview = projectStatus === ProjectStatus.Draft || projectStatus === ProjectStatus.InProgress;
+  const isReadonly = projectStatus === ProjectStatus.PendingReview || projectStatus === ProjectStatus.Completed || projectStatus === ProjectStatus.Archived;
 
   const editor = useEditor({
     extensions: [
@@ -144,6 +151,22 @@ export default function EditorShell() {
     }
   }, [projectId, exporting]);
 
+  // ── Submit for Review handler ──
+  const handleSubmitForReview = useCallback(async () => {
+    if (!projectId || submittingReview || !canSubmitForReview) return;
+
+    setSubmittingReview(true);
+    try {
+      await projectService.submitForReview(projectId);
+      setProjectStatus(ProjectStatus.PendingReview);
+      toast.success('Memoria enviada a revisión correctamente.');
+    } catch {
+      toast.error('No se pudo enviar a revisión. Inténtalo de nuevo.');
+    } finally {
+      setSubmittingReview(false);
+    }
+  }, [projectId, submittingReview, canSubmitForReview, setProjectStatus]);
+
   if (!activeSectionId) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-gray-500 space-y-6 bg-dark-bg/20 backdrop-blur-sm">
@@ -183,9 +206,29 @@ export default function EditorShell() {
 
           {/* Line 2: Actions */}
           <div className="flex items-center justify-between">
-            <SyncBadge status={syncStatus} pendingCount={pendingCount} />
+            <div className="flex items-center gap-3">
+              <SyncBadge status={syncStatus} pendingCount={pendingCount} />
+              {isReadonly && (
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] px-4 py-2 rounded-lg border text-amber-400 bg-amber-400/5 border-amber-400/10">
+                  Solo lectura
+                </span>
+              )}
+            </div>
             
             <div className="flex items-center gap-2">
+              {canSubmitForReview && (
+                <Button
+                  size="sm"
+                  className="h-9 px-4 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 font-bold transition-all"
+                  onClick={handleSubmitForReview}
+                  disabled={submittingReview}
+                >
+                  {submittingReview
+                    ? <><Loader2 size={14} className="mr-2 animate-spin" /> Enviando...</>
+                    : <><SendHorizonal size={14} className="mr-2" /> Enviar a Revisión</>
+                  }
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="sm"

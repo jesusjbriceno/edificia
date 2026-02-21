@@ -15,6 +15,9 @@ interface ProjectCardProps {
   onEdit?: (project: ProjectResponse) => void;
   onCompleteMemory?: (project: ProjectResponse) => void;
   onDelete?: (project: ProjectResponse) => void;
+  onApprove?: (project: ProjectResponse) => void;
+  onReject?: (project: ProjectResponse) => void;
+  isAdmin?: boolean;
 }
 
 const statusVariant: Record<string, 'default' | 'info' | 'success' | 'warning'> = {
@@ -22,6 +25,7 @@ const statusVariant: Record<string, 'default' | 'info' | 'success' | 'warning'> 
   [ProjectStatus.InProgress]: 'info',
   [ProjectStatus.Completed]: 'success',
   [ProjectStatus.Archived]: 'warning',
+  [ProjectStatus.PendingReview]: 'warning',
 };
 
 export default function ProjectCard({ 
@@ -30,7 +34,10 @@ export default function ProjectCard({
   onView,
   onEdit,
   onCompleteMemory,
-  onDelete
+  onDelete,
+  onApprove,
+  onReject,
+  isAdmin = false
 }: Readonly<ProjectCardProps>) {
   const label =
     ProjectStatusLabels[project.status as ProjectStatus] ?? project.status;
@@ -68,6 +75,9 @@ export default function ProjectCard({
           onEdit={onEdit}
           onCompleteMemory={onCompleteMemory}
           onDelete={onDelete}
+          onApprove={onApprove}
+          onReject={onReject}
+          isAdmin={isAdmin}
         />
       </div>
 

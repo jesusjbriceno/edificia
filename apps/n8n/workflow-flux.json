@@ -31,7 +31,7 @@
           "options": {
             "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "loose"
           },
           "conditions": [
             {
@@ -89,10 +89,10 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://dashboard-flux.jesusjbriceno.dev/api/v1/auth/app",
+        "url": "={{ $env.FLUX_BASE_URL }}/auth/app",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ clientId: $env.FLUX_CLIENT_ID, clientSecret: $env.FLUX_CLIENT_SECRET }) }}",
+        "jsonBody": "={{ JSON.stringify({ client_id: $env.FLUX_CLIENT_ID, client_secret: $env.FLUX_CLIENT_SECRET }) }}",
         "options": {
           "timeout": 30000
         }
@@ -116,7 +116,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://dashboard-flux.jesusjbriceno.dev/api/v1/chat",
+        "url": "={{ $env.FLUX_BASE_URL }}/api/v1/chat",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -130,7 +130,7 @@
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json.chatBody) }}",
         "options": {
-          "timeout": 120000
+          "timeout": 180000
         }
       },
       "id": "8b9c0d1e-2f3a-4b4c-5d6e-7f8a9b0c1d2e",
