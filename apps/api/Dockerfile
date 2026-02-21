@@ -32,8 +32,8 @@ LABEL org.opencontainers.image.title="EDIFICIA API" \
 
 WORKDIR /app
 
-# Instalar icu-libs para globalización (necesario en alpine)
-RUN apk add --no-cache icu-libs
+# Instalar icu-libs para globalización y krb5-libs para Npgsql (necesario en alpine)
+RUN apk add --no-cache icu-libs krb5-libs
 ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
 
 COPY --from=build /app/publish .
