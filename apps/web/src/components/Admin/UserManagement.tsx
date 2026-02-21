@@ -5,7 +5,6 @@ import type { UserResponse } from '@/lib/types';
 import { Loader2, AlertCircle, Users, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
-import { UserForm } from '@/components/Admin/UserForm';
 import type { User } from '@/components/Admin/UserRow';
 
 /**
@@ -17,14 +16,8 @@ export default function UserManagement() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Modal de crear/editar
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-
-  // Modal de confirmación de eliminación
-  const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
 
   useEffect(() => {
     loadUsers();
@@ -56,40 +49,14 @@ export default function UserManagement() {
     }
   }
 
-  // ── Añadir / Editar ──────────────────────────────────────
+  // ── Añadir / Editar — navigate to full pages ─────────────────────────────
 
   function handleOpenCreate() {
-    setEditingUser(null);
-    setModalOpen(true);
+    window.location.href = '/admin/users/new';
   }
 
   function handleOpenEdit(user: User) {
-    setEditingUser(user);
-    setModalOpen(true);
-  }
-
-  async function handleSaveUser(formData: { name: string; email: string; role: string }) {
-    setIsSaving(true);
-    try {
-      if (editingUser) {
-        await userService.update(editingUser.id, {
-          fullName: formData.name,
-          role: formData.role,
-        });
-      } else {
-        await userService.create({
-          fullName: formData.name,
-          email: formData.email,
-          role: formData.role,
-        });
-      }
-      setModalOpen(false);
-      await loadUsers();
-    } catch (err: any) {
-      console.error('Error guardando usuario:', err);
-    } finally {
-      setIsSaving(false);
-    }
+    window.location.href = `/admin/users/${user.id}/edit`;
   }
 
   // ── Activar / Desactivar ─────────────────────────────────
@@ -187,20 +154,7 @@ export default function UserManagement() {
         />
       )}
 
-      {/* Modal Crear / Editar Usuario */}
-      <Modal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title={editingUser ? 'Editar Usuario' : 'Nuevo Usuario'}
-      >
-        <UserForm
-          initialData={editingUser ? { name: editingUser.name, email: editingUser.email, role: editingUser.role as any } : undefined}
-          onSubmit={handleSaveUser}
-          isLoading={isSaving}
-        />
-      </Modal>
-
-      {/* Modal de confirmación de eliminación */}
+      {/* Modal de confirmación de eliminación — kept as modal (destructive action) */}
       <Modal
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}

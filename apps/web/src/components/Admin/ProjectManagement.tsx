@@ -1,12 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ProjectRow } from './ProjectRow.js';
-import { ProjectForm } from './ProjectForm.js';
 import ProjectCard from '@/components/ProjectCard';
-import { ProjectDetailsModal } from '@/components/ProjectDetailsModal';
 import { DeleteProjectModal } from '@/components/DeleteProjectModal';
 import Modal from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
 import { Plus, Search, Filter, AlertCircle, LayoutGrid, List } from 'lucide-react';
 import { Select } from '@/components/ui/Select';
 import { TableRowSkeleton, ProjectGridSkeleton } from '@/components/ui/Skeleton';
@@ -25,16 +22,13 @@ export default function ProjectManagement() {
   const [totalPages, setTotalPages] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isAdding, setIsAdding] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const { addToast } = useToastStore();
 
-  // Modal states
+  // Delete & reject state (kept as modal — destructive/quick confirmation actions)
   const [selectedProject, setSelectedProject] = useState<ProjectResponse | null>(null);
-  const [isViewOpen, setIsViewOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -69,15 +63,13 @@ export default function ProjectManagement() {
     fetchProjects(page, statusFilter);
   }, [page, statusFilter, fetchProjects]);
 
-  // Action handlers
+  // Action handlers — navigate to full pages instead of modals
   const handleView = (project: ProjectResponse) => {
-    setSelectedProject(project);
-    setIsViewOpen(true);
+    window.location.href = `/admin/projects/${project.id}`;
   };
 
   const handleEdit = (project: ProjectResponse) => {
-    setSelectedProject(project);
-    setIsEditOpen(true);
+    window.location.href = `/admin/projects/${project.id}/edit`;
   };
 
   const handleDeleteClick = (project: ProjectResponse) => {
@@ -137,13 +129,6 @@ export default function ProjectManagement() {
     }
   };
 
-  const handleCreated = async () => {
-    setIsAdding(false);
-    await fetchProjects(1, statusFilter);
-    setPage(1);
-    addToast('Proyecto creado correctamente', 'success');
-  };
-
   const filteredProjects = searchTerm
     ? projects.filter(
         p =>
@@ -190,27 +175,17 @@ export default function ProjectManagement() {
             </button>
           </div>
 
-          <Button onClick={() => setIsAdding(!isAdding)} className="h-12 px-6">
+          <Button
+            onClick={() => (window.location.href = '/admin/projects/new')}
+            className="h-12 px-6"
+          >
             <Plus size={18} className="mr-2" />
-            {isAdding ? 'Volver al Listado' : 'Nuevo Proyecto'}
+            Nuevo Proyecto
           </Button>
         </div>
       </div>
 
-      {isAdding ? (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="bg-dark-card border border-white/5 p-8 rounded-3xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
-              <Plus size={120} />
-            </div>
-            <h2 className="text-xl font-bold text-white mb-6">
-              Crear Nuevo Proyecto Técnico
-            </h2>
-            <ProjectForm onSubmit={handleCreated} />
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-6">
+      <div className="space-y-6">
           {/* Search & filter bar */}
           <div className="flex items-center gap-4 p-2 bg-white/5 rounded-2xl border border-white/5">
             <div className="flex-1 relative">
@@ -361,32 +336,8 @@ export default function ProjectManagement() {
             </>
           )}
         </div>
-      )}
 
-      {/* Modals shared with Dashboard */}
-      <ProjectDetailsModal
-        isOpen={isViewOpen}
-        onClose={() => setIsViewOpen(false)}
-        project={selectedProject}
-        onCompleteMemory={handleCompleteMemory}
-      />
-
-      <Modal
-        isOpen={isEditOpen}
-        onClose={() => setIsEditOpen(false)}
-        title="Editar Datos del Proyecto"
-        className="max-w-xl"
-      >
-        <ProjectForm
-          project={selectedProject || undefined}
-          onSubmit={() => {
-            setIsEditOpen(false);
-            fetchProjects(page, statusFilter);
-            addToast('Proyecto actualizado correctamente', 'success');
-          }}
-        />
-      </Modal>
-
+      {/* Delete confirmation — kept as modal (destructive action) */}
       <DeleteProjectModal
         isOpen={isDeleteOpen}
         onClose={() => setIsDeleteOpen(false)}
