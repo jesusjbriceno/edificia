@@ -4,7 +4,7 @@
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "generar-memoria",
+        "path": "generar-memoria-gemini",
         "responseMode": "responseNode",
         "options": {}
       },
@@ -31,7 +31,7 @@
           "options": {
             "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "loose"
           },
           "conditions": [
             {
