@@ -76,6 +76,21 @@ export const projectService = {
     );
   },
 
+  /** POST /projects/:id/submit-review — submits project for review */
+  async submitForReview(projectId: string): Promise<void> {
+    await apiClient.post(`/projects/${projectId}/submit-review`);
+  },
+
+  /** POST /projects/:id/approve — approves a project under review (Admin/Root) */
+  async approveProject(projectId: string): Promise<void> {
+    await apiClient.post(`/projects/${projectId}/approve`);
+  },
+
+  /** POST /projects/:id/reject — rejects a project under review (Admin/Root) */
+  async rejectProject(projectId: string, reason: string): Promise<void> {
+    await apiClient.post(`/projects/${projectId}/reject`, { reason });
+  },
+
   /** GET /projects/:id/export — downloads a .docx binary blob */
   async exportDocx(projectId: string): Promise<{ blob: Blob; fileName: string }> {
     const response = await apiClient.get(`/projects/${projectId}/export`, {

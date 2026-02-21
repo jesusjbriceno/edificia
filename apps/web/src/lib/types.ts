@@ -18,6 +18,7 @@ export const ProjectStatus = {
   InProgress: 'InProgress',
   Completed: 'Completed',
   Archived: 'Archived',
+  PendingReview: 'PendingReview',
 } as const;
 export type ProjectStatus = (typeof ProjectStatus)[keyof typeof ProjectStatus];
 
@@ -26,6 +27,7 @@ export const ProjectStatusLabels: Record<ProjectStatus, string> = {
   [ProjectStatus.InProgress]: 'En redacción',
   [ProjectStatus.Completed]: 'Completado',
   [ProjectStatus.Archived]: 'Archivado',
+  [ProjectStatus.PendingReview]: 'Pendiente de revisión',
 };
 
 export const Role = {
