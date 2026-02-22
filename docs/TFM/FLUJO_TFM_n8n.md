@@ -5,7 +5,7 @@
 - **Objetivo:** Automatizar la generación del borrador de la memoria del TFM y del guión de diapositivas a partir de la documentación del proyecto almacenada en Google Drive.
 - **Resultado esperado:**
   - `Borrador_Memoria_TFM_EdificIA.md` — memoria académica completa subida a Drive.
-  - `Guion_Slides_TFM_EdificIA.md` — guión de 15 diapositivas en Markdown, con placeholders de imagen, generado a partir de la memoria.
+  - **Presentación Google Slides real** — 15 diapositivas creadas directamente en Google Slides mediante la API REST (`presentations.create` + `presentations.batchUpdate`), con espacios reservados para imágenes.
 
 ## Contexto del proyecto para el TFM
 
@@ -18,7 +18,7 @@ EdificIA es un **MVP escalable** diseñado como producto profesional y entregabl
 
 El prompt del flujo instruye al modelo a reflejar tanto el **rigor académico** como la **solidez técnica** del producto, destacando la escalabilidad del diseño y su aplicabilidad real en el sector.
 
-## Resumen del flujo (pipeline v8)
+## Resumen del flujo (pipeline v9)
 
 El flujo tiene **dos ramas secuenciales**: primero genera la memoria, después usa esa memoria para generar las slides.
 
@@ -41,9 +41,10 @@ El flujo tiene **dos ramas secuenciales**: primero genera la memoria, después u
 - **Generar Guión Slides (LLM Chain):** Envía el texto de la memoria + URL + instrucciones de formato al modelo. Solicita UN array JSON de exactamente 15 objetos (sin markdown extra). El prompt especifica distribución fija de tipos: portada, 6×contenido, 4×imagen, cierre.
 - **Google Gemini Slides:** Segunda instancia de `gemini-2.0-flash` para el pipeline de slides (nodo separado para independencia de configuración).
 - **Parsear JSON Slides (Code):** Parsea la respuesta del LLM, limpia posibles bloques markdown y maneja errores de parseo devolviendo una slide de error en lugar de romper el flujo.
-- **Serializar Slides a Markdown (Code):** Convierte el array JSON a Markdown estructurado por secciones (`## Slide 01: ...`). Las slides de imagen incluyen el placeholder `📷 [IMAGEN: img_0X.png]` para inserción manual posterior.
-- **Empaquetar Slides (Convert to Text File):** Empaqueta como `Guion_Slides_TFM_EdificIA.md`.
-- **Guardar Slides en Drive (Google Drive):** Sube el guión a `FOLDER_ID_MASTERDESARROLLO_IA`.
+- **Construir Requests Slides (Code):** Para cada slide del JSON, genera los requests de la Google Slides API: `createSlide` (BLANK layout con objectId pre-asignado), `createShape` (TEXT_BOX título) + `insertText`, `createShape` (TEXT_BOX cuerpo) + `insertText`. Usa unidades EMU (1 inch = 914400 EMU). Diferencia portada (layout centrado) del resto (layout título arriba + cuerpo debajo). Salida: `{ requests: [...] }`.
+- **Crear Presentación (HTTP Request):** `POST https://slides.googleapis.com/v1/presentations` con body `{"title": "EdificIA — Presentación TFM"}`. Autenticación `predefinedCredentialType → googleDriveOAuth2Api` (el scope `drive` cubre la Slides API). Retorna `{ presentationId, slides[0].objectId }`.
+- **Ensamblar BatchUpdate (Code):** Combina el `presentationId` de la API con los requests construidos. Prepende `deleteObject` para eliminar la diapositiva en blanco creada por defecto. Salida: `{ presentationId, requests: [deleteBlankSlide, ...allSlideRequests] }`.
+- **Aplicar a Google Slides (HTTP Request):** `POST https://slides.googleapis.com/v1/presentations/{presentationId}:batchUpdate` con todos los requests. Misma autenticación Drive OAuth2. El resultado es la presentación de Google Slides completamente generada, accesible en Google Drive.
 
 ## Entradas, dependencias y supuestos
 
@@ -52,7 +53,8 @@ El flujo tiene **dos ramas secuenciales**: primero genera la memoria, después u
   - `FOLDER_ID_EDIFICIA_MD` — ID de la carpeta Drive con la documentación fuente.
   - `FOLDER_ID_MASTERDESARROLLO_IA` — ID de la carpeta Drive donde se guardarán los archivos generados.
 - **Credenciales necesarias:** Google Drive (OAuth2) y Google Gemini configurados en n8n.
-- **Assets de imagen:** Las capturas de pantalla (`img_01_login.png` … `img_06_deploy.png`) se insertan **manualmente** en las slides tras la generación. Ver sección 7 de `CONTEXTO_TFM.md`.
+- **Assets de imagen:** La presentación Google Slides se crea con texto de marcador `[IMAGEN: img_0X.png]` en las slides de tipo `imagen`. Las capturas reales se insertan **manualmente** desde la interfaz de Google Slides. Ver sección 7 de `CONTEXTO_TFM.md` para la lista completa de imágenes.
+- **Google Slides API:** No requiere credenciales adicionales. El scope `drive` del credential existente `googleDriveOAuth2Api` cubre `https://www.googleapis.com/auth/presentations`.
 
 ## Detalles técnicos relevantes
 
@@ -60,9 +62,12 @@ El flujo tiene **dos ramas secuenciales**: primero genera la memoria, después u
 - **Google Drive:** `typeVersion: 3` en todos los nodos Drive.
 - **Extract From Text File:** `typeVersion: 1`, lee la propiedad binaria `data`.
 - **LLM Chain (memoria):** `@n8n/n8n-nodes-langchain.chainLlm`, conexión por `ai_languageModel`. El nodo `Redactar Memoria` almacena su respuesta en `.json.text`, que el nodo `Preparar Contexto Slides` recupera con `$('Redactar Memoria').first().json.text`.
-- **LLM Chain (slides):** Segundo pipeline LLM independiente con su propia instancia de `Google Gemini Slides`. Esto permite configurar credenciales o modelos distintos para cada fase si fuera necesario.
-- **Parseo robusto:** `Parsear JSON Slides` limpia posibles bloques ` ```json ``` ` que el LLM añada y maneja fallos de parseo sin romper el flujo.
-- **webViewLink:** `Guardar Memoria en Drive` devuelve el objeto del fichero de Drive; `Preparar Contexto Slides` extrae `webViewLink` para incluirlo en la slide de cierre.
+- **LLM Chain (slides):** Segundo pipeline LLM independiente con su propia instancia de `Google Gemini Slides`. Permite configurar credenciales o modelos distintos para cada fase.
+- **Parseo robusto:** `Parsear JSON Slides` limpia posibles bloques ` ```json ``` ` que el LLM añada y maneja fallos sin romper el flujo.
+- **Google Slides API — dos llamadas:** (1) `POST /v1/presentations` crea la presentación en blanco y devuelve `presentationId` + objectId de la slide inicial. (2) `POST /v1/presentations/{id}:batchUpdate` recibe todos los requests en una sola llamada, incluyendo `deleteObject` para la slide en blanco inicial.
+- **objectIds pre-asignados:** Los IDs de slides y shapes se generan con patrón `slide_N / title_N / body_N` en el nodo `Construir Requests Slides`, antes de la llamada API. Esto permite construir todo el payload de una vez sin necesidad de conocer los IDs que devolvería la API.
+- **Unidades EMU:** Todas las posiciones y tamaños en la API de Slides se expresan en EMU (English Metric Units). 1 pulgada = 914400 EMU. El slide 16:9 mide 9144000 × 5143500 EMU.
+- **webViewLink:** `Guardar Memoria en Drive` devuelve el objeto del fichero; `Preparar Contexto Slides` extrae `webViewLink` para incluirlo en la slide de cierre.
 
 ## Buenas prácticas y recomendaciones antes de ejecutar
 
@@ -79,10 +84,10 @@ El flujo tiene **dos ramas secuenciales**: primero genera la memoria, después u
 3. Reemplazar los placeholders `FOLDER_ID_EDIFICIA_MD` y `FOLDER_ID_MASTERDESARROLLO_IA` en los nodos Drive con las IDs reales.
 4. **Subir `docs/TFM/CONTEXTO_TFM.md` a la carpeta `FOLDER_ID_EDIFICIA_MD`** en Google Drive.
 5. Ejecutar en modo prueba el nodo `Listar Carpeta` para validar la conexión y verificar que aparece `CONTEXTO_TFM.md` entre los ficheros.
-6. Lanzar el flujo completo con el `Manual Trigger` y revisar en Drive los archivos generados:
-   - `Borrador_Memoria_TFM_EdificIA.md`
-   - `Guion_Slides_TFM_EdificIA.md`
-7. Abrir `Guion_Slides_TFM_EdificIA.md`, insertar las capturas de pantalla en los placeholders `📷 [IMAGEN: img_0X.png]` e importar el resultado en Google Slides, PowerPoint o Canva.
+6. Lanzar el flujo completo con el `Manual Trigger`. Se generarán:
+   - `Borrador_Memoria_TFM_EdificIA.md` en Drive.
+   - Una presentación **Google Slides real** accesible directamente desde Google Drive.
+7. Abrir la presentación en Google Slides e insertar manualmente las 6 capturas de pantalla en las slides de tipo imagen (ver sección 7 de `CONTEXTO_TFM.md`).
 
 ## Notas de mantenimiento
 
@@ -91,6 +96,7 @@ El flujo tiene **dos ramas secuenciales**: primero genera la memoria, después u
 - `CONTEXTO_TFM.md` es el punto centralizado para ajustar el contexto del proyecto, las instrucciones del prompt, las URLs y el desglose de vistas. Cualquier cambio de contexto debe hacerse ahí, no en el workflow.
 - Cambios en el modelo (p. ej. a `gemini-2.0-pro`) se aplican en los nodos `Google Gemini` y `Google Gemini Slides`.
 - Si el LLM de slides devuelve JSON malformado repetidamente, revisar el prompt del nodo `Generar Guión Slides` o cambiar a un modelo con mayor capacidad de seguir instrucciones de formato.
+- Si la llamada a `Aplicar a Google Slides` falla con 403, verificar que el credential `googleDriveOAuth2Api` en n8n tiene el scope `https://www.googleapis.com/auth/drive` (o `presentations`) habilitado.
 
 ## Archivos relacionados
 
@@ -109,6 +115,14 @@ flowchart LR
   E --> F[Consolidar Textos\nCode - join con ---]
   F --> G[Redactar Memoria\nLLM Chain]
   H[Google Gemini\ngemini-2.0-flash] -. ai_languageModel .-> G
-  G --> I[Empaquetar Resultado\nConvert to Text File .md]
-  I --> J[Guardar en Drive\nDrive - upload]
+  G --> I[Empaquetar Memoria\nConvert to Text File .md]
+  I --> J[Guardar Memoria en Drive\nDrive - upload]
+  J --> K[Preparar Contexto Slides\nCode - extrae texto + URL]
+  K --> L[Generar Guión Slides\nLLM Chain - JSON 15 slides]
+  M[Google Gemini Slides\ngemini-2.0-flash] -. ai_languageModel .-> L
+  L --> N[Parsear JSON Slides\nCode - limpia + parsea]
+  N --> O[Construir Requests Slides\nCode - EMU, objectIds]
+  O --> P[Crear Presentación\nHTTP POST slides API]
+  P --> Q[Ensamblar BatchUpdate\nCode - deleteBlank + requests]
+  Q --> R[Aplicar a Google Slides\nHTTP POST batchUpdate]
 ```

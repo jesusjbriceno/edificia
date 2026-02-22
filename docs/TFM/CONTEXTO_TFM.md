@@ -151,3 +151,33 @@ Una vez generadas las diapositivas por el flujo n8n, hay que **reemplazar manual
 | `img_04_admin.png` | Captura del panel de administración | https://edificia.jesusjbriceno.dev/admin/users |
 | `img_05_ai_flow.png` | Captura del flujo n8n de IA | Panel n8n → Workflows |
 | `img_06_deploy.png` | Captura del panel de Coolify | Panel Coolify de producción |
+---
+
+## 8. Herramientas de Desarrollo Utilizadas
+
+### VS Code Agent Skills (`.agents/skills/`)
+
+Durante el desarrollo se utilizaron las siguientes **skills de agente** instaladas en VS Code, que proporcionan instrucciones especializadas y contexto de dominio al asistente IA:
+
+| Skill | Descripción |
+|---|---|
+| `astro` | Proyectos Astro: CLI, estructura de proyecto, configuración y adaptadores (SSR). Usado para el desarrollo del frontend con Astro 4. |
+| `cqrs-implementation` | Implementación de CQRS para arquitecturas escalables. Usado para los Command/Query Handlers del backend .NET. |
+| `docker-expert` | Docker: multi-stage builds, optimización de imágenes, seguridad, Docker Compose y patrones de despliegue en producción. |
+| `dotnet-backend-patterns` | Patrones .NET: Clean Architecture, Result Pattern, FluentValidation, EF Core, Dapper. Núcleo del backend EdificIA. |
+| `git-advanced-workflows` | Flujos Git avanzados: rebasing, cherry-picking, worktrees, Git Flow con feature branches y PRs. |
+| `n8n-workflow-patterns` | Patrones arquitecturales probados para flujos n8n: webhooks, HTTP APIs, bases de datos, agentes IA y tareas programadas. |
+| `postgresql-table-design` | Diseño de esquemas PostgreSQL: tipos de datos, indexación, JSONB, constraints y patrones de rendimiento. |
+| `tailwind-design-system` | Sistemas de diseño con Tailwind CSS v4, design tokens y patrones responsive para el frontend. |
+| `ui-ux-pro-max` | Inteligencia de diseño UI/UX: paletas, tipografía, componentes (glassmorphism, bento grid, dark mode). |
+
+### MCP Context7 (Servidor de Documentación en Tiempo Real)
+
+Se utilizó el servidor MCP **Context7** (`mcp_context7_resolve-library-id` + `mcp_context7_get-library-docs`) para obtener documentación actualizada de bibliotecas y APIs directamente desde VS Code durante el desarrollo:
+
+- **n8n**: Documentación de nodos, expresiones y patrones de flujo (Trust Score 9.7, 1132 snippets).
+- **Google Slides REST API**: Referencia de `presentations.create` y `presentations.batchUpdate` — confirmó que n8n no tiene nodo nativo y que la integración requiere HTTP Request con `googleDriveOAuth2Api`.
+- **.NET / EF Core / FluentValidation**: Consultas de patrones y APIs durante el desarrollo del backend.
+- **Astro / TailwindCSS**: Documentación de configuración y componentes durante el desarrollo del frontend.
+
+> **Nota técnica:** Context7 permitió resolver en tiempo real la estrategia de integración con Google Slides API (batchUpdate con objectIds pre-asignados, unidades EMU, scope OAuth2 reutilizable desde Drive), lo que habría requerido una búsqueda manual extensa.
