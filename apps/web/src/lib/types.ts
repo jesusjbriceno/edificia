@@ -13,6 +13,13 @@ export const InterventionTypeLabels: Record<InterventionType, string> = {
   [InterventionType.Extension]: 'Ampliación',
 };
 
+/** Maps API string enum values to Spanish labels. */
+export const InterventionTypeStringLabels: Record<string, string> = {
+  NewConstruction: 'Obra Nueva',
+  Reform: 'Reforma',
+  Extension: 'Ampliación',
+};
+
 export const ProjectStatus = {
   Draft: 'Draft',
   InProgress: 'InProgress',
@@ -121,6 +128,10 @@ export interface UpdateProfileResponse {
   email: string;
   fullName: string;
   collegiateNumber: string | null;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
 }
 
 // ─── Projects ────────────────────────────────────────────

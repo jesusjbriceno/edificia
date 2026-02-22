@@ -40,6 +40,9 @@ public sealed class Project : AuditableEntity
     /// <summary>Estado del proyecto en el flujo de trabajo.</summary>
     public ProjectStatus Status { get; private set; }
 
+    /// <summary>ID del usuario que creó el proyecto (FK a AspNetUsers).</summary>
+    public Guid CreatedByUserId { get; private set; }
+
     /// <summary>
     /// Árbol de contenido de la memoria en formato JSON (JSONB en PostgreSQL).
     /// Almacena la estructura completa de capítulos y secciones.
@@ -56,6 +59,7 @@ public sealed class Project : AuditableEntity
         string title,
         InterventionType interventionType,
         bool isLoeRequired,
+        Guid createdByUserId,
         string? description = null,
         string? address = null,
         string? cadastralReference = null,
@@ -66,6 +70,7 @@ public sealed class Project : AuditableEntity
             Title = title,
             InterventionType = interventionType,
             IsLoeRequired = isLoeRequired,
+            CreatedByUserId = createdByUserId,
             Description = description,
             Address = address,
             CadastralReference = cadastralReference,

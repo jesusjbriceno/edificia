@@ -84,3 +84,6 @@ scripts/
 scaffold.sh
 /apps/api/src/Edificia.API/appsettings.Local.json
 /apps/api/src/Edificia.API/appsettings.Local.json
+
+# IDEAS & NOTAS
+bugs/

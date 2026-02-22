@@ -19,9 +19,9 @@ import {
 import { Button } from '@/components/ui/Button';
 import { DeleteProjectModal } from '@/components/DeleteProjectModal';
 import { projectService } from '@/lib/services';
-import type { ProjectResponse, InterventionType } from '@/lib/types';
+import type { ProjectResponse } from '@/lib/types';
 import {
-  InterventionTypeLabels,
+  InterventionTypeStringLabels,
   ProjectStatus,
   ProjectStatusLabels,
 } from '@/lib/types';
@@ -172,7 +172,7 @@ export default function AdminProjectDetailPage({
   }
 
   const typeLabel =
-    InterventionTypeLabels[Number(project.interventionType) as InterventionType] ??
+    InterventionTypeStringLabels[project.interventionType] ??
     String(project.interventionType);
   const statusLabel =
     ProjectStatusLabels[project.status as keyof typeof ProjectStatusLabels] ??

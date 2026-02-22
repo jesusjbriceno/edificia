@@ -41,7 +41,7 @@ public class PatchSectionContentHandlerTests
     public async Task Handle_ShouldReturnSuccess_WhenSectionUpdated()
     {
         var projectId = Guid.NewGuid();
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
         project.UpdateContentTree(SampleTree);
 
         _repositoryMock
@@ -75,7 +75,7 @@ public class PatchSectionContentHandlerTests
     public async Task Handle_ShouldReturnFailure_WhenContentTreeIsNull()
     {
         var projectId = Guid.NewGuid();
-        var project = Project.Create("Test", InterventionType.Reform, false);
+        var project = Project.Create("Test", InterventionType.Reform, false, Guid.NewGuid());
         // ContentTreeJson is null by default
 
         _repositoryMock
@@ -93,7 +93,7 @@ public class PatchSectionContentHandlerTests
     public async Task Handle_ShouldReturnFailure_WhenSectionNotFound()
     {
         var projectId = Guid.NewGuid();
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
         project.UpdateContentTree(SampleTree);
 
         _repositoryMock
@@ -112,7 +112,7 @@ public class PatchSectionContentHandlerTests
     public async Task Handle_ShouldCallSaveChanges_WhenSectionUpdated()
     {
         var projectId = Guid.NewGuid();
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
         project.UpdateContentTree(SampleTree);
 
         _repositoryMock
@@ -146,7 +146,7 @@ public class PatchSectionContentHandlerTests
     public async Task Handle_ShouldNotCallSaveChanges_WhenSectionNotFound()
     {
         var projectId = Guid.NewGuid();
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
         project.UpdateContentTree(SampleTree);
 
         _repositoryMock
@@ -165,7 +165,7 @@ public class PatchSectionContentHandlerTests
     public async Task Handle_ShouldUpdateContentTree_OnProject()
     {
         var projectId = Guid.NewGuid();
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
         project.UpdateContentTree(SampleTree);
 
         _repositoryMock

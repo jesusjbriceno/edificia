@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Edificia.Application.Auth.Commands.ChangePassword;
+using Edificia.Application.Auth.Commands.ForgotPassword;
 using Edificia.Application.Auth.Commands.Login;
 using Edificia.Application.Auth.Commands.RefreshToken;
 using Edificia.Application.Auth.Commands.RevokeToken;
@@ -38,6 +39,24 @@ public class AuthController : BaseApiController
         CancellationToken ct)
     {
         var command = (LoginCommand)request;
+        var result = await _mediator.Send(command, ct);
+
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Requests a password reset email. Always returns 200 to prevent email enumeration.
+    /// A temporary password will be sent to the user's email.
+    /// </summary>
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ForgotPassword(
+        [FromBody] ForgotPasswordRequest request,
+        CancellationToken ct)
+    {
+        var command = new ForgotPasswordCommand(request.Email);
         var result = await _mediator.Send(command, ct);
 
         return HandleResult(result);

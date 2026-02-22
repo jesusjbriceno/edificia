@@ -14,6 +14,7 @@ public class ProjectTests
             title: "Vivienda Unifamiliar",
             interventionType: InterventionType.NewConstruction,
             isLoeRequired: true,
+            createdByUserId: Guid.NewGuid(),
             description: "Proyecto de obra nueva",
             address: "Calle Mayor 1, Madrid",
             cadastralReference: "1234567AB1234N",
@@ -37,7 +38,8 @@ public class ProjectTests
         var project = Project.Create(
             title: "Reforma local",
             interventionType: InterventionType.Reform,
-            isLoeRequired: false);
+            isLoeRequired: false,
+            createdByUserId: Guid.NewGuid());
 
         project.Title.Should().Be("Reforma local");
         project.InterventionType.Should().Be(InterventionType.Reform);
@@ -52,8 +54,8 @@ public class ProjectTests
     [Fact]
     public void Create_ShouldGenerateUniqueIds()
     {
-        var project1 = Project.Create("P1", InterventionType.NewConstruction, true);
-        var project2 = Project.Create("P2", InterventionType.Reform, false);
+        var project1 = Project.Create("P1", InterventionType.NewConstruction, true, Guid.NewGuid());
+        var project2 = Project.Create("P2", InterventionType.Reform, false, Guid.NewGuid());
 
         project1.Id.Should().NotBe(project2.Id);
     }
@@ -61,7 +63,7 @@ public class ProjectTests
     [Fact]
     public void UpdateSettings_ShouldModifyAllProperties()
     {
-        var project = Project.Create("Original", InterventionType.NewConstruction, true);
+        var project = Project.Create("Original", InterventionType.NewConstruction, true, Guid.NewGuid());
 
         project.UpdateSettings(
             title: "Actualizado",
@@ -88,6 +90,7 @@ public class ProjectTests
             "Con datos",
             InterventionType.NewConstruction,
             true,
+            Guid.NewGuid(),
             description: "Algo",
             address: "Calle X");
 
@@ -102,7 +105,7 @@ public class ProjectTests
     [Fact]
     public void StartRedaction_ShouldTransitionToInProgress()
     {
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
 
         project.StartRedaction();
 
@@ -112,7 +115,7 @@ public class ProjectTests
     [Fact]
     public void Complete_FromPendingReview_ShouldTransitionToCompleted()
     {
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
         project.SubmitForReview();
 
         project.Complete();
@@ -123,7 +126,7 @@ public class ProjectTests
     [Fact]
     public void Archive_FromCompleted_ShouldTransitionToArchived_Legacy()
     {
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
         project.SubmitForReview();
         project.Approve();
 
@@ -135,7 +138,7 @@ public class ProjectTests
     [Fact]
     public void UpdateContentTree_ShouldSetContentTreeJson()
     {
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
         var json = """{"chapters":[{"id":"cap1","title":"Memoria Descriptiva"}]}""";
 
         project.UpdateContentTree(json);
@@ -146,7 +149,7 @@ public class ProjectTests
     [Fact]
     public void UpdateContentTree_ShouldAllowOverwrite()
     {
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
         project.UpdateContentTree("""{"v":1}""");
 
         project.UpdateContentTree("""{"v":2}""");
@@ -159,7 +162,7 @@ public class ProjectTests
     [Fact]
     public void SubmitForReview_FromDraft_ShouldTransitionToPendingReview()
     {
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
 
         project.SubmitForReview();
 
@@ -169,7 +172,7 @@ public class ProjectTests
     [Fact]
     public void SubmitForReview_FromInProgress_ShouldTransitionToPendingReview()
     {
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
         project.StartRedaction();
 
         project.SubmitForReview();
@@ -180,7 +183,7 @@ public class ProjectTests
     [Fact]
     public void SubmitForReview_FromCompleted_ShouldThrowBusinessRuleException()
     {
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
         project.SubmitForReview();
         project.Approve();
 
@@ -193,7 +196,7 @@ public class ProjectTests
     [Fact]
     public void SubmitForReview_FromArchived_ShouldThrowBusinessRuleException()
     {
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
         project.SubmitForReview();
         project.Approve();
         project.Archive();
@@ -207,7 +210,7 @@ public class ProjectTests
     [Fact]
     public void SubmitForReview_FromPendingReview_ShouldThrowBusinessRuleException()
     {
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
         project.SubmitForReview();
 
         var act = () => project.SubmitForReview();
@@ -221,7 +224,7 @@ public class ProjectTests
     [Fact]
     public void Approve_FromPendingReview_ShouldTransitionToCompleted()
     {
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
         project.SubmitForReview();
 
         project.Approve();
@@ -232,7 +235,7 @@ public class ProjectTests
     [Fact]
     public void Approve_FromDraft_ShouldThrowBusinessRuleException()
     {
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
 
         var act = () => project.Approve();
 
@@ -243,7 +246,7 @@ public class ProjectTests
     [Fact]
     public void Approve_FromInProgress_ShouldThrowBusinessRuleException()
     {
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
         project.StartRedaction();
 
         var act = () => project.Approve();
@@ -257,7 +260,7 @@ public class ProjectTests
     [Fact]
     public void Reject_FromPendingReview_ShouldTransitionToDraft()
     {
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
         project.SubmitForReview();
 
         project.Reject();
@@ -268,7 +271,7 @@ public class ProjectTests
     [Fact]
     public void Reject_FromDraft_ShouldThrowBusinessRuleException()
     {
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
 
         var act = () => project.Reject();
 
@@ -279,7 +282,7 @@ public class ProjectTests
     [Fact]
     public void Reject_FromCompleted_ShouldThrowBusinessRuleException()
     {
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
         project.SubmitForReview();
         project.Approve();
 
@@ -294,7 +297,7 @@ public class ProjectTests
     [Fact]
     public void Archive_FromDraft_ShouldThrowBusinessRuleException()
     {
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
 
         var act = () => project.Archive();
 
@@ -305,7 +308,7 @@ public class ProjectTests
     [Fact]
     public void Archive_FromArchived_ShouldThrowBusinessRuleException()
     {
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
         project.SubmitForReview();
         project.Approve();
         project.Archive();
@@ -321,7 +324,7 @@ public class ProjectTests
     [Fact]
     public void UpdateSectionContent_WhenPendingReview_ShouldThrowBusinessRuleException()
     {
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
         project.UpdateContentTree("""{"chapters":[{"id":"s1","title":"Test","content":"old"}]}""");
         project.SubmitForReview();
 
@@ -334,7 +337,7 @@ public class ProjectTests
     [Fact]
     public void UpdateSectionContent_WhenCompleted_ShouldThrowBusinessRuleException()
     {
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
         project.UpdateContentTree("""{"chapters":[{"id":"s1","title":"Test","content":"old"}]}""");
         project.SubmitForReview();
         project.Approve();
@@ -348,7 +351,7 @@ public class ProjectTests
     [Fact]
     public void UpdateContentTree_WhenPendingReview_ShouldThrowBusinessRuleException()
     {
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
         project.SubmitForReview();
 
         var act = () => project.UpdateContentTree("""{"chapters":[]}""");
@@ -362,7 +365,7 @@ public class ProjectTests
     [Fact]
     public void FullReviewCycle_RejectThenResubmit_ShouldWork()
     {
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
 
         // First submission → rejected
         project.SubmitForReview();

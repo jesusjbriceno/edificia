@@ -4,9 +4,9 @@ import { ProjectActionsDropdown } from '../ProjectActionsDropdown';
 import {
   ProjectStatus,
   ProjectStatusLabels,
-  InterventionTypeLabels,
+  InterventionTypeStringLabels,
 } from '@/lib/types';
-import type { ProjectResponse, InterventionType } from '@/lib/types';
+import type { ProjectResponse } from '@/lib/types';
 
 interface ProjectRowProps {
   project: ProjectResponse;
@@ -45,7 +45,7 @@ export function ProjectRow({
   const statusLabel =
     ProjectStatusLabels[project.status as ProjectStatus] ?? project.status;
   const typeLabel =
-    InterventionTypeLabels[Number(project.interventionType) as InterventionType] ??
+    InterventionTypeStringLabels[project.interventionType] ??
     project.interventionType;
 
   return (

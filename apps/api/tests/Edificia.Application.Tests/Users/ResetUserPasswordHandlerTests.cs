@@ -100,6 +100,9 @@ public class ResetUserPasswordHandlerTests
         // Act
         await _handler.Handle(command, CancellationToken.None);
 
+        // Wait for fire-and-forget email task to complete
+        await Task.Delay(500);
+
         // Assert
         _emailServiceMock.Verify(
             x => x.SendAsync(
