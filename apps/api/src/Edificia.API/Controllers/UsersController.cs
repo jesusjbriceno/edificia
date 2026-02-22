@@ -78,7 +78,7 @@ public sealed class UsersController : BaseApiController
         var currentUserId = GetCurrentUserId();
         if (currentUserId is null) return Unauthorized();
 
-        var command = CreateUserCommand.Create(currentUserId.Value, request);
+        var command = (CreateUserCommand)request with { CreatedByUserId = currentUserId.Value };
         var result = await _sender.Send(command, ct);
 
         return HandleCreated(result, nameof(GetById), id => new { id });
@@ -100,7 +100,7 @@ public sealed class UsersController : BaseApiController
         var currentUserId = GetCurrentUserId();
         if (currentUserId is null) return Unauthorized();
 
-        var command = UpdateUserCommand.Create(id, currentUserId.Value, request);
+        var command = (UpdateUserCommand)request with { UserId = id, UpdatedByUserId = currentUserId.Value };
         var result = await _sender.Send(command, ct);
 
         return HandleNoContent(result);

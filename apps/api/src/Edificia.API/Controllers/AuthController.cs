@@ -81,7 +81,7 @@ public class AuthController : BaseApiController
         if (userId is null)
             return Unauthorized();
 
-        var command = ChangePasswordCommand.Create(userId.Value, request);
+        var command = (ChangePasswordCommand)request with { UserId = userId.Value };
         var result = await _mediator.Send(command, ct);
 
         return HandleResult(result);
@@ -129,7 +129,7 @@ public class AuthController : BaseApiController
         if (userId is null)
             return Unauthorized();
 
-        var command = UpdateProfileCommand.Create(userId.Value, request);
+        var command = (UpdateProfileCommand)request with { UserId = userId.Value };
         var result = await _mediator.Send(command, ct);
 
         return HandleResult(result);

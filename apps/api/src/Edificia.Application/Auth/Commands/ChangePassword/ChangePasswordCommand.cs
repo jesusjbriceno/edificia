@@ -13,6 +13,10 @@ public sealed record ChangePasswordCommand(
     string CurrentPassword,
     string NewPassword) : IRequest<Result>
 {
-    public static ChangePasswordCommand Create(Guid userId, ChangePasswordRequest r)
-        => new(userId, r.CurrentPassword, r.NewPassword);
+    /// <summary>
+    /// Maps the DTO fields. <see cref="UserId"/> must be enriched
+    /// from the JWT claim in the controller using a <c>with</c> expression.
+    /// </summary>
+    public static explicit operator ChangePasswordCommand(ChangePasswordRequest r)
+        => new(Guid.Empty, r.CurrentPassword, r.NewPassword);
 }
