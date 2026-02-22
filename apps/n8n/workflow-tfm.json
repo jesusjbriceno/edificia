@@ -203,7 +203,8 @@
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "googleDriveOAuth2Api",
         "sendBody": true,
-        "contentType": "json",
+        "contentType": "raw",
+        "rawContentType": "application/json",
         "body": "={{ JSON.stringify({ requests: $json.requests }) }}",
         "options": {}
       },
