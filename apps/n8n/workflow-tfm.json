@@ -1,5 +1,5 @@
 ﻿{
-  "name": "Generador TFM - EdificIA v7",
+  "name": "Generador TFM - EdificIA v8",
   "nodes": [
     {
       "parameters": {},
@@ -69,7 +69,7 @@
     },
     {
       "parameters": {
-        "prompt": "=Actúa como un ingeniero experto y redactor académico especializado en proyectos de software.\nRedacta la memoria completa del TFM basándote ÚNICAMENTE en la documentación proporcionada. No inventes ni añadas información externa.\n\nCONTEXTO DEL PROYECTO:\nEdificIA es un SaaS profesional para la redacción automatizada y asistida por IA de Memorias de Proyecto de Ejecución en España (CTE/LOE). El objetivo de este TFM es demostrar la viabilidad técnica de una solución MVP escalable que, a la vez, sirva como producto profesional entregable: arquitectura Clean Architecture + CQRS en .NET 8, frontend Astro/React, integración con IA mediante delegación a flujos n8n (Flux Gateway y Google Gemini), y despliegue en producción con Docker y Coolify.\n\nORIENTACIÓN DE LA MEMORIA:\nEl TFM debe reflejar tanto el rigor académico (metodología, análisis, fundamentación teórica) como la solidez técnica del producto (decisiones de arquitectura, implementación, pruebas, despliegue). Destaca la escalabilidad del diseño y su aplicabilidad real en el sector de la construcción y la administración de proyectos en España.\n\nESTRUCTURA OBLIGATORIA:\n1. Resumen (máx. 300 palabras)\n2. Introducción\n3. Objetivos\n4. Metodología\n5. Desarrollo técnico\n6. Conclusiones y trabajo futuro\n\nDOCUMENTACIÓN FUENTE:\n{{ $json.documentacion_completa }}"
+        "prompt": "=Actúa como un ingeniero experto y redactor académico especializado en proyectos de software.\nRedacta la memoria completa del TFM basándote ÚNICAMENTE en la documentación proporcionada. No inventes ni añadas información externa.\n\nCONTEXTO DEL PROYECTO:\nEdificIA es un SaaS profesional para la redacción automatizada y asistida por IA de Memorias de Proyecto de Ejecución en España (CTE/LOE). El objetivo de este TFM es demostrar la viabilidad técnica de una solución MVP escalable que, a la vez, sirva como producto profesional entregable: arquitectura Clean Architecture + CQRS en .NET 8, frontend Astro/React, integración con IA mediante delegación a flujos n8n (Flux Gateway y Google Gemini), y despliegue en producción con Docker y Coolify.\n\nDATE: Febrero 2026.\nREPOSITORIO: https://github.com/jesusjbriceno/edificia\nURL PRODUCCIÓN: https://edificia.jesusjbriceno.dev\n\nFLUX GATEWAY: Flux Gateway fue desarrollado como herramienta accesoria del proyecto para proveer IA soberana con autenticación OAuth2. La arquitectura no está acoplada a Flux; permite usar Gemini, Ollama/LM Studio u otros proveedores simplemente cambiando la variable AI_WEBHOOK_URL sin tocar el código del backend.\n\nORIENTACIÓN DE LA MEMORIA:\nEl TFM debe reflejar tanto el rigor académico (metodología, análisis, fundamentación teórica) como la solidez técnica del producto (decisiones de arquitectura, implementación, pruebas, despliegue). Destaca la escalabilidad del diseño y su aplicabilidad real en el sector de la construcción y la administración de proyectos en España.\n\nESTRUCTURA OBLIGATORIA:\n1. Resumen (máx. 300 palabras)\n2. Introducción\n3. Objetivos\n4. Metodología\n5. Desarrollo técnico\n6. Conclusiones y trabajo futuro\n\nTras el cuerpo de la memoria, añade al final la siguiente sección literalmente:\n\n---\n## Recursos\n- **Repositorio:** https://github.com/jesusjbriceno/edificia\n- **Aplicación en producción:** https://edificia.jesusjbriceno.dev\n- **API (Swagger):** https://api-edificia.jesusjbriceno.dev/swagger\n\nDOCUMENTACIÓN FUENTE:\n{{ $json.documentacion_completa }}"
       },
       "id": "a7b8c9d0-e1f2-4a3b-4c5d-6e7f8a9b0c1d",
       "name": "Redactar Memoria",
@@ -94,7 +94,7 @@
         "fileName": "Borrador_Memoria_TFM_EdificIA.md"
       },
       "id": "c9d0e1f2-a3b4-4c5d-6e7f-8a9b0c1d2e3f",
-      "name": "Empaquetar Resultado",
+      "name": "Empaquetar Memoria",
       "type": "n8n-nodes-base.convertToFile",
       "typeVersion": 1,
       "position": [1540, 0]
@@ -109,10 +109,90 @@
         }
       },
       "id": "d0e1f2a3-b4c5-4d6e-7f8a-9b0c1d2e3f4a",
-      "name": "Guardar en Drive",
+      "name": "Guardar Memoria en Drive",
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
       "position": [1760, 0]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const file = $input.first().json;\nconst memoriaUrl = file.webViewLink || file.alternateLink || 'https://drive.google.com';\nconst memoriaId = file.id || '';\nreturn [{\n  json: {\n    memoria_url: memoriaUrl,\n    memoria_file_id: memoriaId,\n    memoria_texto: $('Redactar Memoria').first().json.text || ''\n  }\n}];"
+      },
+      "id": "e1f2a3b4-c5d6-4e7f-8a9b-0c1d2e3f4a5b",
+      "name": "Preparar Contexto Slides",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1980, 0]
+    },
+    {
+      "parameters": {
+        "prompt": "=Actúa como diseñador de presentaciones técnicas y académicas.\nGenera el guión estructurado de una presentación de 15 diapositivas para defender un TFM de Máster en Desarrollo de Aplicaciones con IA.\n\nPROYECTO: EdificIA\nREPOSITORIO: https://github.com/jesusjbriceno/edificia\nURL PRODUCCIÓN: https://edificia.jesusjbriceno.dev\nFECHA: Febrero 2026\nDOCUMENTO COMPLETO DE LA MEMORIA (referencia): {{ $json.memoria_url }}\n\nFLUX GATEWAY (IMPORTANTE): Flux Gateway fue desarrollado como herramienta accesoria del propio proyecto para proveer capacidades de IA soberana con OAuth2. La arquitectura de EdificIA no está acoplada a Flux: puede usar Gemini, Ollama/LM Studio u otros proveedores simplemente cambiando la variable AI_WEBHOOK_URL, sin modificar el código del backend. Menciona esto explícitamente en la diapositiva de IA.\n\nIMAGENES: Las diapositivas de tipo imagen deben reservar espacio para capturas de pantalla reales de la aplicación usando el placeholder indicado (p.ej. img_01_login.png). Las imágenes se insertarán manualmente después de importar el guión.\n\nENLACE A MEMORIA: La diapositiva de cierre debe incluir: Para mayor información, consulta la memoria completa del proyecto: {{ $json.memoria_url }}\n\nINSTRUCCIÓN DE FORMATO: Responde ÚNICAMENTE con un array JSON válido de 15 objetos, sin texto adicional, sin bloques de código markdown. Cada objeto sigue uno de estos esquemas:\n- portada: { \"type\": \"portada\", \"title\": \"EdificIA\", \"subtitle\": \"...\", \"master\": \"Máster en Desarrollo de Aplicaciones con IA\", \"fecha\": \"Febrero 2026\" }\n- contenido: { \"type\": \"contenido\", \"title\": \"...\", \"bullets\": [\"...\"] } (máx. 5 bullets)\n- imagen: { \"type\": \"imagen\", \"title\": \"...\", \"image_placeholder\": \"img_0X_nombre.png\", \"caption\": \"...\" }\n- cierre: { \"type\": \"cierre\", \"title\": \"Gracias | Preguntas\", \"memoria_url\": \"{{ $json.memoria_url }}\", \"repo_url\": \"https://github.com/jesusjbriceno/edificia\", \"app_url\": \"https://edificia.jesusjbriceno.dev\", \"nota\": \"Para mayor información, consulta la memoria completa del proyecto\" }\n\nDISTRIBUCIÓN OBLIGATORIA (respeta el orden y tipo):\n1. portada\n2. contenido — Agenda (índice de la presentación)\n3. contenido — El problema: documentación técnica de proyectos de arquitectura en España\n4. contenido — La solución EdificIA: propuesta de valor, discriminación Obra Nueva/Reforma\n5. contenido — Arquitectura técnica: Clean Architecture + CQRS + .NET 8 + Astro + PostgreSQL + n8n + Docker\n6. imagen — Demo: pantalla de login (img_01_login.png)\n7. imagen — Demo: dashboard de proyectos (img_02_dashboard.png)\n8. imagen — Demo: editor de memoria técnica (img_03_editor.png)\n9. imagen — Demo: panel de administración (img_04_admin.png)\n10. contenido — Integración IA delegada: Flux Gateway (herramienta accesoria soberana), n8n, Gemini, intercambiables vía AI_WEBHOOK_URL\n11. imagen — Demo: flujo IA en n8n (img_05_ai_flow.png)\n12. contenido — Despliegue en producción: Docker + Coolify v4 + Traefik + TLS automático\n13. contenido — Resultados: MVP completo en producción, métricas y fases implementadas\n14. contenido — Conclusiones y trabajo futuro (Fase 9: multi-normativa, email n8n, Ollama/LM Studio, plantilla DOTX)\n15. cierre\n\nCONTEXTO ADICIONAL — basa el contenido de cada bullet en esta memoria:\n{{ $json.memoria_texto.substring(0, 8000) }}"
+      },
+      "id": "f2a3b4c5-d6e7-4f8a-9b0c-1d2e3f4a5b6c",
+      "name": "Generar Guión Slides",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1,
+      "position": [2200, 0]
+    },
+    {
+      "parameters": {
+        "model": "gemini-2.0-flash"
+      },
+      "id": "a3b4c5d6-e7f8-4a9b-0c1d-2e3f4a5b6c7d",
+      "name": "Google Gemini Slides",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [2200, 200]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const rawText = ($input.first().json.text || '').trim();\nconst cleaned = rawText\n  .replace(/^```json\\s*/i, '')\n  .replace(/^```\\s*/i, '')\n  .replace(/\\s*```$/i, '')\n  .trim();\nlet slides;\ntry {\n  slides = JSON.parse(cleaned);\n  if (!Array.isArray(slides)) throw new Error('No es array');\n} catch (e) {\n  slides = [{ type: 'contenido', title: 'Error al generar slides', bullets: ['El modelo no devolvió JSON válido.', 'Revisar el nodo Generar Guión Slides.', `Error: ${e.message}`] }];\n}\nreturn [{ json: { slides, total: slides.length } }];"
+      },
+      "id": "b4c5d6e7-f8a9-4b0c-1d2e-3f4a5b6c7d8e",
+      "name": "Parsear JSON Slides",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2420, 0]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const { slides, total } = $input.first().json;\nconst slideLines = slides.map((slide, i) => {\n  const num = String(i + 1).padStart(2, '0');\n  let content = '';\n  switch (slide.type) {\n    case 'portada':\n      content = [`**${slide.title || 'EdificIA'}**`, slide.subtitle ? `_${slide.subtitle}_` : '', slide.master ? `> ${slide.master}` : '', slide.fecha ? `> ${slide.fecha}` : ''].filter(Boolean).join('\\n');\n      break;\n    case 'contenido':\n      content = (slide.bullets || []).map(b => `- ${b}`).join('\\n');\n      break;\n    case 'imagen':\n      content = [`📷 **[IMAGEN: ${slide.image_placeholder || 'imagen.png'}]**`, `_Insertar captura de pantalla real antes de la presentación._`, slide.caption ? `> ${slide.caption}` : ''].filter(Boolean).join('\\n');\n      break;\n    case 'cierre':\n      content = [`> ${slide.nota || 'Para mayor información, consulta la memoria completa del proyecto'}`, ``, `📄 [Memoria completa](${slide.memoria_url || '#'})`, `🔗 [Repositorio](${slide.repo_url || 'https://github.com/jesusjbriceno/edificia'})`, `🌐 [Aplicación](${slide.app_url || 'https://edificia.jesusjbriceno.dev'})`].join('\\n');\n      break;\n    default:\n      content = JSON.stringify(slide);\n  }\n  return `## Slide ${num}: ${slide.title || slide.type}\\n\\n${content}`;\n});\nconst markdown = ['# Presentación TFM — EdificIA', '', `> Generado automáticamente el ${new Date().toLocaleDateString('es-ES')}. Total: ${total} diapositivas.`, '> Las imágenes marcadas con 📷 deben insertarse manualmente (ver CONTEXTO_TFM.md, sección 7).', '', '---', '', slideLines.join('\\n\\n---\\n\\n')].join('\\n');\nreturn [{ json: { markdown_slides: markdown } }];"
+      },
+      "id": "c5d6e7f8-a9b0-4c1d-2e3f-4a5b6c7d8e9f",
+      "name": "Serializar Slides a Markdown",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2640, 0]
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "markdown_slides",
+        "fileName": "Guion_Slides_TFM_EdificIA.md"
+      },
+      "id": "d6e7f8a9-b0c1-4d2e-3f4a-5b6c7d8e9f0a",
+      "name": "Empaquetar Slides",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1,
+      "position": [2860, 0]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "name": "Guion_Slides_TFM_EdificIA.md",
+        "inputDataFieldName": "data",
+        "options": {
+          "parentFolderId": "FOLDER_ID_MASTERDESARROLLO_IA"
+        }
+      },
+      "id": "e7f8a9b0-c1d2-4e3f-4a5b-6c7d8e9f0a1b",
+      "name": "Guardar Slides en Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [3080, 0]
     }
   ],
   "connections": {
@@ -135,13 +215,34 @@
       "main": [[{ "node": "Redactar Memoria", "type": "main", "index": 0 }]]
     },
     "Redactar Memoria": {
-      "main": [[{ "node": "Empaquetar Resultado", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Empaquetar Memoria", "type": "main", "index": 0 }]]
     },
     "Google Gemini": {
       "ai_languageModel": [[{ "node": "Redactar Memoria", "type": "ai_languageModel", "index": 0 }]]
     },
-    "Empaquetar Resultado": {
-      "main": [[{ "node": "Guardar en Drive", "type": "main", "index": 0 }]]
+    "Empaquetar Memoria": {
+      "main": [[{ "node": "Guardar Memoria en Drive", "type": "main", "index": 0 }]]
+    },
+    "Guardar Memoria en Drive": {
+      "main": [[{ "node": "Preparar Contexto Slides", "type": "main", "index": 0 }]]
+    },
+    "Preparar Contexto Slides": {
+      "main": [[{ "node": "Generar Guión Slides", "type": "main", "index": 0 }]]
+    },
+    "Generar Guión Slides": {
+      "main": [[{ "node": "Parsear JSON Slides", "type": "main", "index": 0 }]]
+    },
+    "Google Gemini Slides": {
+      "ai_languageModel": [[{ "node": "Generar Guión Slides", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "Parsear JSON Slides": {
+      "main": [[{ "node": "Serializar Slides a Markdown", "type": "main", "index": 0 }]]
+    },
+    "Serializar Slides a Markdown": {
+      "main": [[{ "node": "Empaquetar Slides", "type": "main", "index": 0 }]]
+    },
+    "Empaquetar Slides": {
+      "main": [[{ "node": "Guardar Slides en Drive", "type": "main", "index": 0 }]]
     }
   }
 }
