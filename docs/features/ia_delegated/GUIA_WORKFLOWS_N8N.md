@@ -1,4 +1,4 @@
-# **⚙️ Guía de Workflows n8n — EDIFICIA**
+# **⚙️ Guía de Workflows n8n — EdificIA**
 
 > **Versión:** 1.0  
 > **Fecha:** Enero 2025  
@@ -6,7 +6,7 @@
 
 ## **1. Resumen**
 
-EDIFICIA delega la generación de texto IA a **n8n** mediante un webhook POST. El backend (.NET) envía una petición estructurada (`AiGenerationRequest`) y recibe una respuesta normalizada (`N8nAiResponse`), independientemente del proveedor de IA subyacente.
+EdificIA delega la generación de texto IA a **n8n** mediante un webhook POST. El backend (.NET) envía una petición estructurada (`AiGenerationRequest`) y recibe una respuesta normalizada (`N8nAiResponse`), independientemente del proveedor de IA subyacente.
 
 Se proporcionan **dos workflows** intercambiables:
 
@@ -212,7 +212,7 @@ services:
   n8n:
     image: n8nio/n8n:latest
     environment:
-      # Seguridad EDIFICIA
+      # Seguridad EdificIA
       - EDIFICIA_API_SECRET=${N8N_API_SECRET}
       # Para workflow Gemini
       - GEMINI_API_KEY=${GEMINI_API_KEY}

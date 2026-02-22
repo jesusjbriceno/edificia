@@ -1,4 +1,4 @@
-# **🚀 Guía de Despliegue y Configuración de Entornos — EDIFICIA**
+# **🚀 Guía de Despliegue y Configuración de Entornos — EdificIA**
 
 **Versión:** 2.0  
 **Última actualización:** 2026-02-17  
@@ -10,7 +10,7 @@
 
 ## **1. Estrategia de Configuración**
 
-EDIFICIA sigue el principio de **"Configuración en el Entorno"**.
+EdificIA sigue el principio de **"Configuración en el Entorno"**.
 
 - **Código:** El mismo código viaja desde Desarrollo a Producción.
 - **Configuración:** Cambia según dónde se ejecute mediante **Variables de Entorno**.
@@ -70,7 +70,7 @@ Define la **estructura completa** de configuración. No contiene secretos reales
   "Email": {
     "Provider": "Smtp",
     "FromAddress": "noreply@edificia.dev",
-    "FromName": "EDIFICIA",
+    "FromName": "EdificIA",
     "SmtpHost": "localhost",
     "SmtpPort": 1025,
     "SmtpUsername": "",

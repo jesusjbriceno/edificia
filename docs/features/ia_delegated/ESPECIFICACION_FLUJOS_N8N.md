@@ -1,6 +1,6 @@
-# **🧠 Especificación de Flujos n8n \- EDIFICIA**
+# **🧠 Especificación de Flujos n8n \- EdificIA**
 
-Para que EDIFICIA funcione, n8n debe exponer un **Webhook POST** que cumpla estrictamente este contrato.
+Para que EdificIA funcione, n8n debe exponer un **Webhook POST** que cumpla estrictamente este contrato.
 
 ## **1\. Seguridad (Autenticación)**
 

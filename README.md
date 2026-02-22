@@ -1,12 +1,12 @@
-# **🏗️ EDIFICIA**
+# **🏗️ EdificIA**
 
 **Plataforma SaaS para la Redacción Automatizada de Memorias de Arquitectura (CTE/LOE).**
 
 ## **📖 Visión del Producto**
 
-**EDIFICIA** es un **Asistente Estratégico de Visado** diseñado para arquitectos españoles.
+**EdificIA** es un **Asistente Estratégico de Visado** diseñado para arquitectos españoles.
 
-A diferencia de soluciones genéricas, EDIFICIA entiende la escala de la obra:
+A diferencia de soluciones genéricas, EdificIA entiende la escala de la obra:
 
 * **Discrimina** inteligentemente entre Obra Nueva y Rehabilitación.  
 * **Gestiona** la exención de LOE (Art 2.2) para obras menores automáticamente.  

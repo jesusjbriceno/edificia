@@ -1,4 +1,4 @@
-# **📅 Plan de Implementación Detallado — EDIFICIA**
+# **📅 Plan de Implementación Detallado — EdificIA**
 
 **Estado:** MVP completado — pendiente de mejoras post-release
 
