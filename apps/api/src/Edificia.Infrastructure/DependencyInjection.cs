@@ -118,18 +118,20 @@ public static class DependencyInjection
         services.Configure<EmailSettings>(
             configuration.GetSection(EmailSettings.SectionName));
 
-        var emailProvider = configuration
-            .GetSection(EmailSettings.SectionName)
-            .GetValue<string>("Provider") ?? "Smtp";
+        var emailSection = configuration.GetSection(EmailSettings.SectionName);
+        var emailProvider = emailSection.GetValue<string>("Provider") ?? "Smtp";
+
+        // Log at startup to aid debugging which provider is active
+        Console.WriteLine($"[Edificia] Email provider configured: {emailProvider}");
 
         if (emailProvider.Equals("Brevo", StringComparison.OrdinalIgnoreCase))
         {
             services.AddHttpClient<IEmailService, BrevoEmailService>(client =>
             {
-                var apiKey = configuration
-                    .GetSection(EmailSettings.SectionName)
-                    .GetValue<string>("BrevoApiKey") ?? string.Empty;
+                var apiKey = emailSection.GetValue<string>("BrevoApiKey") ?? string.Empty;
 
+                client.BaseAddress = new Uri(
+                    emailSection.GetValue<string>("BrevoApiUrl") ?? "https://api.brevo.com/v3");
                 client.DefaultRequestHeaders.Add("api-key", apiKey);
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
                 client.Timeout = TimeSpan.FromSeconds(30);
