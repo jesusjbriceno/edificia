@@ -1,8 +1,10 @@
 # 📧 Mejora Futura: Delegación del Envío de Emails a n8n
 
-> **Estado:** Pendiente de implementación  
+> **Estado:** Pendiente de implementación (backlog post-release)  
 > **Prioridad:** Media  
 > **Origen:** Detección durante corrección de bug USERS_CREATE_01 (timeout por envío SMTP síncrono)
+
+> **Situación actual (v1.0.0):** El envío de emails funciona correctamente con **Brevo** como proveedor principal. SMTP queda como alternativa de configuración. Esta mejora se plantea para simplificar el código backend y centralizar la lógica de envío en n8n.
 
 ---
 
