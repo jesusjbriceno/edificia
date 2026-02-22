@@ -5,6 +5,17 @@
 - **Objetivo:** Automatizar la generación del borrador de la memoria del TFM del proyecto "EdificIA" a partir de la documentación de proyecto almacenada en Google Drive.
 - **Resultado esperado:** Un archivo Markdown (`Borrador_Memoria_TFM_EdificIA.md`) con la estructura académica completa (Resumen, Introducción, Objetivos, Metodología, Desarrollo técnico, Conclusiones), generado por Google Gemini y subido automáticamente a Google Drive.
 
+## Contexto del proyecto para el TFM
+
+EdificIA es un **MVP escalable** diseñado como producto profesional y entregable académico. El objetivo del TFM es demostrar la viabilidad técnica de una solución que combina:
+
+- **Arquitectura profesional:** Clean Architecture + CQRS en .NET 8, frontend Astro/React con Islands Architecture.
+- **Integración IA delegada:** La generación de contenido se delega a flujos n8n (Flux Gateway o Google Gemini), intercambiables mediante variable de entorno (`AI_WEBHOOK_URL`), sin cambios en el código del backend.
+- **Despliegue en producción:** Docker + Coolify v4 con Traefik, TLS automático y healthchecks.
+- **Dominio específico:** Redacción automatizada de Memorias de Proyecto de Ejecución en España (CTE/LOE), discriminando entre Obra Nueva y Reforma.
+
+El prompt del flujo instruye al modelo a reflejar tanto el **rigor académico** como la **solidez técnica** del producto, destacando la escalabilidad del diseño y su aplicabilidad real en el sector.
+
 ## Resumen del flujo (pipeline)
 
 - **Manual Trigger:** Inicio manual del flujo.

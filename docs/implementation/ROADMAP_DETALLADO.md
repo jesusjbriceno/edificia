@@ -1,6 +1,8 @@
 # **📅 Plan de Implementación Detallado — EDIFICIA**
 
-**Estado:** En Progreso (Frontend: Fases 1-5 completadas + mejoras pre-release)
+**Estado:** MVP completado — pendiente de mejoras post-release
+
+**Objetivo de versión:** MVP escalable y entregable profesional para TFM. Arquitectura preparada para crecer sin reescritura (Clean Architecture + CQRS + IA delegada a n8n).
 
 **Metodología:** Git Flow (feature/... → develop → main)
 
@@ -26,6 +28,9 @@
 - ✅ CQRS completo para notificaciones: `GetNotificationsQuery`, `MarkAsReadCommand`, `MarkAllAsReadCommand`
 - ✅ `NotificationsController` con endpoints `GET /notifications`, `POST /{id}/read`, `POST /mark-all-read`
 - ✅ `NotificationConfiguration` (EF Core Fluent API)
+- ✅ Integración IA delegada a webhooks n8n (Flux Gateway y Google Gemini, intercambiables vía `AI_WEBHOOK_URL`)
+- ✅ Exportación a DOCX funcional (OpenXml, mapeo TipTap → Word)
+- ✅ Envío de emails operativo con Brevo (SMTP como fallback)
 
 ## **🏁 Fase 1: Cimientos del Sistema (Core & Shared)**
 
@@ -81,14 +86,14 @@
 | :---- | :---- | :---- | :---- |
 | **4.3** | feature/pre-release-fixes | ✅ • Entidad `Notification` (Domain) con `Create()`, `MarkAsRead()`. • `NotificationConfiguration` (EF Core). • `GetNotificationsQuery` con Dapper. • `MarkAsReadCommand` + `MarkAllAsReadCommand`. • `NotificationsController`: `GET /notifications`, `POST /{id}/read`, `POST /mark-all-read`. | ✅ • `NotificationBell` (icono con contador de no leídas). • `NotificationsList` (dropdown con lista paginada). • `notificationService` conectado a API real. • Página `/admin/notifications` para administración. • Tests unitarios para `NotificationBell`, `NotificationsList` y `notificationService`. |
 
-## **🤖 Fase 5: Inteligencia Artificial (Flux Gateway)**
+## **🤖 Fase 5: Inteligencia Artificial (Flux Gateway) — ✅ Completada**
 
-**Objetivo:** Asistencia a la redacción segura.
+**Decisión de arquitectura:** La integración IA se implementó mediante **delegación a webhooks n8n**, no llamando directamente a los modelos desde el backend. El backend solo hace `POST` al webhook configurado en `AI_WEBHOOK_URL`. El flujo n8n activo (Flux Gateway o Google Gemini) es intercambiable sin cambios en el código.
 
-| ID | Feature Branch | Tareas Backend (.NET) | Tareas Frontend (Astro/React) |
+| ID | Feature Branch | Estado | Notas |
 | :---- | :---- | :---- | :---- |
-| **5.1** | feature/ai-infrastructure | • Implementar FluxAiService en Infra. • Configurar HttpClient y Caché de Tokens OAuth2. • Crear GenerateTextCommand. | • Crear componente AiAssistantButton. • Maquetar Modal de "Generando...". |
-| **5.2** | feature/prompt-engine | • Crear sistema de Templates de Prompts. • Inyectar contexto (Nueva/Reforma) en el prompt. | • Conectar botón a endpoint POST /ai/generate. • Insertar respuesta en TipTap stream/texto. |
+| **5.1** | feature/ai-infrastructure | ✅ | `FluxAiService` en Infrastructure. Webhook OAuth2 con caché de token. `GenerateTextCommand`. |
+| **5.2** | feature/prompt-engine | ✅ | Templates de prompts con contexto Nueva/Reforma. Botón AiAssistant conectado a `POST /ai/generate`. Inserción en TipTap. |
 
 ## **📤 Fase 6: Exportación y Cierre**
 
@@ -96,7 +101,8 @@
 
 | ID | Feature Branch | Tareas Backend (.NET) | Tareas Frontend (Astro/React) |
 | :---- | :---- | :---- | :---- |
-| **6.1** | feature/export-docx | • Implementar servicio OpenXml. • Mapear JSON TipTap \-\> Estilos Word. • Endpoint GET /export. | • Botón "Exportar" en la TopBar. • Manejo de descarga de Blob. |
+| **6.1** | feature/export-docx | ✅ Implementado. Servicio OpenXml. Mapeo JSON TipTap → Estilos Word. Endpoint `GET /export`. | ✅ Botón "Exportar" en TopBar. Descarga de Blob. |
+| **6.1.1** | feature/export-dotx-template | • Permitir cargar un archivo `.dotx` (plantilla Word) que aplique estilos corporativos al documento exportado. • El servicio OpenXml abrirá el `.dotx` como base antes de mapear el contenido TipTap. • Almacenar la plantilla en Infrastructure (ruta configurable vía `Export__TemplatePath`). | • Añadir en ajustes de proyecto o configuración global un selector de archivo `.dotx`. |
 | **6.2** | feature/polish-ui | • Ajuste de validaciones finales. • Logging y métricas. | • Pantallas de carga (Skeletons). • Página 404 y Error Boundaries. |
 
 ## **� Fase 7: Refactor \- Mapeos y Limpieza**
@@ -233,7 +239,7 @@
    └──────────┘
 ```
 
-## **�🚦 Definición de Hecho (DoD)**
+## **🚦 Definición de Hecho (DoD)**
 
 Para considerar una **Feature** cerrada:
 
@@ -242,3 +248,27 @@ Para considerar una **Feature** cerrada:
 3. \[ \] Clean Architecture respetada (dependencias correctas).  
 4. \[ \] Validaciones (Fluent/Zod) implementadas.  
 5. \[ \] Funciona en Docker (docker-compose up).
+
+---
+
+## **🔮 Fase 9: Mejoras Post-Release (Backlog)**
+
+> Funcionalidades identificadas para versiones futuras. No bloquean la v1.0.0.
+
+### **9.1 — Soporte para múltiples normativas**
+
+| ID | Feature Branch | Descripción |
+| :---- | :---- | :---- |
+| **9.1.1** | feature/multi-normativa | Actualmente solo existe `cte_2024.json` en `/public/normativa/`. Permitir cargar y seleccionar otras normativas (p. ej. normativas autonómicas, versiones anteriores del CTE, RITE). El wizard de creación de proyecto incluiría un selector de normativa. El árbol de contenidos se filtraría según la normativa activa del proyecto. |
+
+### **9.2 — Delegación de emails a n8n**
+
+| ID | Feature Branch | Descripción |
+| :---- | :---- | :---- |
+| **9.2.1** | feature/email-n8n-delegation | **Estado actual:** Brevo funciona correctamente como proveedor principal. SMTP disponible como alternativa. **Propuesta:** Reemplazar `IEmailService` por `IEmailDispatcherService` que hace `POST` a un webhook n8n. El flujo n8n gestionaría: selección de plantilla HTML por `templateType` (`welcome`, `password-reset`, `notification`), envío por Brevo con fallback a SMTP, y registro de trazabilidad. Simplifica el código backend y centraliza la lógica de envío. Ver especificación completa en [`docs/features/MEJORA_EMAIL_N8N.md`](../features/MEJORA_EMAIL_N8N.md). |
+
+### **9.3 — Soporte para IAs locales (Ollama / LM Studio)**
+
+| ID | Feature Branch | Descripción |
+| :---- | :---- | :---- |
+| **9.3.1** | feature/ai-local-ollama | **Motivación:** Permitir ejecutar la IA completamente offline o en entornos sin acceso a APIs externas (privacidad, costes). **Implementación propuesta:** Crear un nuevo flujo n8n que actúe como adaptador hacia Ollama o LM Studio (ambos exponen una API REST compatible con OpenAI). El backend no requiere cambios: solo actualizar `AI_WEBHOOK_URL` en las variables de entorno al nuevo webhook. El flujo n8n seleccionaría el modelo local y adaptaría el prompt. |
