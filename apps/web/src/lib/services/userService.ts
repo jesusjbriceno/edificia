@@ -54,4 +54,9 @@ export const userService = {
   async deactivate(id: string): Promise<void> {
     await apiClient.post(`/users/${id}/deactivate`);
   },
+
+  /** POST /users/:id/reset-password */
+  async resetPassword(id: string): Promise<void> {
+    await apiClient.post(`/users/${id}/reset-password`);
+  },
 } as const;

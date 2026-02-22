@@ -85,19 +85,25 @@ public sealed class CreateUserHandler : IRequestHandler<CreateUserCommand, Resul
             return Result.Failure<Guid>(UserErrors.RoleChangeFailed);
         }
 
-        // 6. Send welcome email
-        try
+        // 6. Send welcome email (fire-and-forget — don't block the HTTP response)
+        var emailTo = request.Email;
+        var fullName = request.FullName;
+        var tempPwd = temporaryPassword;
+        _ = Task.Run(async () =>
         {
-            var subject = "Bienvenido a EDIFICIA - Su cuenta ha sido creada";
-            var body = BuildWelcomeEmail(request.FullName, request.Email, temporaryPassword);
-            await _emailService.SendAsync(request.Email, subject, body, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            // Log but don't fail the operation - user was created successfully
-            _logger.LogWarning(ex,
-                "Welcome email could not be sent to {Email}. User was created successfully.", request.Email);
-        }
+            try
+            {
+                var subject = "Bienvenido a EDIFICIA - Su cuenta ha sido creada";
+                var body = BuildWelcomeEmail(fullName, emailTo, tempPwd);
+                await _emailService.SendAsync(emailTo, subject, body, CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                // Log but don't fail — user was already created
+                _logger.LogWarning(ex,
+                    "Welcome email could not be sent to {Email}. User was created successfully.", emailTo);
+            }
+        });
 
         _logger.LogInformation(
             "User {UserId} created with role {Role} by {CreatorId}",

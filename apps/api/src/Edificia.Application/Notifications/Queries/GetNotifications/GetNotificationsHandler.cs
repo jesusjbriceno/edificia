@@ -37,7 +37,7 @@ internal sealed class GetNotificationsHandler
             sql, 
             new { request.UserId });
 
-        IReadOnlyList<NotificationResponse> result = notifications.ToList().AsReadOnly();
-        return Result<IReadOnlyList<NotificationResponse>>.Success(result);
+        return Result<IReadOnlyList<NotificationResponse>>.Success(
+            (IReadOnlyList<NotificationResponse>)notifications.ToList().AsReadOnly());
     }
 }

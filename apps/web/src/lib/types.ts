@@ -13,11 +13,19 @@ export const InterventionTypeLabels: Record<InterventionType, string> = {
   [InterventionType.Extension]: 'Ampliación',
 };
 
+/** Maps API string enum values to Spanish labels. */
+export const InterventionTypeStringLabels: Record<string, string> = {
+  NewConstruction: 'Obra Nueva',
+  Reform: 'Reforma',
+  Extension: 'Ampliación',
+};
+
 export const ProjectStatus = {
   Draft: 'Draft',
   InProgress: 'InProgress',
   Completed: 'Completed',
   Archived: 'Archived',
+  PendingReview: 'PendingReview',
 } as const;
 export type ProjectStatus = (typeof ProjectStatus)[keyof typeof ProjectStatus];
 
@@ -26,6 +34,7 @@ export const ProjectStatusLabels: Record<ProjectStatus, string> = {
   [ProjectStatus.InProgress]: 'En redacción',
   [ProjectStatus.Completed]: 'Completado',
   [ProjectStatus.Archived]: 'Archivado',
+  [ProjectStatus.PendingReview]: 'Pendiente de revisión',
 };
 
 export const Role = {
@@ -119,6 +128,10 @@ export interface UpdateProfileResponse {
   email: string;
   fullName: string;
   collegiateNumber: string | null;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
 }
 
 // ─── Projects ────────────────────────────────────────────

@@ -16,7 +16,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { InterventionType, InterventionTypeLabels } from '@/lib/types';
-import type { CreateProjectRequest, ProjectResponse } from '@/lib/types';
+import type { CreateProjectRequest } from '@/lib/types';
 import { projectService } from '@/lib/services';
 import { ApiError } from '@/lib/api';
 
@@ -37,7 +37,7 @@ type WizardFormData = z.infer<typeof wizardSchema>;
 interface ProjectWizardProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreated?: (project: ProjectResponse) => void;
+  onCreated?: (projectId: string) => void;
 }
 
 const INTERVENTION_OPTIONS = [

@@ -1,12 +1,14 @@
-import { UserRow } from './Admin/UserRow.js';
-
-// ... interfaz User movida a UserRow ...
+import { UserRow, type User } from './Admin/UserRow.js';
 
 interface UserTableProps {
-  users: any[];
+  users: User[];
+  onToggleStatus: (user: User) => void;
+  onEdit: (user: User) => void;
+  onDelete: (user: User) => void;
+  onResetPassword: (user: User) => void;
 }
 
-export default function UserTable({ users }: UserTableProps) {
+export default function UserTable({ users, onToggleStatus, onEdit, onDelete, onResetPassword }: UserTableProps) {
   return (
     <div className="w-full overflow-x-auto rounded-xl border border-white/5 bg-dark-card/30 backdrop-blur-md">
       <table className="w-full text-left text-sm">
@@ -21,7 +23,14 @@ export default function UserTable({ users }: UserTableProps) {
         </thead>
         <tbody className="divide-y divide-white/5">
           {users.map((user) => (
-            <UserRow key={user.id} user={user} />
+            <UserRow
+              key={user.id}
+              user={user}
+              onToggleStatus={onToggleStatus}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onResetPassword={onResetPassword}
+            />
           ))}
         </tbody>
       </table>

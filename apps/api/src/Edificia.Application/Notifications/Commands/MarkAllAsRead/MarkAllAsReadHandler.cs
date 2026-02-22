@@ -15,8 +15,8 @@ internal sealed class MarkAllAsReadHandler : IRequestHandler<MarkAllAsReadComman
 
     public async Task<Result> Handle(MarkAllAsReadCommand request, CancellationToken cancellationToken)
     {
-        var unreadNotifications = await _notificationRepository.FindAsync(
-            n => n.UserId == request.UserId && !n.IsRead, cancellationToken);
+        var unreadNotifications = await _notificationRepository.GetUnreadByUserIdAsync(
+            request.UserId, cancellationToken);
 
         foreach (var notification in unreadNotifications)
         {

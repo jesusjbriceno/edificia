@@ -1,10 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import ProjectCard from '@/components/ProjectCard';
 import ProjectWizard from '@/components/ProjectWizard';
-import { ProjectDetailsModal } from '@/components/ProjectDetailsModal';
 import { DeleteProjectModal } from '@/components/DeleteProjectModal';
-import Modal from '@/components/ui/Modal';
-import { ProjectForm } from '@/components/Admin/ProjectForm';
 import { Button } from '@/components/ui/Button';
 import { Plus, AlertCircle, FolderOpen } from 'lucide-react';
 import { ProjectGridSkeleton } from '@/components/ui/Skeleton';
@@ -25,10 +22,8 @@ export default function DashboardProjects() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const { addToast } = useToastStore();
 
-  // New states for actions
+  // Delete state (kept as modal — destructive action)
   const [selectedProject, setSelectedProject] = useState<ProjectResponse | null>(null);
-  const [isViewOpen, setIsViewOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -57,26 +52,21 @@ export default function DashboardProjects() {
     fetchProjects(page);
   }, [page, fetchProjects]);
 
-  const handleCreated = (created: ProjectResponse) => {
-    window.location.href = `/projects/${created.id}`;
+  const handleCreated = (projectId: string) => {
+    window.location.href = `/projects/${projectId}`;
   };
 
   const handleCardClick = (id: string) => {
-    const project = projects.find(p => p.id === id);
-    if (project) {
-      handleView(project);
-    }
+    window.location.href = `/projects/${id}`;
   };
 
-  // Action handlers
+  // Action handlers — navigate to full pages
   const handleView = (project: ProjectResponse) => {
-    setSelectedProject(project);
-    setIsViewOpen(true);
+    window.location.href = `/projects/${project.id}`;
   };
 
   const handleEdit = (project: ProjectResponse) => {
-    setSelectedProject(project);
-    setIsEditOpen(true);
+    window.location.href = `/projects/${project.id}/edit`;
   };
 
   const handleDeleteClick = (project: ProjectResponse) => {
@@ -85,7 +75,7 @@ export default function DashboardProjects() {
   };
 
   const handleCompleteMemory = (project: ProjectResponse) => {
-    window.location.href = `/projects/${project.id}`;
+    window.location.href = `/projects/${project.id}/editor`;
   };
 
   const confirmDelete = async (project: ProjectResponse) => {
@@ -187,36 +177,14 @@ export default function DashboardProjects() {
         </>
       )}
 
-      {/* Modals */}
+      {/* ProjectWizard (create new) */}
       <ProjectWizard
         isOpen={wizardOpen}
         onClose={() => setWizardOpen(false)}
         onCreated={handleCreated}
       />
 
-      <ProjectDetailsModal
-        isOpen={isViewOpen}
-        onClose={() => setIsViewOpen(false)}
-        project={selectedProject}
-        onCompleteMemory={handleCompleteMemory}
-      />
-
-      <Modal
-        isOpen={isEditOpen}
-        onClose={() => setIsEditOpen(false)}
-        title="Editar Datos del Proyecto"
-        className="max-w-xl"
-      >
-        <ProjectForm
-          project={selectedProject || undefined}
-          onSubmit={() => {
-            setIsEditOpen(false);
-            fetchProjects(page);
-            addToast('Proyecto actualizado correctamente', 'success');
-          }}
-        />
-      </Modal>
-
+      {/* Delete confirmation — kept as modal (destructive action) */}
       <DeleteProjectModal
         isOpen={isDeleteOpen}
         onClose={() => setIsDeleteOpen(false)}

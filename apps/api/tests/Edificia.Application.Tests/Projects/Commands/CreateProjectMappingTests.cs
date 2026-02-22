@@ -7,8 +7,9 @@ namespace Edificia.Application.Tests.Projects.Commands;
 public class CreateProjectMappingTests
 {
     [Fact]
-    public void ExplicitOperator_ShouldMapAllFields()
+    public void CreateFactory_ShouldMapAllFields()
     {
+        var userId = Guid.NewGuid();
         var request = new CreateProjectRequest(
             "Vivienda Unifamiliar",
             InterventionType.NewConstruction,
@@ -18,11 +19,12 @@ public class CreateProjectMappingTests
             "REF-001",
             "Normativa local");
 
-        var command = (CreateProjectCommand)request;
+        var command = CreateProjectCommand.Create(userId, request);
 
         command.Title.Should().Be("Vivienda Unifamiliar");
         command.InterventionType.Should().Be(InterventionType.NewConstruction);
         command.IsLoeRequired.Should().BeTrue();
+        command.CreatedByUserId.Should().Be(userId);
         command.Description.Should().Be("Descripción");
         command.Address.Should().Be("Calle Mayor 1");
         command.CadastralReference.Should().Be("REF-001");
@@ -30,18 +32,20 @@ public class CreateProjectMappingTests
     }
 
     [Fact]
-    public void ExplicitOperator_ShouldMapNullOptionalFields()
+    public void CreateFactory_ShouldMapNullOptionalFields()
     {
+        var userId = Guid.NewGuid();
         var request = new CreateProjectRequest(
             "Reforma",
             InterventionType.Reform,
             false);
 
-        var command = (CreateProjectCommand)request;
+        var command = CreateProjectCommand.Create(userId, request);
 
         command.Title.Should().Be("Reforma");
         command.InterventionType.Should().Be(InterventionType.Reform);
         command.IsLoeRequired.Should().BeFalse();
+        command.CreatedByUserId.Should().Be(userId);
         command.Description.Should().BeNull();
         command.Address.Should().BeNull();
         command.CadastralReference.Should().BeNull();
