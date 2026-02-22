@@ -40,11 +40,6 @@ export const userService = {
     return data;
   },
 
-  /** DELETE /users/:id */
-  async remove(id: string): Promise<void> {
-    await apiClient.delete(`/users/${id}`);
-  },
-
   /** POST /users/:id/activate */
   async activate(id: string): Promise<void> {
     await apiClient.post(`/users/${id}/activate`);
