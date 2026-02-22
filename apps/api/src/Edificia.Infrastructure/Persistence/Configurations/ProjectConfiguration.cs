@@ -48,11 +48,21 @@ public sealed class ProjectConfiguration : IEntityTypeConfiguration<Project>
         builder.Property(p => p.ContentTreeJson)
             .HasColumnType("jsonb");
 
+        builder.Property(p => p.CreatedByUserId)
+            .IsRequired();
+
         builder.Property(p => p.CreatedAt)
             .IsRequired();
+
+        // Relationships
+        builder.HasOne<ApplicationUser>()
+            .WithMany()
+            .HasForeignKey(p => p.CreatedByUserId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         // Indexes
         builder.HasIndex(p => p.Status);
         builder.HasIndex(p => p.CreatedAt);
+        builder.HasIndex(p => p.CreatedByUserId);
     }
 }

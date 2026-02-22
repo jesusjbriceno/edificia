@@ -74,18 +74,24 @@ public sealed class ResetUserPasswordHandler : IRequestHandler<ResetUserPassword
         user.UpdatedAt = DateTime.UtcNow;
         await _userManager.UpdateAsync(user);
 
-        // 6. Send reset email
-        try
+        // 6. Send reset email (fire-and-forget — don't block the HTTP response)
+        var emailTo = user.Email!;
+        var fullName = user.FullName;
+        var tempPwd = temporaryPassword;
+        _ = Task.Run(async () =>
         {
-            var subject = "EDIFICIA - Su contraseña ha sido restablecida";
-            var body = BuildResetEmail(user.FullName, user.Email!, temporaryPassword);
-            await _emailService.SendAsync(user.Email!, subject, body, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex,
-                "Reset email could not be sent to {Email}. Password was reset successfully.", user.Email);
-        }
+            try
+            {
+                var subject = "EDIFICIA - Su contraseña ha sido restablecida";
+                var body = BuildResetEmail(fullName, emailTo, tempPwd);
+                await _emailService.SendAsync(emailTo, subject, body, CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "Reset email could not be sent to {Email}. Password was reset successfully.", emailTo);
+            }
+        });
 
         _logger.LogInformation(
             "Password reset for user {UserId} by {PerformerId}", request.UserId, request.PerformedByUserId);

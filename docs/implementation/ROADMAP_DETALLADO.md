@@ -110,6 +110,129 @@
 
 **Contexto:** Según AGENTS.md, el mapeo debe ser **manual con operadores explícitos** (PROHIBIDO AutoMapper). La Feature 7.1 consolida los mapeos dispersos en los controllers dentro de los propios Commands/Queries. La Feature 7.2 centraliza las queries SQL de Dapper en ficheros de constantes por agregado, facilitando la revisión, reutilización y mantenimiento del SQL.
 
+---
+
+## **📋 Fase 8: Flujo de Revisión y Validación de Memorias**
+
+**Objetivo:** Implementar el ciclo de vida completo de una memoria: Borrador → Pendiente de Revisión → Completado/Rechazado. Los editores (Architect/Collaborator) envían a revisión, los administradores (Admin) validan o rechazan.
+
+**Reglas de Negocio:**
+
+- **R-REV-1:** Un editor de la memoria (Architect, Collaborator con rol Editor/Owner en el proyecto) puede enviar el proyecto a revisión. El estado pasa de `Draft` o `InProgress` → `PendingReview`.
+- **R-REV-2:** Solo usuarios con rol de aplicación `Admin` pueden aprobar o rechazar un proyecto en estado `PendingReview`.
+- **R-REV-3:** Aprobar un proyecto cambia su estado a `Completed`. Se genera una notificación al creador y editores del proyecto.
+- **R-REV-4:** Rechazar un proyecto lo devuelve a `Draft`. Requiere un motivo obligatorio que se incluye en la notificación al creador y editores.
+- **R-REV-5:** Los proyectos en `PendingReview` son de solo lectura (no se puede editar el contenido de la memoria).
+- **R-REV-6:** El dashboard del Admin muestra primero los proyectos pendientes de revisión como bandeja de tareas, y luego los últimos proyectos completados.
+- **R-REV-7:** El botón "Enviar a Revisión" se muestra en la vista del editor (EditorShell) y en el modal de detalles del proyecto (ProjectDetailsModal), solo si el proyecto está en `Draft` o `InProgress`.
+- **R-REV-8:** Un proyecto `Completed` puede ser archivado. Un proyecto `Archived` no puede cambiar de estado.
+
+### **8.1 — Modelo de dominio: nuevo estado `PendingReview`**
+
+| ID | Feature Branch | Tareas Backend (.NET) | Tareas Frontend (Astro/React) |
+| :---- | :---- | :---- | :---- |
+| **8.1.1** | feature/review-workflow | • Añadir `PendingReview = 4` al enum `ProjectStatus`. • Añadir método `SubmitForReview()` en `Project.cs` que valide que el estado actual sea `Draft` o `InProgress` y lo cambie a `PendingReview`. • Añadir método `Reject()` que valide estado `PendingReview` → `Draft`. • Modificar `Complete()` para que solo permita transición desde `PendingReview`. • Añadir validación en `UpdateSectionContent()` para rechazar ediciones si `Status == PendingReview` o `Completed`. • Tests unitarios para todas las transiciones de estado (válidas e inválidas). | • Añadir `PendingReview` al tipo `ProjectStatus` en `lib/types.ts`. • Añadir variante de badge para `PendingReview` (`warning` o `purple`) en `ProjectCard` y `ProjectRow`. |
+
+### **8.2 — Commands de cambio de estado**
+
+| ID | Feature Branch | Tareas Backend (.NET) | Tareas Frontend (Astro/React) |
+| :---- | :---- | :---- | :---- |
+| **8.2.1** | feature/review-workflow | • Crear `SubmitForReviewCommand(ProjectId)` + Handler: buscar proyecto, llamar `SubmitForReview()`, guardar, crear notificaciones para todos los Admin activos (título: "Proyecto pendiente de revisión", mensaje con nombre del proyecto y quién lo envía). • Crear `SubmitForReviewValidator`: ProjectId requerido. | • Añadir método `submitForReview(projectId)` en `projectService.ts` → `POST /projects/:id/submit-review`. |
+| **8.2.2** | feature/review-workflow | • Crear `ApproveProjectCommand(ProjectId)` + Handler: validar que sea Admin (inyectar `IHttpContextAccessor` o pasar userId), buscar proyecto, llamar `Complete()`, guardar, crear notificaciones al creador y editores del proyecto. • Crear `ApproveProjectValidator`. | • Añadir método `approve(projectId)` en `projectService.ts` → `POST /projects/:id/approve`. |
+| **8.2.3** | feature/review-workflow | • Crear `RejectProjectCommand(ProjectId, Reason)` + Handler: validar que sea Admin, buscar proyecto, llamar `Reject()`, guardar, crear notificaciones al creador y editores con el motivo de rechazo. • Crear `RejectProjectValidator`: ProjectId y Reason requeridos, Reason máx. 500 caracteres. | • Añadir método `reject(projectId, reason)` en `projectService.ts` → `POST /projects/:id/reject`. |
+
+### **8.3 — Endpoints API**
+
+| ID | Feature Branch | Tareas Backend (.NET) | Tareas Frontend (Astro/React) |
+| :---- | :---- | :---- | :---- |
+| **8.3.1** | feature/review-workflow | • Añadir endpoint `POST /projects/{id}/submit-review` en `ProjectsController`. Requiere policy `ActiveUser`. Extraer userId del JWT para la notificación. | • N/A (ya cubierto por 8.2.1). |
+| **8.3.2** | feature/review-workflow | • Añadir endpoint `POST /projects/{id}/approve` en `ProjectsController`. Requiere policy `RequireAdmin`. | • N/A (ya cubierto por 8.2.2). |
+| **8.3.3** | feature/review-workflow | • Añadir endpoint `POST /projects/{id}/reject` en `ProjectsController`. Requiere policy `RequireAdmin`. Recibe `{ reason: string }` en body. | • N/A (ya cubierto por 8.2.3). |
+| **8.3.4** | feature/review-workflow | • Actualizar `GetProjectsQuery` y `GetProjectsValidator` para aceptar `PendingReview` como valor de filtro de status. • Crear query `GetPendingReviewProjectsQuery` (Dapper) que retorne proyectos con `status = 'PendingReview'` ordenados por fecha de envío a revisión (más antiguos primero). | • N/A. |
+
+### **8.4 — Frontend: Botón "Enviar a Revisión"**
+
+| ID | Feature Branch | Tareas Backend (.NET) | Tareas Frontend (Astro/React) |
+| :---- | :---- | :---- | :---- |
+| **8.4.1** | feature/review-workflow | • N/A | • **EditorShell.tsx**: Añadir botón "Enviar a Revisión" (icono `SendHorizonal` o similar) en la barra superior, junto al botón de exportar. Visible solo si `status` es `Draft` o `InProgress`. Al pulsar: confirmación modal → `projectService.submitForReview()` → toast de éxito → recargar estado. • Almacenar `projectStatus` en `useEditorStore` (nuevo campo de estado). |
+| **8.4.2** | feature/review-workflow | • N/A | • **ProjectDetailsModal.tsx**: Añadir botón "Enviar a Revisión" en el footer del modal, junto a "Continuar con la Memoria". Visible solo si el proyecto está en `Draft` o `InProgress`. Misma lógica de confirmación y llamada a API. |
+| **8.4.3** | feature/review-workflow | • N/A | • **EditorShell.tsx / EditorToolbar.tsx**: Si `projectStatus === 'PendingReview'` o `'Completed'`, deshabilitar el editor TipTap (modo solo lectura). Mostrar un banner informativo: "Esta memoria está pendiente de revisión" o "Esta memoria ha sido aprobada". |
+
+### **8.5 — Frontend: Dashboard del Admin con bandeja de revisión**
+
+| ID | Feature Branch | Tareas Backend (.NET) | Tareas Frontend (Astro/React) |
+| :---- | :---- | :---- | :---- |
+| **8.5.1** | feature/review-workflow | • N/A | • **Crear componente `ReviewQueue.tsx`**: Lista/tabla de proyectos con `status: PendingReview`. Muestra: título, autor (createdByUser), fecha de envío, tipo de intervención. Cada fila tiene botones "Aprobar" y "Rechazar". "Aprobar" con confirmación modal. "Rechazar" con modal que solicita motivo (textarea obligatorio, máx. 500 chars). |
+| **8.5.2** | feature/review-workflow | • N/A | • **Modificar `DashboardProjects.tsx`** (o crear vista alternativa para Admin): Si el usuario es Admin, mostrar primero la sección "Proyectos Pendientes de Revisión" (`ReviewQueue`) y debajo "Últimos Proyectos Completados" (grid filtrado por status `Completed`, orden por `updatedAt` desc). Si no es Admin, mantener el dashboard actual. |
+| **8.5.3** | feature/review-workflow | • N/A | • **Actualizar `ProjectManagement.tsx`** (admin): Añadir `PendingReview` al dropdown de filtro de estado. Añadir acciones "Aprobar" y "Rechazar" en `ProjectActionsDropdown` cuando el proyecto está en `PendingReview` y el usuario es Admin. |
+
+### **8.6 — Tests**
+
+| ID | Feature Branch | Tareas Backend (.NET) | Tareas Frontend (Astro/React) |
+| :---- | :---- | :---- | :---- |
+| **8.6.1** | feature/review-workflow | • Tests unitarios Domain: `SubmitForReview()` desde Draft/InProgress OK, desde Completed/Archived falla. `Complete()` solo desde PendingReview. `Reject()` solo desde PendingReview → Draft. `UpdateSectionContent()` rechazado si PendingReview/Completed. | • N/A |
+| **8.6.2** | feature/review-workflow | • Tests Application: Handler `SubmitForReview` genera notificaciones a Admins. Handler `Approve` genera notificaciones a editores. Handler `Reject` genera notificaciones con motivo. Validadores correctos. | • Tests Vitest: botón "Enviar a Revisión" visible/oculto según estado. `ReviewQueue` renderiza correctamente. Badge `PendingReview` muestra variante correcta. |
+
+### **Resumen de impacto técnico**
+
+**Backend (API .NET):**
+
+| Componente | Cambio |
+|---|---|
+| `ProjectStatus.cs` | Nuevo valor: `PendingReview = 4` |
+| `Project.cs` | Nuevos métodos: `SubmitForReview()`, `Reject()`. Modificar `Complete()` y `UpdateSectionContent()` con guardas de estado |
+| Nuevos Commands (3) | `SubmitForReviewCommand`, `ApproveProjectCommand`, `RejectProjectCommand` + Handlers + Validators |
+| `ProjectsController.cs` | 3 nuevos endpoints: `POST submit-review`, `POST approve`, `POST reject` |
+| `GetProjectsValidator.cs` | Aceptar `PendingReview` en `AllowedStatuses` |
+| `Notification` | Generación automática de notificaciones en los handlers de aprobación/rechazo |
+| Request DTOs | Nuevo: `RejectProjectRequest { Reason }` |
+| SQL Queries (Dapper) | Nueva query para proyectos pendientes de revisión |
+
+**Frontend (Astro/React):**
+
+| Componente | Cambio |
+|---|---|
+| `lib/types.ts` | Añadir `PendingReview` a `ProjectStatus` |
+| `projectService.ts` | 3 nuevos métodos: `submitForReview()`, `approve()`, `reject()` |
+| `useEditorStore.ts` | Nuevo campo: `projectStatus` |
+| `EditorShell.tsx` | Botón "Enviar a Revisión" + modo solo lectura si PendingReview/Completed |
+| `ProjectDetailsModal.tsx` | Botón "Enviar a Revisión" |
+| `ProjectCard.tsx` / `ProjectRow.tsx` | Badge para `PendingReview` |
+| `ReviewQueue.tsx` | **Nuevo componente** — bandeja de revisión para Admin |
+| `DashboardProjects.tsx` | Sección prioritaria de pendientes para Admin |
+| `ProjectManagement.tsx` | Filtro + acciones de aprobación/rechazo |
+| `ProjectActionsDropdown.tsx` | Acciones contextuales según estado + rol |
+
+**Diagrama de transiciones de estado:**
+
+```
+    ┌─────────┐
+    │  Draft  │◄──────────────────┐
+    └────┬────┘                   │
+         │ (editar)               │ Reject(reason)
+         ▼                        │
+   ┌───────────┐                  │
+   │ InProgress│                  │
+   └─────┬─────┘                  │
+         │                        │
+         │ SubmitForReview()      │
+         ▼                        │
+  ┌──────────────┐                │
+  │PendingReview │────────────────┘
+  │  (readonly)  │
+  └──────┬───────┘
+         │ Approve()
+         ▼
+   ┌───────────┐
+   │ Completed │
+   └─────┬─────┘
+         │ Archive()
+         ▼
+   ┌──────────┐
+   │ Archived │
+   └──────────┘
+```
+
 ## **�🚦 Definición de Hecho (DoD)**
 
 Para considerar una **Feature** cerrada:

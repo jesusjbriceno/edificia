@@ -1,8 +1,8 @@
 import Modal from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Calendar, MapPin, Hash, BookOpen, Clock, FileText } from 'lucide-react';
-import type { ProjectResponse, InterventionType } from '@/lib/types';
-import { InterventionTypeLabels, ProjectStatusLabels } from '@/lib/types';
+import type { ProjectResponse } from '@/lib/types';
+import { InterventionTypeStringLabels, ProjectStatusLabels } from '@/lib/types';
 
 interface ProjectDetailsModalProps {
   isOpen: boolean;
@@ -32,7 +32,7 @@ export function ProjectDetailsModal({
   if (!project) return null;
 
   const typeLabel =
-    InterventionTypeLabels[Number(project.interventionType) as InterventionType] ??
+    InterventionTypeStringLabels[project.interventionType] ??
     project.interventionType;
   
   const statusLabel = ProjectStatusLabels[project.status as keyof typeof ProjectStatusLabels] ?? project.status;

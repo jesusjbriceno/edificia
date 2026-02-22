@@ -25,6 +25,7 @@ public class CreateProjectHandlerTests
             "Vivienda Unifamiliar",
             InterventionType.NewConstruction,
             true,
+            Guid.NewGuid(),
             "Descripción",
             "Calle Mayor 1");
 
@@ -40,7 +41,8 @@ public class CreateProjectHandlerTests
         var command = new CreateProjectCommand(
             "Test",
             InterventionType.Reform,
-            false);
+            false,
+            Guid.NewGuid());
 
         await _handler.Handle(command, CancellationToken.None);
 
@@ -69,6 +71,7 @@ public class CreateProjectHandlerTests
             "Completo",
             InterventionType.Extension,
             true,
+            Guid.NewGuid(),
             "Desc completa",
             "Calle X",
             "REF_CAT_123",

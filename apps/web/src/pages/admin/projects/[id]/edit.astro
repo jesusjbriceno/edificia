@@ -1,0 +1,15 @@
+---
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+import { AuthGuard } from '@/components/auth/AuthGuard';
+import AdminProjectFormPage from '@/components/Admin/AdminProjectFormPage';
+
+const { id } = Astro.params;
+---
+
+<DashboardLayout title="Admin — Editar Proyecto">
+	<AuthGuard allowedRoles={['Root', 'Admin']} client:load>
+		<div class="max-w-4xl mx-auto space-y-8">
+			<AdminProjectFormPage projectId={id!} client:load />
+		</div>
+	</AuthGuard>
+</DashboardLayout>

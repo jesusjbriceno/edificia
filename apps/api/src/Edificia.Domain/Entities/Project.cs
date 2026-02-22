@@ -2,6 +2,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Edificia.Domain.Enums;
+using Edificia.Domain.Exceptions;
 using Edificia.Domain.Primitives;
 
 namespace Edificia.Domain.Entities;
@@ -39,6 +40,9 @@ public sealed class Project : AuditableEntity
     /// <summary>Estado del proyecto en el flujo de trabajo.</summary>
     public ProjectStatus Status { get; private set; }
 
+    /// <summary>ID del usuario que creó el proyecto (FK a AspNetUsers).</summary>
+    public Guid CreatedByUserId { get; private set; }
+
     /// <summary>
     /// Árbol de contenido de la memoria en formato JSON (JSONB en PostgreSQL).
     /// Almacena la estructura completa de capítulos y secciones.
@@ -55,6 +59,7 @@ public sealed class Project : AuditableEntity
         string title,
         InterventionType interventionType,
         bool isLoeRequired,
+        Guid createdByUserId,
         string? description = null,
         string? address = null,
         string? cadastralReference = null,
@@ -65,6 +70,7 @@ public sealed class Project : AuditableEntity
             Title = title,
             InterventionType = interventionType,
             IsLoeRequired = isLoeRequired,
+            CreatedByUserId = createdByUserId,
             Description = description,
             Address = address,
             CadastralReference = cadastralReference,
@@ -97,24 +103,94 @@ public sealed class Project : AuditableEntity
     /// <summary>Advances the project to InProgress status.</summary>
     public void StartRedaction()
     {
+        if (Status is not ProjectStatus.Draft)
+            throw new BusinessRuleException(
+                "Project.InvalidTransition",
+                "Solo se puede iniciar la redacción desde el estado borrador.");
+
         Status = ProjectStatus.InProgress;
     }
 
-    /// <summary>Marks the project as completed.</summary>
-    public void Complete()
+    /// <summary>
+    /// Envía el proyecto a revisión por un administrador.
+    /// Solo permitido desde Draft o InProgress.
+    /// </summary>
+    public void SubmitForReview()
     {
+        if (Status == ProjectStatus.PendingReview)
+            throw new BusinessRuleException(
+                "Project.AlreadyPendingReview",
+                "El proyecto ya está pendiente de revisión.");
+
+        if (Status is not (ProjectStatus.Draft or ProjectStatus.InProgress))
+            throw new BusinessRuleException(
+                "Project.InvalidTransition",
+                $"El proyecto en estado '{Status}' no se puede enviar a revisión. Solo es posible desde Borrador o En Redacción.");
+
+        Status = ProjectStatus.PendingReview;
+    }
+
+    /// <summary>
+    /// Aprueba el proyecto pendiente de revisión, marcándolo como Completado.
+    /// Solo permitido desde PendingReview.
+    /// </summary>
+    public void Approve()
+    {
+        if (Status is not ProjectStatus.PendingReview)
+            throw new BusinessRuleException(
+                "Project.InvalidTransition",
+                "El proyecto solo se puede aprobar cuando está pendiente de revisión.");
+
         Status = ProjectStatus.Completed;
     }
 
-    /// <summary>Archives the project.</summary>
+    /// <summary>
+    /// Marks the project as completed. Only allowed from PendingReview.
+    /// </summary>
+    public void Complete()
+    {
+        if (Status is not ProjectStatus.PendingReview)
+            throw new BusinessRuleException(
+                "Project.InvalidTransition",
+                "El proyecto solo se puede completar cuando está pendiente de revisión.");
+
+        Status = ProjectStatus.Completed;
+    }
+
+    /// <summary>
+    /// Rechaza el proyecto pendiente de revisión, devolviéndolo a Draft.
+    /// Solo permitido desde PendingReview.
+    /// </summary>
+    public void Reject()
+    {
+        if (Status is not ProjectStatus.PendingReview)
+            throw new BusinessRuleException(
+                "Project.InvalidTransition",
+                "El proyecto solo se puede rechazar cuando está pendiente de revisión.");
+
+        Status = ProjectStatus.Draft;
+    }
+
+    /// <summary>Archives the project. Only allowed from Completed.</summary>
     public void Archive()
     {
+        if (Status == ProjectStatus.Archived)
+            throw new BusinessRuleException(
+                "Project.AlreadyArchived",
+                "El proyecto ya está archivado.");
+
+        if (Status is not ProjectStatus.Completed)
+            throw new BusinessRuleException(
+                "Project.InvalidTransition",
+                "El proyecto solo se puede archivar cuando está completado.");
+
         Status = ProjectStatus.Archived;
     }
 
     /// <summary>Updates the content tree JSON (JSONB stored).</summary>
     public void UpdateContentTree(string contentTreeJson)
     {
+        EnsureEditable();
         ContentTreeJson = contentTreeJson;
     }
 
@@ -127,6 +203,8 @@ public sealed class Project : AuditableEntity
     /// <returns>True if the section was found and updated; false otherwise.</returns>
     public bool UpdateSectionContent(string sectionId, string content)
     {
+        EnsureEditable();
+
         if (ContentTreeJson is null)
             return false;
 
@@ -150,6 +228,28 @@ public sealed class Project : AuditableEntity
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Validates that the project is in an editable state (Draft or InProgress).
+    /// Throws BusinessRuleException if the project is readonly.
+    /// </summary>
+    private void EnsureEditable()
+    {
+        if (Status == ProjectStatus.PendingReview)
+            throw new BusinessRuleException(
+                "Project.ReadOnly",
+                "El proyecto no se puede editar mientras está pendiente de revisión.");
+
+        if (Status == ProjectStatus.Completed)
+            throw new BusinessRuleException(
+                "Project.ReadOnly",
+                "El proyecto no se puede editar porque está completado.");
+
+        if (Status == ProjectStatus.Archived)
+            throw new BusinessRuleException(
+                "Project.ReadOnly",
+                "El proyecto no se puede editar porque está archivado.");
     }
 
     private static bool UpdateNodeContent(JsonNode node, string sectionId, string content)

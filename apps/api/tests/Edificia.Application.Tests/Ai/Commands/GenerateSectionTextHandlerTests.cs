@@ -334,6 +334,7 @@ public class GenerateSectionTextHandlerTests
             title: "Proyecto Test",
             interventionType: interventionType,
             isLoeRequired: isLoeRequired,
+            createdByUserId: Guid.NewGuid(),
             description: "Descripción de prueba",
             address: address,
             localRegulations: localRegulations);

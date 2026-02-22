@@ -1,19 +1,15 @@
 ---
-import BaseLayout from '@/layouts/BaseLayout.astro';
-import ProjectEditor from '@/components/Editor/ProjectEditor';
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
 import { AuthGuard } from '@/components/auth/AuthGuard';
-import { ChevronLeft } from 'lucide-react';
+import ProjectDetailPage from '@/components/Projects/ProjectDetailPage';
 
 const { id } = Astro.params;
 ---
 
-<BaseLayout title="Editor de Proyecto">
+<DashboardLayout title="Detalle del Proyecto">
 	<AuthGuard client:load>
-		<div class="flex flex-col h-screen overflow-hidden">
-			<!-- Main Editor Area -->
-			<div class="flex-1 flex overflow-hidden">
-				<ProjectEditor client:only="react" projectId={id!} />
-			</div>
+		<div class="max-w-5xl mx-auto space-y-8">
+			<ProjectDetailPage projectId={id!} client:load />
 		</div>
 	</AuthGuard>
-</BaseLayout>
+</DashboardLayout>

@@ -30,7 +30,7 @@ describe('AiAssistantPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Set up editor store with a project and active section
-    useEditorStore.getState().initProject('proj-123', [], { 'sec-1': '<p>Existing</p>' });
+    useEditorStore.getState().initProject('proj-123', [], { 'sec-1': '<p>Existing</p>' }, 'Test Project', 0, 'Draft');
     useEditorStore.getState().setActiveSection('sec-1');
   });
 

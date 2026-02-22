@@ -1,0 +1,15 @@
+---
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+import { AuthGuard } from '@/components/auth/AuthGuard';
+import ProjectEditPage from '@/components/Projects/ProjectEditPage';
+
+const { id } = Astro.params;
+---
+
+<DashboardLayout title="Editar Proyecto">
+	<AuthGuard client:load>
+		<div class="max-w-4xl mx-auto space-y-8">
+			<ProjectEditPage projectId={id!} client:load />
+		</div>
+	</AuthGuard>
+</DashboardLayout>

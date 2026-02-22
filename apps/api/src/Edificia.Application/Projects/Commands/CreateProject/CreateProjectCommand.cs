@@ -12,12 +12,13 @@ public sealed record CreateProjectCommand(
     string Title,
     InterventionType InterventionType,
     bool IsLoeRequired,
+    Guid CreatedByUserId,
     string? Description = null,
     string? Address = null,
     string? CadastralReference = null,
     string? LocalRegulations = null) : IRequest<Result<Guid>>
 {
-    public static explicit operator CreateProjectCommand(CreateProjectRequest r)
-        => new(r.Title, r.InterventionType, r.IsLoeRequired,
+    public static CreateProjectCommand Create(Guid createdByUserId, CreateProjectRequest r)
+        => new(r.Title, r.InterventionType, r.IsLoeRequired, createdByUserId,
                r.Description, r.Address, r.CadastralReference, r.LocalRegulations);
 }

@@ -8,6 +8,7 @@ import type {
   CurrentUserResponse,
   UpdateProfileRequest,
   UpdateProfileResponse,
+  ForgotPasswordRequest,
 } from '@/lib/types';
 
 /**
@@ -47,5 +48,9 @@ export const authService = {
   async updateProfile(payload: UpdateProfileRequest): Promise<UpdateProfileResponse> {
     const { data } = await apiClient.put<UpdateProfileResponse>('/auth/profile', payload);
     return data;
+  },
+
+  async forgotPassword(payload: ForgotPasswordRequest): Promise<void> {
+    await apiClient.post('/auth/forgot-password', payload);
   },
 } as const;

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Badge } from '@/components/ui/Badge';
-import { MoreHorizontal, UserCheck, UserX, Mail, Pencil, Trash2 } from 'lucide-react';
+import { MoreHorizontal, UserCheck, UserX, KeyRound, Pencil, Trash2 } from 'lucide-react';
 import { Dropdown } from '@/components/ui/Dropdown';
 
 export interface User {
@@ -17,13 +17,10 @@ interface UserRowProps {
   onToggleStatus: (user: User) => void;
   onEdit: (user: User) => void;
   onDelete: (user: User) => void;
+  onResetPassword: (user: User) => void;
 }
 
-export function UserRow({ user, onToggleStatus, onEdit, onDelete }: UserRowProps) {
-  const handleMailClick = () => {
-    window.open(`mailto:${user.email}`, '_blank');
-  };
-
+export function UserRow({ user, onToggleStatus, onEdit, onDelete, onResetPassword }: UserRowProps) {
   return (
     <tr className="hover:bg-white/5 transition-colors group">
       <td className="px-6 py-4">
@@ -50,13 +47,13 @@ export function UserRow({ user, onToggleStatus, onEdit, onDelete }: UserRowProps
       </td>
       <td className="px-6 py-4 text-right">
         <div className="flex justify-end gap-1">
-          {/* Botón de email */}
+          {/* Botón de restablecer contraseña */}
           <button
-            title="Enviar email"
-            onClick={handleMailClick}
+            title="Restablecer contraseña"
+            onClick={() => onResetPassword(user)}
             className="p-1.5 text-gray-500 hover:text-white transition-colors rounded-lg hover:bg-white/5"
           >
-            <Mail size={16} />
+            <KeyRound size={16} />
           </button>
 
           {/* Botón activar/desactivar */}

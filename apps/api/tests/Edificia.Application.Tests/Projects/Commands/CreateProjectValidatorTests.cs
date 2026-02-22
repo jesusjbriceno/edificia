@@ -15,6 +15,7 @@ public class CreateProjectValidatorTests
             "Vivienda Unifamiliar",
             InterventionType.NewConstruction,
             true,
+            Guid.NewGuid(),
             "Descripción del proyecto",
             "Calle Mayor 1, Madrid");
 
@@ -29,7 +30,8 @@ public class CreateProjectValidatorTests
         var command = new CreateProjectCommand(
             "Reforma local",
             InterventionType.Reform,
-            false);
+            false,
+            Guid.NewGuid());
 
         var result = _validator.Validate(command);
 
@@ -42,7 +44,8 @@ public class CreateProjectValidatorTests
         var command = new CreateProjectCommand(
             "",
             InterventionType.NewConstruction,
-            true);
+            true,
+            Guid.NewGuid());
 
         var result = _validator.Validate(command);
 
@@ -58,7 +61,8 @@ public class CreateProjectValidatorTests
         var command = new CreateProjectCommand(
             new string('A', 301),
             InterventionType.NewConstruction,
-            true);
+            true,
+            Guid.NewGuid());
 
         var result = _validator.Validate(command);
 
@@ -74,7 +78,8 @@ public class CreateProjectValidatorTests
         var command = new CreateProjectCommand(
             "Test",
             (InterventionType)99,
-            true);
+            true,
+            Guid.NewGuid());
 
         var result = _validator.Validate(command);
 
@@ -90,6 +95,7 @@ public class CreateProjectValidatorTests
             "Test",
             InterventionType.Reform,
             false,
+            Guid.NewGuid(),
             Description: new string('X', 2001));
 
         var result = _validator.Validate(command);
@@ -107,6 +113,7 @@ public class CreateProjectValidatorTests
             "Test",
             InterventionType.NewConstruction,
             true,
+            Guid.NewGuid(),
             Address: new string('X', 501));
 
         var result = _validator.Validate(command);
@@ -124,6 +131,7 @@ public class CreateProjectValidatorTests
             "Test",
             InterventionType.NewConstruction,
             true,
+            Guid.NewGuid(),
             CadastralReference: new string('X', 101));
 
         var result = _validator.Validate(command);
@@ -141,6 +149,7 @@ public class CreateProjectValidatorTests
             "Test",
             InterventionType.NewConstruction,
             true,
+            Guid.NewGuid(),
             LocalRegulations: new string('X', 5001));
 
         var result = _validator.Validate(command);
@@ -158,6 +167,7 @@ public class CreateProjectValidatorTests
             "Test",
             InterventionType.Extension,
             true,
+            Guid.NewGuid(),
             null, null, null, null);
 
         var result = _validator.Validate(command);

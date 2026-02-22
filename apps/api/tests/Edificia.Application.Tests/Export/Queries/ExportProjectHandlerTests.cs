@@ -242,6 +242,7 @@ public class ExportProjectHandlerTests
             title: title,
             interventionType: interventionType,
             isLoeRequired: true,
+            createdByUserId: Guid.NewGuid(),
             description: "Descripción de prueba",
             address: "Calle Test 1, Madrid");
 
@@ -254,7 +255,8 @@ public class ExportProjectHandlerTests
         return Project.Create(
             title: "Proyecto Sin Contenido",
             interventionType: InterventionType.NewConstruction,
-            isLoeRequired: true);
+            isLoeRequired: true,
+            createdByUserId: Guid.NewGuid());
     }
 
     private void SetupProjectFound(Project project)

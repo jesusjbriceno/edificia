@@ -5,7 +5,6 @@ import type { UserResponse } from '@/lib/types';
 import { Loader2, AlertCircle, Users, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
-import { UserForm } from '@/components/Admin/UserForm';
 import type { User } from '@/components/Admin/UserRow';
 
 /**
@@ -17,14 +16,10 @@ export default function UserManagement() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Modal de crear/editar
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-
-  // Modal de confirmación de eliminación
-  const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
+  const [resetPwdTarget, setResetPwdTarget] = useState<User | null>(null);
+  const [isResettingPwd, setIsResettingPwd] = useState(false);
 
   useEffect(() => {
     loadUsers();
@@ -56,40 +51,14 @@ export default function UserManagement() {
     }
   }
 
-  // ── Añadir / Editar ──────────────────────────────────────
+  // ── Añadir / Editar — navigate to full pages ─────────────────────────────
 
   function handleOpenCreate() {
-    setEditingUser(null);
-    setModalOpen(true);
+    window.location.href = '/admin/users/new';
   }
 
   function handleOpenEdit(user: User) {
-    setEditingUser(user);
-    setModalOpen(true);
-  }
-
-  async function handleSaveUser(formData: { name: string; email: string; role: string }) {
-    setIsSaving(true);
-    try {
-      if (editingUser) {
-        await userService.update(editingUser.id, {
-          fullName: formData.name,
-          role: formData.role,
-        });
-      } else {
-        await userService.create({
-          fullName: formData.name,
-          email: formData.email,
-          role: formData.role,
-        });
-      }
-      setModalOpen(false);
-      await loadUsers();
-    } catch (err: any) {
-      console.error('Error guardando usuario:', err);
-    } finally {
-      setIsSaving(false);
-    }
+    window.location.href = `/admin/users/${user.id}/edit`;
   }
 
   // ── Activar / Desactivar ─────────────────────────────────
@@ -120,6 +89,21 @@ export default function UserManagement() {
       console.error('Error eliminando usuario:', err);
     } finally {
       setIsDeleting(false);
+    }
+  }
+
+  // ── Restablecer contraseña ───────────────────────────────
+
+  async function handleConfirmResetPassword() {
+    if (!resetPwdTarget) return;
+    setIsResettingPwd(true);
+    try {
+      await userService.resetPassword(resetPwdTarget.id);
+      setResetPwdTarget(null);
+    } catch (err: any) {
+      console.error('Error restableciendo contraseña:', err);
+    } finally {
+      setIsResettingPwd(false);
     }
   }
 
@@ -184,23 +168,11 @@ export default function UserManagement() {
           onToggleStatus={handleToggleStatus}
           onEdit={handleOpenEdit}
           onDelete={setDeleteTarget}
+          onResetPassword={setResetPwdTarget}
         />
       )}
 
-      {/* Modal Crear / Editar Usuario */}
-      <Modal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title={editingUser ? 'Editar Usuario' : 'Nuevo Usuario'}
-      >
-        <UserForm
-          initialData={editingUser ? { name: editingUser.name, email: editingUser.email, role: editingUser.role as any } : undefined}
-          onSubmit={handleSaveUser}
-          isLoading={isSaving}
-        />
-      </Modal>
-
-      {/* Modal de confirmación de eliminación */}
+      {/* Modal de confirmación de eliminación — kept as modal (destructive action) */}
       <Modal
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
@@ -224,6 +196,35 @@ export default function UserManagement() {
               className="bg-red-500 hover:bg-red-600 border-none text-white"
             >
               Sí, eliminar
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal de confirmación de restablecimiento de contraseña */}
+      <Modal
+        isOpen={!!resetPwdTarget}
+        onClose={() => setResetPwdTarget(null)}
+        title="¿Restablecer contraseña?"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-300 text-sm">
+            Se generará una nueva contraseña temporal para <span className="font-semibold text-white">{resetPwdTarget?.name}</span> y
+            se le enviará por email. El usuario deberá cambiarla en su próximo inicio de sesión.
+          </p>
+          <div className="flex gap-3 justify-end pt-2">
+            <Button
+              onClick={() => setResetPwdTarget(null)}
+              className="bg-white/10 hover:bg-white/20 border-none text-white"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleConfirmResetPassword}
+              isLoading={isResettingPwd}
+              className="bg-brand-primary hover:bg-brand-primary/90 border-none text-white"
+            >
+              Sí, restablecer
             </Button>
           </div>
         </div>

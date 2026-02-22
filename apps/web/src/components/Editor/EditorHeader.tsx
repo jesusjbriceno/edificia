@@ -4,18 +4,21 @@ import { InterventionTypeLabels } from '@/lib/types';
 
 export default function EditorHeader() {
   const { 
+    projectId,
     projectTitle, 
     interventionType, 
   } = useEditorStore();
+
+  const backHref = projectId ? `/projects/${projectId}` : '/dashboard';
 
   return (
     <header className="h-20 border-b border-white/5 bg-dark-bg flex items-center px-6 shrink-0 z-50 relative">
       <div className="flex items-center gap-6">
         {/* Back Button */}
         <a 
-          href="/dashboard" 
+          href={backHref} 
           className="p-2 -ml-2 text-gray-400 hover:text-white transition-all group"
-          title="Volver al escritorio"
+          title="Volver al detalle del proyecto"
         >
           <ArrowLeft size={22} className="group-hover:-translate-x-0.5 transition-transform" />
         </a>

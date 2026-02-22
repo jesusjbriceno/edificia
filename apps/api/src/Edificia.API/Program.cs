@@ -191,13 +191,15 @@ static void MapEnvironmentVariables()
     MapEnv("N8N_WEBHOOK_URL", "AI__WebhookUrl");
     MapEnv("N8N_API_SECRET",  "AI__ApiSecret");
     MapEnv("N8N_TIMEOUT",     "AI__TimeoutSeconds");
-    MapEnv("EMAIL_PROVIDER",  "Email__Provider");
-    MapEnv("BREVO_API_KEY",   "Email__BrevoApiKey");
-    MapEnv("SMTP_HOST",       "Email__SmtpHost");
-    MapEnv("SMTP_PORT",       "Email__SmtpPort");
-    MapEnv("SMTP_USERNAME",   "Email__SmtpUsername");
-    MapEnv("SMTP_PASSWORD",   "Email__SmtpPassword");
-    MapEnv("SMTP_USE_SSL",    "Email__SmtpUseSsl");
+    MapEnv("EMAIL_PROVIDER",     "Email__Provider");
+    MapEnv("EMAIL_FROM_ADDRESS", "Email__FromAddress");
+    MapEnv("EMAIL_FROM_NAME",    "Email__FromName");
+    MapEnv("BREVO_API_KEY",      "Email__BrevoApiKey");
+    MapEnv("SMTP_HOST",          "Email__SmtpHost");
+    MapEnv("SMTP_PORT",          "Email__SmtpPort");
+    MapEnv("SMTP_USERNAME",      "Email__SmtpUsername");
+    MapEnv("SMTP_PASSWORD",      "Email__SmtpPassword");
+    MapEnv("SMTP_USE_SSL",       "Email__SmtpUseSsl");
     MapEnv("ROOT_EMAIL",      "Security__RootEmail");
     MapEnv("ROOT_PASSWORD",   "Security__RootInitialPassword");
 
