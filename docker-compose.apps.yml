@@ -77,11 +77,17 @@ services:
     labels:
       - "coolify.managed=true"
       - "traefik.enable=true"
+      # Router HTTPS — sirve el tráfico con el cert Let's Encrypt
       - "traefik.http.routers.edificia-web.rule=Host(`edificia.jesusjbriceno.dev`)"
       - "traefik.http.routers.edificia-web.entryPoints=https"
       - "traefik.http.routers.edificia-web.tls=true"
       - "traefik.http.routers.edificia-web.tls.certresolver=letsencrypt"
       - "traefik.http.services.edificia-web.loadbalancer.server.port=4321"
+      # Router HTTP — necesario para que Traefik resuelva el ACME HTTP-01 challenge
+      # sin que el redirect global HTTP→HTTPS lo intercepte antes
+      - "traefik.http.routers.edificia-web-http.rule=Host(`edificia.jesusjbriceno.dev`)"
+      - "traefik.http.routers.edificia-web-http.entryPoints=http"
+      - "traefik.http.routers.edificia-web-http.service=edificia-web"
     networks:
       - coolify-network
 
