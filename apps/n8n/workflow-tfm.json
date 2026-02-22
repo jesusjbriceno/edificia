@@ -1,0 +1,147 @@
+﻿{
+  "name": "Generador TFM - EdificIA v7",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "returnAll": true,
+        "filters": {
+          "folderId": "FOLDER_ID_EDIFICIA_MD"
+        }
+      },
+      "id": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+      "name": "Listar Carpeta",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const EXTENSIONES = ['.md', '.json', '.yml', '.yaml'];\nreturn $input.all()\n  .filter(item => {\n    const name = (item.json.name || '').toLowerCase();\n    const mime = item.json.mimeType || '';\n    const esArchivo = mime !== 'application/vnd.google-apps.folder';\n    const tieneExtension = EXTENSIONES.some(ext => name.endsWith(ext));\n    return esArchivo && tieneExtension;\n  })\n  .map(item => ({\n    json: { id: item.json.id, name: item.json.name, mimeType: item.json.mimeType }\n  }));"
+      },
+      "id": "c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f",
+      "name": "Filtrar Archivos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": "={{ $json.id }}"
+      },
+      "id": "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+      "name": "Descargar Archivo",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "binaryPropertyName": "data"
+      },
+      "id": "e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b",
+      "name": "Extraer Texto",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [880, 0]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const textos = $input.all()\n  .map(item => (item.json.data || '').trim())\n  .filter(t => t.length > 0);\n\nconst joined = textos.join('\\n\\n---\\n\\n');\n\nreturn [{ json: { documentacion_completa: joined, total_documentos: textos.length } }];"
+      },
+      "id": "f6a7b8c9-d0e1-4f2a-3b4c-5d6e7f8a9b0c",
+      "name": "Consolidar Textos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 0]
+    },
+    {
+      "parameters": {
+        "prompt": "=Actúa como un ingeniero experto y redactor académico.\nRedacta la memoria completa del TFM basándote ÚNICAMENTE en la documentación proporcionada. No inventes ni añadas información externa.\n\nESTRUCTURA OBLIGATORIA:\n1. Resumen (máx. 300 palabras)\n2. Introducción\n3. Objetivos\n4. Metodología\n5. Desarrollo técnico\n6. Conclusiones y trabajo futuro\n\nDOCUMENTACIÓN FUENTE:\n{{ $json.documentacion_completa }}"
+      },
+      "id": "a7b8c9d0-e1f2-4a3b-4c5d-6e7f8a9b0c1d",
+      "name": "Redactar Memoria",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1,
+      "position": [1320, 0]
+    },
+    {
+      "parameters": {
+        "model": "gemini-2.0-flash"
+      },
+      "id": "b8c9d0e1-f2a3-4b4c-5d6e-7f8a9b0c1d2e",
+      "name": "Google Gemini",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [1320, 200]
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "text",
+        "fileName": "Borrador_Memoria_TFM_EdificIA.md"
+      },
+      "id": "c9d0e1f2-a3b4-4c5d-6e7f-8a9b0c1d2e3f",
+      "name": "Empaquetar Resultado",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1,
+      "position": [1540, 0]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "name": "Borrador_Memoria_TFM_EdificIA.md",
+        "inputDataFieldName": "data",
+        "options": {
+          "parentFolderId": "FOLDER_ID_MASTERDESARROLLO_IA"
+        }
+      },
+      "id": "d0e1f2a3-b4c5-4d6e-7f8a-9b0c1d2e3f4a",
+      "name": "Guardar en Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [1760, 0]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [[{ "node": "Listar Carpeta", "type": "main", "index": 0 }]]
+    },
+    "Listar Carpeta": {
+      "main": [[{ "node": "Filtrar Archivos", "type": "main", "index": 0 }]]
+    },
+    "Filtrar Archivos": {
+      "main": [[{ "node": "Descargar Archivo", "type": "main", "index": 0 }]]
+    },
+    "Descargar Archivo": {
+      "main": [[{ "node": "Extraer Texto", "type": "main", "index": 0 }]]
+    },
+    "Extraer Texto": {
+      "main": [[{ "node": "Consolidar Textos", "type": "main", "index": 0 }]]
+    },
+    "Consolidar Textos": {
+      "main": [[{ "node": "Redactar Memoria", "type": "main", "index": 0 }]]
+    },
+    "Redactar Memoria": {
+      "main": [[{ "node": "Empaquetar Resultado", "type": "main", "index": 0 }]]
+    },
+    "Google Gemini": {
+      "ai_languageModel": [[{ "node": "Redactar Memoria", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "Empaquetar Resultado": {
+      "main": [[{ "node": "Guardar en Drive", "type": "main", "index": 0 }]]
+    }
+  }
+}
