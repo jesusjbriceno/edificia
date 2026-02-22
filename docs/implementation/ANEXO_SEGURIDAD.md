@@ -1,4 +1,4 @@
-# **🛡️ Anexo de Seguridad y Gestión de Usuarios — EDIFICIA**
+# **🛡️ Anexo de Seguridad y Gestión de Usuarios — EdificIA**
 
 **Versión:** 2.0 (Completo — incluye CRUD de Usuarios, Refresh Tokens y Perfil)
 

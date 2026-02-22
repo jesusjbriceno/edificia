@@ -1,4 +1,4 @@
-# **Análisis Detallado \- EDIFICIA**
+# **Análisis Detallado \- EdificIA**
 
 **Versión:** 2.1 (Sistema de Notificaciones, Mejoras de UI/UX del Editor)
 

@@ -1,4 +1,4 @@
-# **Diseño de Sistema (SDD) — EDIFICIA**
+# **Diseño de Sistema (SDD) — EdificIA**
 
 **Versión:** 3.0 (Actualizado con Frontend Implementado)
 

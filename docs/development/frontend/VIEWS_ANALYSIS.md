@@ -1,4 +1,4 @@
-# **🗺️ Análisis de Vistas y Navegación — EDIFICIA**
+# **🗺️ Análisis de Vistas y Navegación — EdificIA**
 
 **Versión:** 2.1 (Sistema de Notificaciones, Búsqueda en Editor, Cabecera multi-nivel)
 

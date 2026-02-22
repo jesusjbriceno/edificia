@@ -1,10 +1,10 @@
-# **📏 Guía de Estilo y Estándares de Desarrollo \- EDIFICIA**
+# **📏 Guía de Estilo y Estándares de Desarrollo \- EdificIA**
 
 **Repositorio:** [https://github.com/jesusjbriceno/edificia](https://github.com/jesusjbriceno/edificia)
 
 **Versión:** 2.2 (Stack Estricto)
 
-Este documento define las reglas innegociables para el código de EDIFICIA.
+Este documento define las reglas innegociables para el código de EdificIA.
 
 ## **1\. Stack Tecnológico**
 

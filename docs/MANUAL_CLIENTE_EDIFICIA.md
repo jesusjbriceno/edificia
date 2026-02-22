@@ -1,4 +1,4 @@
-# **👋 Bienvenido a EDIFICIA**
+# **👋 Bienvenido a EdificIA**
 
 ### **Tu Asistente Inteligente para Memorias Técnicas**
 
@@ -6,27 +6,27 @@
 
 **Versión:** 2.0
 
-## **1\. ¿Qué es EDIFICIA?**
+## **1\. ¿Qué es EdificIA?**
 
 Sabemos que cada encargo es un mundo. No es lo mismo proyectar un bloque de 50 viviendas que reformar un local comercial. Sin embargo, la burocracia suele ser igual de pesada.
 
-**EDIFICIA** es la respuesta tecnológica a ese problema. Una herramienta de redacción que **entiende la escala de tu obra**.
+**EdificIA** es la respuesta tecnológica a ese problema. Una herramienta de redacción que **entiende la escala de tu obra**.
 
-## **2\. ¿Por qué EDIFICIA y no Word?**
+## **2\. ¿Por qué EdificIA y no Word?**
 
 ### **🏗️ 1\. Inteligencia Constructiva**
 
 El sistema se adapta a ti, no tú al sistema.
 
-* **Obra Nueva vs. Reforma:** Si indicas que estás haciendo una reforma interior, EDIFICIA oculta automáticamente los capítulos de Cimentación o Estructura que no necesitas.  
+* **Obra Nueva vs. Reforma:** Si indicas que estás haciendo una reforma interior, EdificIA oculta automáticamente los capítulos de Cimentación o Estructura que no necesitas.  
 * **Filtro LOE:** Si la obra es menor (exenta art. 2.2 LOE), el sistema simplifica la memoria y añade las justificaciones legales pertinentes.
 
 ### **🧠 2\. Redacción Asistida (IA)**
 
-Hemos conectado EDIFICIA a una pasarela de Inteligencia Artificial segura.
+Hemos conectado EdificIA a una pasarela de Inteligencia Artificial segura.
 
 * Tú pones los datos ("Tabiquería de cartón yeso", "Suelo radiante").  
-* EDIFICIA redacta el párrafo técnico perfecto.
+* EdificIA redacta el párrafo técnico perfecto.
 
 ### **🛡️ 3\. Seguridad Total**
 

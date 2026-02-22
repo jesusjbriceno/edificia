@@ -8,7 +8,7 @@
 
 ## **1\. Contexto y Motivación**
 
-En la arquitectura original (v1.0 \- v2.1), **EDIFICIA** se integraba directamente con proveedores de IA (Google Gemini) o pasarelas intermedias (Flux Gateway) mediante código C\# en el Backend (Edificia.Infrastructure).
+En la arquitectura original (v1.0 \- v2.1), **EdificIA** se integraba directamente con proveedores de IA (Google Gemini) o pasarelas intermedias (Flux Gateway) mediante código C\# en el Backend (Edificia.Infrastructure).
 
 ### **Problema Detectado**
 
@@ -22,7 +22,7 @@ Esta aproximación genera un **acoplamiento fuerte**.
 
 **Delegar la inteligencia en n8n.**
 
-El Backend de EDIFICIA se vuelve "agnóstico". Solo sabe enviar un contexto técnico a un Webhook y esperar un texto. La decisión de qué modelo usar, cómo autenticarse o si hacer búsquedas previas, recae en el flujo visual de n8n.
+El Backend de EdificIA se vuelve "agnóstico". Solo sabe enviar un contexto técnico a un Webhook y esperar un texto. La decisión de qué modelo usar, cómo autenticarse o si hacer búsquedas previas, recae en el flujo visual de n8n.
 
 ## **2\. Alcance del Cambio**
 
@@ -41,6 +41,6 @@ El Backend de EDIFICIA se vuelve "agnóstico". Solo sabe enviar un contexto téc
 
 ## **3\. Beneficios**
 
-1. **Hot-Swap:** Podemos cambiar de Gemini 1.5 a GPT-5 en n8n sin tocar el servidor de EDIFICIA.  
+1. **Hot-Swap:** Podemos cambiar de Gemini 1.5 a GPT-5 en n8n sin tocar el servidor de EdificIA.  
 2. **Lógica Híbrida:** n8n permite flujos como *"Si es Reforma \-\> Usa Modelo A; Si es Obra Nueva \-\> Usa Modelo B"*.  
 3. **Observabilidad:** n8n ofrece historial visual de ejecuciones para depurar prompts fallidos.
