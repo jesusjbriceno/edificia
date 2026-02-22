@@ -31,10 +31,21 @@ export const projectService = {
     return data;
   },
 
-  /** POST /projects */
-  async create(payload: CreateProjectRequest): Promise<ProjectResponse> {
-    const { data } = await apiClient.post<ProjectResponse>('/projects', payload);
+  /** POST /projects — returns the new project ID (GUID) */
+  async create(payload: CreateProjectRequest): Promise<string> {
+    const { data } = await apiClient.post<string>('/projects', payload);
     return data;
+  },
+
+  /** PUT /projects/:id */
+  async update(id: string, payload: Partial<CreateProjectRequest>): Promise<ProjectResponse> {
+    const { data } = await apiClient.put<ProjectResponse>(`/projects/${id}`, payload);
+    return data;
+  },
+
+  /** DELETE /projects/:id */
+  async delete(id: string): Promise<void> {
+    await apiClient.delete(`/projects/${id}`);
   },
 
   /** GET /projects/:id/tree */
@@ -63,6 +74,21 @@ export const projectService = {
       `/projects/${projectId}/sections/${sectionId}`,
       payload,
     );
+  },
+
+  /** POST /projects/:id/submit-review — submits project for review */
+  async submitForReview(projectId: string): Promise<void> {
+    await apiClient.post(`/projects/${projectId}/submit-review`);
+  },
+
+  /** POST /projects/:id/approve — approves a project under review (Admin/Root) */
+  async approveProject(projectId: string): Promise<void> {
+    await apiClient.post(`/projects/${projectId}/approve`);
+  },
+
+  /** POST /projects/:id/reject — rejects a project under review (Admin/Root) */
+  async rejectProject(projectId: string, reason: string): Promise<void> {
+    await apiClient.post(`/projects/${projectId}/reject`, { reason });
   },
 
   /** GET /projects/:id/export — downloads a .docx binary blob */

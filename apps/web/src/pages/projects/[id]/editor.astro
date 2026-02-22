@@ -1,0 +1,18 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import ProjectEditor from '@/components/Editor/ProjectEditor';
+import { AuthGuard } from '@/components/auth/AuthGuard';
+
+const { id } = Astro.params;
+---
+
+<BaseLayout title="Editor de Proyecto">
+	<AuthGuard client:load>
+		<div class="flex flex-col h-screen overflow-hidden">
+			<!-- Main Editor Area -->
+			<div class="flex-1 flex overflow-hidden">
+				<ProjectEditor client:only="react" projectId={id!} />
+			</div>
+		</div>
+	</AuthGuard>
+</BaseLayout>

@@ -87,7 +87,7 @@
     },
     "/auth/app": {
       "post": {
-        "summary": "Application Login (ClientId/Secret)",
+        "summary": "Application Login (client_id/client_secret)",
         "description": "Exchange application credentials for a JWT token to be used in /api/v1/chat.",
         "requestBody": {
           "required": true,
@@ -96,10 +96,10 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "clientId": { "type": "string" },
-                  "clientSecret": { "type": "string" }
+                  "client_id": { "type": "string" },
+                  "client_secret": { "type": "string" }
                 },
-                "required": ["clientId", "clientSecret"]
+                "required": ["client_id", "client_secret"]
               }
             }
           }
@@ -494,11 +494,11 @@
       },
       "CreateAIModel": {
         "type": "object",
-        "required": ["name", "provider", "providerKey", "priority", "status"],
+        "required": ["name", "provider", "provider_key", "priority", "status"],
         "properties": {
           "name": { "type": "string" },
           "provider": { "type": "string" },
-          "providerKey": { "type": "string" },
+          "provider_key": { "type": "string" },
           "priority": { "type": "integer" },
           "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "ERROR"] },
           "config": { "type": "object" }
@@ -509,11 +509,11 @@
         "properties": {
           "name": { "type": "string" },
           "provider": { "type": "string" },
-          "providerKey": { "type": "string" },
+          "provider_key": { "type": "string" },
           "priority": { "type": "integer" },
           "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "ERROR"] },
           "config": { "type": "object" },
-          "updatedAt": { "type": "string" }
+          "updated_at": { "type": "string" }
         }
       },
       "User": {
@@ -531,7 +531,7 @@
         "properties": {
           "name": { "type": "string" },
           "lang_preference": { "type": "string", "enum": ["ES", "EN", "IT", "FR", "PT", "DE"] },
-          "updatedAt": { "type": "string" }
+          "updated_at": { "type": "string" }
         }
       },
       "CreateUser": {
@@ -548,8 +548,8 @@
         "properties": {
           "id": { "type": "string" },
           "name": { "type": "string" },
-          "clientId": { "type": "string" },
-          "clientSecret": { "type": "string" },
+          "client_id": { "type": "string" },
+          "client_secret": { "type": "string" },
           "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "ERROR"] }
         }
       },
@@ -565,7 +565,7 @@
         "properties": {
           "name": { "type": "string" },
           "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "ERROR"] },
-          "updatedAt": { "type": "string" }
+          "updated_at": { "type": "string" }
         }
       }
     }

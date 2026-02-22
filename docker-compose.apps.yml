@@ -9,6 +9,11 @@
 # Program.cs mapea los nombres cortos (DB_HOST, JWT_SECRET…)
 # a las claves de configuración de .NET automáticamente.
 # Consulta .env.example para la lista completa.
+#
+# NOTAS Coolify v4:
+#   • Los puertos NO se exponen en el host; Traefik gestiona el routing HTTPS.
+#   • Los labels de Traefik configuran las reglas de dominio y TLS.
+#   • El healthcheck del web espera a que la API esté sana antes de arrancar.
 # ============================================================
 
 services:
@@ -20,13 +25,23 @@ services:
     image: ghcr.io/jesusjbriceno/edificia-api:latest
     container_name: edificia_prod_api
     restart: always
-    ports:
-      - "5000:8080"      
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/live"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
     labels:
       - "coolify.managed=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.edificia-api.rule=Host(`api-edificia.jesusjbriceno.dev`)"
+      - "traefik.http.routers.edificia-api.entryPoints=https"
+      - "traefik.http.routers.edificia-api.tls=true"
+      - "traefik.http.routers.edificia-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.edificia-api.loadbalancer.server.port=8080"
     networks:
       - coolify-network
-    env_file: 
+    env_file:
       - path: .env
         required: false
     environment:
@@ -44,19 +59,31 @@ services:
     image: ghcr.io/jesusjbriceno/edificia-web:latest
     container_name: edificia_prod_web
     restart: always
-    ports:
-      - "4321:4321"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4321/"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
     env_file:
       - path: .env
         required: false
     environment:
-      PUBLIC_API_URL: "https://api-edificia.jesusjbriceno.dev"
+      PUBLIC_API_URL: "https://api-edificia.jesusjbriceno.dev/api"  # Con /api — baseURL de Axios
+      INTERNAL_API_URL: "http://api:8080"                           # Red interna Docker (SSR login proxy)
       HOST: "0.0.0.0"
       PORT: "4321"
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     labels:
       - "coolify.managed=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.edificia-web.rule=Host(`edificia.jesusjbriceno.dev`)"
+      - "traefik.http.routers.edificia-web.entryPoints=https"
+      - "traefik.http.routers.edificia-web.tls=true"
+      - "traefik.http.routers.edificia-web.tls.certresolver=letsencrypt"
+      - "traefik.http.services.edificia-web.loadbalancer.server.port=4321"
     networks:
       - coolify-network
 

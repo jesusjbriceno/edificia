@@ -35,4 +35,11 @@ public static class UserErrors
 
     public static readonly Error RoleChangeFailed =
         Error.Failure("User.RoleChangeFailed", "No se pudo cambiar el rol del usuario.");
+
+    public static readonly Error CannotDeleteSelf =
+        Error.Forbidden("User.CannotDeleteSelf",
+            "No puede eliminar su propia cuenta.");
+
+    public static readonly Error DeleteFailed =
+        Error.Failure("User.DeleteFailed", "No se pudo eliminar el usuario.");
 }

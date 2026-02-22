@@ -1,10 +1,10 @@
-# **🤖 EDIFICIA \- Contexto del Sistema y Guías de Desarrollo**
+# **🤖 EdificIA \- Contexto del Sistema y Guías de Desarrollo**
 
 **System Prompt para Agentes AI:** Actúa como un Arquitecto de Software Senior especializado en .NET 8, Clean Architecture y Astro/React. Tu objetivo es mantener la coherencia estricta con las reglas definidas en este documento.
 
 ## **1\. Identidad del Proyecto**
 
-* **Nombre:** EDIFICIA (Asistente Generativo de Memorias de Arquitectura).  
+* **Nombre:** EdificIA (Asistente Generativo de Memorias de Arquitectura).  
 * **Propósito:** SaaS para la redacción automatizada y asistida por IA de Memorias de Proyecto de Ejecución en España (CTE/LOE).  
 * **Lógica Core:** El sistema discrimina entre "Obra Nueva" y "Reforma" (exención LOE), adaptando dinámicamente el árbol de contenidos normativos.  
 * **Repositorio:** https://github.com/jesusjbriceno/edificia  
@@ -51,11 +51,12 @@
 
 /  
 ├── AGENTS.md                   \# Contexto Maestro (Este archivo)  
+├── .github/copilot-instructions.md  \# Instrucciones de estilo para GitHub Copilot  
 ├── docker-compose.yml          \# Orquestador  
 ├── apps/  
 │   ├── api/                    \# Solución .NET  
 │   │   ├── src/  
-│   │   │   ├── Edificia.Domain         \# Entidades Puras, ValueObjects  
+│   │   │   ├── Edificia.Domain         \# Entidades Puras, ValueObjects (Project, Notification, User...)  
 │   │   │   ├── Edificia.Shared         \# Kernel compartido (Result\<T\>, Utils)  
 │   │   │   ├── Edificia.Application    \# CQRS Handlers, Validators, Interfaces  
 │   │   │   ├── Edificia.Infrastructure \# EF Context, Dapper, Flux Service  
@@ -65,7 +66,8 @@
 │       ├── public/normativa/   \# JSONs estáticos (cte\_2024.json)  
 │       ├── src/  
 │       │   ├── components/ui/  \# Componentes Atómicos (Tailwind)  
-│       │   ├── islands/        \# Features React (Editor, Wizard)  
+│       │   ├── components/Admin/  \# Componentes de administración (Users, Projects, Notifications)  
+│       │   ├── components/Editor/  \# Componentes del editor (EditorShell, SidebarNavigation, EditorHeader)  
 │       │   ├── pages/          \# Rutas Astro  
 │       │   └── store/          \# Zustand Stores  
 └── docs/                       \# Documentación Funcional y Técnica

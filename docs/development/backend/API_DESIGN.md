@@ -1,4 +1,4 @@
-# **📡 Diseño de API REST — EDIFICIA**
+# **📡 Diseño de API REST — EdificIA**
 
 **Versión:** 3.0  
 **Última actualización:** Junio 2025  
@@ -9,7 +9,7 @@
 
 ## **1. Visión General**
 
-La API de EDIFICIA expone **21 endpoints** organizados en 5 módulos:
+La API de EdificIA expone **21 endpoints** organizados en 5 módulos:
 
 | Módulo | Endpoints | Autenticación | Descripción |
 |--------|-----------|---------------|-------------|

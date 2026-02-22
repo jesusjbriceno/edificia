@@ -1,0 +1,8 @@
+# Copilot Instructions
+Este fichero contiene instrucciones para GitHub Copilot. Estas instrucciones se aplican a todos los archivos del repositorio y están destinadas a guiar a Copilot en la generación de código que siga las convenciones y estilos del proyecto.
+
+## Revisión de la documentación
+Para asegurar que el código generado por Copilot siga las mejores prácticas, es importante revisar la documentación del proyecto y las guías de estilo de código. Esto ayudará a Copilot a generar código que sea consistente con el resto del proyecto. Para los frameworks y bibliotecas utilizadas, asegúrate de que Copilot tenga acceso a la documentación relevante para que pueda generar código que se integre bien con estas herramientas. Haz uso del servidor MCP de Context7, que proporciona acceso a la documentación de los frameworks y bibliotecas utilizadas en el proyecto. Esto permitirá a Copilot generar código que siga las convenciones y estilos específicos de estas herramientas, mejorando la calidad y coherencia del código generado.
+
+## Idioma de comunicación
+Para asegurarnos de que la comunicación es fluida y nos entendemos correctamente, vamos a utilizar el español de España como idioma principal para nuestras interacciones. Esto nos permitirá expresar nuestras ideas de manera clara y precisa, facilitando la colaboración y el intercambio de información. Si en algún momento necesitas aclaraciones o tienes preguntas, no dudes en preguntar en español, y haré todo lo posible por ayudarte de la mejor manera posible.

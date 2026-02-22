@@ -1,16 +1,16 @@
-# **Especificación de Requisitos de Software (ERS) \- Proyecto EDIFICIA**
+# **Especificación de Requisitos de Software (ERS) \- Proyecto EdificIA**
 
 **Versión:** 2.0 (Rebranding \+ Flux Gateway)
 
 **Fecha:** 03/02/2026
 
-**Autor:** Arquitectura de Software EDIFICIA
+**Autor:** Arquitectura de Software EdificIA
 
 **Estado:** Aprobado para Desarrollo
 
 ## **1\. Introducción y Propósito**
 
-**EDIFICIA** es una plataforma SaaS diseñada para la redacción automatizada y asistida por IA de Memorias de Proyecto de Ejecución en España.
+**EdificIA** es una plataforma SaaS diseñada para la redacción automatizada y asistida por IA de Memorias de Proyecto de Ejecución en España.
 
 El objetivo es proporcionar una herramienta robusta que discrimine entre **Obra Nueva** y **Rehabilitación**, adaptando la estructura normativa (CTE/LOE) y utilizando una pasarela de IA soberana para la generación de contenidos.
 

@@ -40,11 +40,6 @@ export const userService = {
     return data;
   },
 
-  /** DELETE /users/:id */
-  async remove(id: string): Promise<void> {
-    await apiClient.delete(`/users/${id}`);
-  },
-
   /** POST /users/:id/activate */
   async activate(id: string): Promise<void> {
     await apiClient.post(`/users/${id}/activate`);
@@ -53,5 +48,10 @@ export const userService = {
   /** POST /users/:id/deactivate */
   async deactivate(id: string): Promise<void> {
     await apiClient.post(`/users/${id}/deactivate`);
+  },
+
+  /** POST /users/:id/reset-password */
+  async resetPassword(id: string): Promise<void> {
+    await apiClient.post(`/users/${id}/reset-password`);
   },
 } as const;

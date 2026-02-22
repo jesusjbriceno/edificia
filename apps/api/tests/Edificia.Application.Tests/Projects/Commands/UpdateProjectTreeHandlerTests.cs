@@ -22,7 +22,7 @@ public class UpdateProjectTreeHandlerTests
     public async Task Handle_ShouldReturnSuccess_WhenProjectExists()
     {
         var projectId = Guid.NewGuid();
-        var project = Project.Create("Test", InterventionType.NewConstruction, true);
+        var project = Project.Create("Test", InterventionType.NewConstruction, true, Guid.NewGuid());
         var contentTree = """{"chapters": [{"id": "1", "title": "Memoria Descriptiva"}]}""";
 
         _repositoryMock
@@ -56,7 +56,7 @@ public class UpdateProjectTreeHandlerTests
     public async Task Handle_ShouldCallSaveChanges_WhenProjectExists()
     {
         var projectId = Guid.NewGuid();
-        var project = Project.Create("Test", InterventionType.Reform, false);
+        var project = Project.Create("Test", InterventionType.Reform, false, Guid.NewGuid());
 
         _repositoryMock
             .Setup(r => r.GetByIdAsync(projectId, It.IsAny<CancellationToken>()))
@@ -89,7 +89,7 @@ public class UpdateProjectTreeHandlerTests
     public async Task Handle_ShouldUpdateContentTree_OnProject()
     {
         var projectId = Guid.NewGuid();
-        var project = Project.Create("Test", InterventionType.Extension, true);
+        var project = Project.Create("Test", InterventionType.Extension, true, Guid.NewGuid());
         var contentTree = """{"chapters": [{"id": "md", "title": "Memoria Descriptiva", "sections": []}]}""";
 
         _repositoryMock

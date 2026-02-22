@@ -1,6 +1,6 @@
-# **🗺️ Análisis de Vistas y Navegación — EDIFICIA**
+# **🗺️ Análisis de Vistas y Navegación — EdificIA**
 
-**Versión:** 2.0 (Actualizado con Editor Premium, Admin Projects y Tests Centralizados)
+**Versión:** 2.1 (Sistema de Notificaciones, Búsqueda en Editor, Cabecera multi-nivel)
 
 ## **1. Mapa de Navegación (Sitemap)**
 
@@ -20,6 +20,7 @@ graph TD
     subgraph "Admin Zone"
         AdminDash --> Users[Gestión Usuarios /admin/users]
         AdminDash --> Projects[Gestión Proyectos /admin/projects]
+        AdminDash --> Notifications[Gestión Notificaciones /admin/notifications]
     end
 
     Dash --> Editor[Editor de Memoria /projects/:id]
@@ -69,11 +70,20 @@ graph TD
   * `ProjectForm`: Formulario validado con Zod (Título, Descripción, Estado, Presupuesto).
 * **Funcionalidades:** Búsqueda por título/descripción, filtrado, creación inline.
 
-### **🔵 V-Editor-01: Editor de Memoria Técnica (`/projects/:id`)**
+### **� V-Admin-03: Gestión de Notificaciones (`/admin/notifications`)**
+
+* **Acceso:** Rol Admin o SuperAdmin.
+* **Componentes:**
+  * `NotificationsList`: Lista de notificaciones con estado leído/no leído.
+  * `NotificationBell`: Icono de campana con contador de notificaciones no leídas.
+* **Funcionalidades:** Marcar como leída, marcar todas como leídas.
+
+### **�🔵 V-Editor-01: Editor de Memoria Técnica (`/projects/:id`)**
 
 * **Layout:** Sidebar (Capítulos) + Editor central (TipTap).
 * **Componentes:**
-  * `SidebarNavigation`: Árbol recursivo de capítulos CTE con enlace a zona Admin.
+  * `SidebarNavigation`: Árbol recursivo de capítulos CTE con enlace a zona Admin y **búsqueda en tiempo real** (`searchTree`) que filtra recursivamente en el árbol de secciones.
+  * `EditorHeader`: Cabecera multi-nivel con nombre del proyecto, tipo de intervención (Obra Nueva / Reforma) en contexto y botón de retorno al dashboard.
   * `EditorShell`: Contenedor principal con Header de estado y botones de acción.
   * `EditorToolbar`: Barra de herramientas de formato (Negrita, Cursiva, H1-H3, Listas, Citas, Undo/Redo).
 * **Estado:** Zustand (`useEditorStore`) con persistencia IndexedDB vía `idb-keyval`.
@@ -86,8 +96,13 @@ graph TD
 | `Input` | `ui/Input.tsx` | Campo de entrada estilizado |
 | `Card` | `ui/Card.tsx` | Tarjeta contenedora |
 | `Badge` | `ui/Badge.tsx` | Etiqueta de estado |
+| `Dropdown` | `ui/Dropdown.tsx` | Dropdown portal-based (evita clipping en tablas/layouts) |
+| `Select` | `ui/Select.tsx` | Selector estilizado con soporte de opciones tipadas |
+| `Modal` | `ui/Modal.tsx` | Modal accesible con portal |
 | `HeaderUser` | `HeaderUser.tsx` | Avatar con dropdown (Mi Perfil, Cerrar Sesión) |
 | `SidebarLogout` | `SidebarLogout.tsx` | Botón de logout en el sidebar con limpieza de sesión |
+| `NotificationBell` | `Admin/NotificationBell.tsx` | Icono de campana con contador de no leídas |
+| `NotificationsList` | `Admin/NotificationsList.tsx` | Lista de notificaciones con acciones de lectura |
 
 ## **4. Stores (Zustand)**
 

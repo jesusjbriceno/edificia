@@ -15,6 +15,10 @@ public sealed record UpdateUserCommand(
     string? CollegiateNumber,
     Guid UpdatedByUserId) : IRequest<Result>
 {
-    public static UpdateUserCommand Create(Guid userId, Guid updatedByUserId, UpdateUserRequest r)
-        => new(userId, r.FullName, r.Role, r.CollegiateNumber, updatedByUserId);
+    /// <summary>
+    /// Maps the DTO fields. <see cref="UserId"/> and <see cref="UpdatedByUserId"/> must be
+    /// enriched from the route param and JWT claim in the controller using a <c>with</c> expression.
+    /// </summary>
+    public static explicit operator UpdateUserCommand(UpdateUserRequest r)
+        => new(Guid.Empty, r.FullName, r.Role, r.CollegiateNumber, Guid.Empty);
 }

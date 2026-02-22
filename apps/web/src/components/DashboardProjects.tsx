@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import ProjectCard from '@/components/ProjectCard';
 import ProjectWizard from '@/components/ProjectWizard';
+import { DeleteProjectModal } from '@/components/DeleteProjectModal';
 import { Button } from '@/components/ui/Button';
 import { Plus, AlertCircle, FolderOpen } from 'lucide-react';
 import { ProjectGridSkeleton } from '@/components/ui/Skeleton';
@@ -8,6 +9,7 @@ import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { projectService } from '@/lib/services';
 import type { ProjectResponse, PagedResponse } from '@/lib/types';
 import { ApiError } from '@/lib/api';
+import { useToastStore } from '@/store/useToastStore';
 
 const PAGE_SIZE = 9;
 
@@ -18,6 +20,12 @@ export default function DashboardProjects() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
+  const { addToast } = useToastStore();
+
+  // Delete state (kept as modal — destructive action)
+  const [selectedProject, setSelectedProject] = useState<ProjectResponse | null>(null);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchProjects = useCallback(async (p: number) => {
     setIsLoading(true);
@@ -44,13 +52,44 @@ export default function DashboardProjects() {
     fetchProjects(page);
   }, [page, fetchProjects]);
 
-  const handleCreated = (created: ProjectResponse) => {
-    // Navigate to the new project editor
-    window.location.href = `/projects/${created.id}`;
+  const handleCreated = (projectId: string) => {
+    window.location.href = `/projects/${projectId}`;
   };
 
   const handleCardClick = (id: string) => {
     window.location.href = `/projects/${id}`;
+  };
+
+  // Action handlers — navigate to full pages
+  const handleView = (project: ProjectResponse) => {
+    window.location.href = `/projects/${project.id}`;
+  };
+
+  const handleEdit = (project: ProjectResponse) => {
+    window.location.href = `/projects/${project.id}/edit`;
+  };
+
+  const handleDeleteClick = (project: ProjectResponse) => {
+    setSelectedProject(project);
+    setIsDeleteOpen(true);
+  };
+
+  const handleCompleteMemory = (project: ProjectResponse) => {
+    window.location.href = `/projects/${project.id}/editor`;
+  };
+
+  const confirmDelete = async (project: ProjectResponse) => {
+    setIsDeleting(true);
+    try {
+      await projectService.delete(project.id);
+      addToast('Proyecto eliminado correctamente', 'success');
+      setIsDeleteOpen(false);
+      fetchProjects(page);
+    } catch (err) {
+      addToast('Error al eliminar el proyecto', 'error');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -103,6 +142,10 @@ export default function DashboardProjects() {
                 key={project.id}
                 project={project}
                 onClick={handleCardClick}
+                onView={handleView}
+                onEdit={handleEdit}
+                onDelete={handleDeleteClick}
+                onCompleteMemory={handleCompleteMemory}
               />
             ))}
           </div>
@@ -134,11 +177,20 @@ export default function DashboardProjects() {
         </>
       )}
 
-      {/* Wizard modal */}
+      {/* ProjectWizard (create new) */}
       <ProjectWizard
         isOpen={wizardOpen}
         onClose={() => setWizardOpen(false)}
         onCreated={handleCreated}
+      />
+
+      {/* Delete confirmation — kept as modal (destructive action) */}
+      <DeleteProjectModal
+        isOpen={isDeleteOpen}
+        onClose={() => setIsDeleteOpen(false)}
+        project={selectedProject}
+        onConfirm={confirmDelete}
+        isLoading={isDeleting}
       />
     </div>
     </ErrorBoundary>

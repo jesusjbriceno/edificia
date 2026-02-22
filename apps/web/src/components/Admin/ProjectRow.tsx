@@ -1,16 +1,22 @@
-import { MoreVertical, Folder, Calendar } from 'lucide-react';
+import { Folder, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ProjectActionsDropdown } from '../ProjectActionsDropdown';
 import {
   ProjectStatus,
   ProjectStatusLabels,
-  InterventionTypeLabels,
+  InterventionTypeStringLabels,
 } from '@/lib/types';
-import type { ProjectResponse, InterventionType } from '@/lib/types';
+import type { ProjectResponse } from '@/lib/types';
 
 interface ProjectRowProps {
   project: ProjectResponse;
-  onEdit?: (id: string) => void;
-  onView?: (id: string) => void;
+  onEdit?: (project: ProjectResponse) => void;
+  onView?: (project: ProjectResponse) => void;
+  onCompleteMemory?: (project: ProjectResponse) => void;
+  onDelete?: (project: ProjectResponse) => void;
+  onApprove?: (project: ProjectResponse) => void;
+  onReject?: (project: ProjectResponse) => void;
+  isAdmin?: boolean;
 }
 
 const statusStyles: Record<string, string> = {
@@ -22,20 +28,30 @@ const statusStyles: Record<string, string> = {
     'bg-blue-400/10 text-blue-400 border-blue-400/20',
   [ProjectStatus.Archived]:
     'bg-amber-400/10 text-amber-400 border-amber-400/20',
+  [ProjectStatus.PendingReview]:
+    'bg-yellow-400/10 text-yellow-400 border-yellow-400/20 shadow-[0_0_10px_-2px_rgba(250,204,21,0.2)]',
 };
 
-export function ProjectRow({ project, onEdit, onView }: Readonly<ProjectRowProps>) {
+export function ProjectRow({ 
+  project, 
+  onEdit, 
+  onView,
+  onCompleteMemory,
+  onDelete,
+  onApprove,
+  onReject,
+  isAdmin = false
+}: Readonly<ProjectRowProps>) {
   const statusLabel =
     ProjectStatusLabels[project.status as ProjectStatus] ?? project.status;
   const typeLabel =
-    InterventionTypeLabels[Number(project.interventionType) as InterventionType] ??
+    InterventionTypeStringLabels[project.interventionType] ??
     project.interventionType;
 
   return (
-    <button
-      type="button"
+    <div
       className="group flex items-center gap-6 p-4 bg-white/2 rounded-2xl border border-white/5 hover:bg-white/5 hover:border-brand-primary/20 transition-all duration-300 cursor-pointer w-full text-left"
-      onClick={() => onView?.(project.id)}
+      onClick={() => onView?.(project)}
     >
       <div className="h-14 w-14 rounded-2xl bg-brand-primary/10 flex items-center justify-center border border-brand-primary/10 group-hover:scale-110 transition-transform">
         <Folder className="text-brand-primary" size={24} />
@@ -70,16 +86,17 @@ export function ProjectRow({ project, onEdit, onView }: Readonly<ProjectRowProps
           {statusLabel}
         </span>
 
-        <button
-          onClick={e => {
-            e.stopPropagation();
-            onEdit?.(project.id);
-          }}
-          className="p-2 text-gray-500 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-        >
-          <MoreVertical size={18} />
-        </button>
+        <ProjectActionsDropdown
+          project={project}
+          onView={onView}
+          onEdit={onEdit}
+          onCompleteMemory={onCompleteMemory}
+          onDelete={onDelete}
+          onApprove={onApprove}
+          onReject={onReject}
+          isAdmin={isAdmin}
+        />
       </div>
-    </button>
+    </div>
   );
 }

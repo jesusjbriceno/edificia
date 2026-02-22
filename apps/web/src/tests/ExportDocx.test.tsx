@@ -41,9 +41,23 @@ vi.mock('@/components/Editor/AiAssistantPanel.js', () => ({
 
 function setupStore() {
   const store = useEditorStore.getState();
-  store.initProject('proj-export-1', [
-    { id: 'sec-1', title: 'Memoria Descriptiva', content: '<p>Hello</p>', sections: [] },
-  ], { 'sec-1': '<p>Hello</p>' });
+  store.initProject(
+    'proj-export-1', 
+    [
+      { 
+        id: 'sec-1', 
+        title: 'Memoria Descriptiva', 
+        content: '<p>Hello</p>', 
+        sections: [],
+        requiresNewWork: false,
+        order: 1
+      }
+    ], 
+    { 'sec-1': '<p>Hello</p>' },
+    'Proyecto de Prueba',
+    0, // OBRA_NUEVA
+    'Draft'
+  );
   store.setActiveSection('sec-1');
 }
 
@@ -71,15 +85,15 @@ describe('Export DOCX button', () => {
     setupStore();
   });
 
-  it('should render "Exportar Word" button when a section is active', () => {
-    render(<EditorShell projectTitle="Test Project" />);
-    expect(screen.getByText('Exportar Word')).toBeInTheDocument();
+  it('should render "Exportar" button when a section is active', () => {
+    render(<EditorShell />);
+    expect(screen.getByText('Exportar')).toBeInTheDocument();
   });
 
   it('should not render export button when no section is selected', () => {
     useEditorStore.getState().setActiveSection(null);
-    render(<EditorShell projectTitle="Test Project" />);
-    expect(screen.queryByText('Exportar Word')).not.toBeInTheDocument();
+    render(<EditorShell />);
+    expect(screen.queryByText('Exportar')).not.toBeInTheDocument();
   });
 
   it('should show loading state while exporting', async () => {
@@ -89,8 +103,8 @@ describe('Export DOCX button', () => {
       () => new Promise((resolve) => { resolveExport = resolve; }),
     );
 
-    render(<EditorShell projectTitle="Test Project" />);
-    fireEvent.click(screen.getByText('Exportar Word'));
+    render(<EditorShell />);
+    fireEvent.click(screen.getByText('Exportar'));
 
     await waitFor(() => {
       expect(screen.getByText('Exportando...')).toBeInTheDocument();
@@ -100,7 +114,7 @@ describe('Export DOCX button', () => {
     resolveExport({ blob: new Blob(['test']), fileName: 'test.docx' });
 
     await waitFor(() => {
-      expect(screen.getByText('Exportar Word')).toBeInTheDocument();
+      expect(screen.getByText('Exportar')).toBeInTheDocument();
     });
   });
 
@@ -111,8 +125,8 @@ describe('Export DOCX button', () => {
       fileName: 'memoria-test.docx',
     });
 
-    render(<EditorShell projectTitle="Test Project" />);
-    fireEvent.click(screen.getByText('Exportar Word'));
+    render(<EditorShell />);
+    fireEvent.click(screen.getByText('Exportar'));
 
     await waitFor(() => {
       expect(projectService.exportDocx).toHaveBeenCalledWith('proj-export-1');
@@ -130,8 +144,8 @@ describe('Export DOCX button', () => {
       new Error('Network error'),
     );
 
-    render(<EditorShell projectTitle="Test Project" />);
-    fireEvent.click(screen.getByText('Exportar Word'));
+    render(<EditorShell />);
+    fireEvent.click(screen.getByText('Exportar'));
 
     // Should go to loading
     await waitFor(() => {
@@ -140,7 +154,7 @@ describe('Export DOCX button', () => {
 
     // Should recover back to normal button
     await waitFor(() => {
-      expect(screen.getByText('Exportar Word')).toBeInTheDocument();
+      expect(screen.getByText('Exportar')).toBeInTheDocument();
     });
   });
 });

@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Edificia.Application.Auth.Commands.ChangePassword;
+using Edificia.Application.Auth.Commands.ForgotPassword;
 using Edificia.Application.Auth.Commands.Login;
 using Edificia.Application.Auth.Commands.RefreshToken;
 using Edificia.Application.Auth.Commands.RevokeToken;
@@ -44,6 +45,24 @@ public class AuthController : BaseApiController
     }
 
     /// <summary>
+    /// Requests a password reset email. Always returns 200 to prevent email enumeration.
+    /// A temporary password will be sent to the user's email.
+    /// </summary>
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ForgotPassword(
+        [FromBody] ForgotPasswordRequest request,
+        CancellationToken ct)
+    {
+        var command = new ForgotPasswordCommand(request.Email);
+        var result = await _mediator.Send(command, ct);
+
+        return HandleResult(result);
+    }
+
+    /// <summary>
     /// Changes the current user's password.
     /// This endpoint is accessible even when the user has a restricted token
     /// (MustChangePassword = true). On success, clears the restriction.
@@ -62,7 +81,7 @@ public class AuthController : BaseApiController
         if (userId is null)
             return Unauthorized();
 
-        var command = ChangePasswordCommand.Create(userId.Value, request);
+        var command = (ChangePasswordCommand)request with { UserId = userId.Value };
         var result = await _mediator.Send(command, ct);
 
         return HandleResult(result);
@@ -110,7 +129,7 @@ public class AuthController : BaseApiController
         if (userId is null)
             return Unauthorized();
 
-        var command = UpdateProfileCommand.Create(userId.Value, request);
+        var command = (UpdateProfileCommand)request with { UserId = userId.Value };
         var result = await _mediator.Send(command, ct);
 
         return HandleResult(result);

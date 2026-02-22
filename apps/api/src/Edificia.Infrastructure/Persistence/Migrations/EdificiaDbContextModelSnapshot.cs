@@ -134,6 +134,52 @@ namespace Edificia.Infrastructure.Persistence.Migrations
                     b.ToTable("asp_net_users", (string)null);
                 });
 
+            modelBuilder.Entity("Edificia.Domain.Entities.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("IsRead")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_read");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("message");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_notifications");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_notifications_user_id");
+
+                    b.ToTable("notifications", (string)null);
+                });
+
             modelBuilder.Entity("Edificia.Domain.Entities.Project", b =>
                 {
                     b.Property<Guid>("Id")
@@ -158,6 +204,10 @@ namespace Edificia.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
 
                     b.Property<string>("Description")
                         .HasMaxLength(2000)
@@ -200,6 +250,9 @@ namespace Edificia.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CreatedAt")
                         .HasDatabaseName("ix_projects_created_at");
+
+                    b.HasIndex("CreatedByUserId")
+                        .HasDatabaseName("ix_projects_created_by_user_id");
 
                     b.HasIndex("Status")
                         .HasDatabaseName("ix_projects_status");
@@ -413,6 +466,16 @@ namespace Edificia.Infrastructure.Persistence.Migrations
                         .HasName("pk_asp_net_user_tokens");
 
                     b.ToTable("asp_net_user_tokens", (string)null);
+                });
+
+            modelBuilder.Entity("Edificia.Domain.Entities.Project", b =>
+                {
+                    b.HasOne("Edificia.Domain.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_projects_asp_net_users_created_by_user_id");
                 });
 
             modelBuilder.Entity("Edificia.Domain.Entities.RefreshToken", b =>

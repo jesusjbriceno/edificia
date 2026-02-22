@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Edificia.Application.Common;
 using Edificia.Application.Users.Commands.CreateUser;
+using Edificia.Application.Users.Commands.DeleteUser;
 using Edificia.Application.Users.Commands.ResetUserPassword;
 using Edificia.Application.Users.Commands.ToggleUserStatus;
 using Edificia.Application.Users.Commands.UpdateUser;
@@ -77,7 +78,7 @@ public sealed class UsersController : BaseApiController
         var currentUserId = GetCurrentUserId();
         if (currentUserId is null) return Unauthorized();
 
-        var command = CreateUserCommand.Create(currentUserId.Value, request);
+        var command = (CreateUserCommand)request with { CreatedByUserId = currentUserId.Value };
         var result = await _sender.Send(command, ct);
 
         return HandleCreated(result, nameof(GetById), id => new { id });
@@ -99,7 +100,7 @@ public sealed class UsersController : BaseApiController
         var currentUserId = GetCurrentUserId();
         if (currentUserId is null) return Unauthorized();
 
-        var command = UpdateUserCommand.Create(id, currentUserId.Value, request);
+        var command = (UpdateUserCommand)request with { UserId = id, UpdatedByUserId = currentUserId.Value };
         var result = await _sender.Send(command, ct);
 
         return HandleNoContent(result);
@@ -158,6 +159,24 @@ public sealed class UsersController : BaseApiController
         var result = await _sender.Send(command, ct);
 
         return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Deletes a user from the system permanently.
+    /// </summary>
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+    {
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null) return Unauthorized();
+
+        var command = new DeleteUserCommand(id, currentUserId.Value);
+        var result = await _sender.Send(command, ct);
+
+        return HandleNoContent(result);
     }
 
     private Guid? GetCurrentUserId()

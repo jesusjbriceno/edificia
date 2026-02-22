@@ -3,9 +3,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/Button';
+import { Select } from '@/components/ui/Select';
 import { AlertCircle } from 'lucide-react';
 import { InterventionType, InterventionTypeLabels } from '@/lib/types';
-import type { CreateProjectRequest } from '@/lib/types';
+import type { CreateProjectRequest, ProjectResponse } from '@/lib/types';
 import { projectService } from '@/lib/services';
 import { ApiError } from '@/lib/api';
 
@@ -23,10 +24,11 @@ type ProjectFormData = z.infer<typeof projectSchema>;
 
 interface ProjectFormProps {
   onSubmit: () => void;
+  project?: ProjectResponse;
   isLoading?: boolean;
 }
 
-export function ProjectForm({ onSubmit, isLoading: externalLoading }: Readonly<ProjectFormProps>) {
+export function ProjectForm({ onSubmit, project, isLoading: externalLoading }: Readonly<ProjectFormProps>) {
   const [apiError, setApiError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -37,13 +39,15 @@ export function ProjectForm({ onSubmit, isLoading: externalLoading }: Readonly<P
   } = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
-      title: '',
-      description: '',
-      address: '',
-      interventionType: InterventionType.NewConstruction,
-      isLoeRequired: true,
-      cadastralReference: '',
-      localRegulations: '',
+      title: project?.title || '',
+      description: project?.description || '',
+      address: project?.address || '',
+      interventionType: project?.interventionType !== undefined 
+        ? Number(project.interventionType) 
+        : InterventionType.NewConstruction,
+      isLoeRequired: project?.isLoeRequired ?? true,
+      cadastralReference: project?.cadastralReference || '',
+      localRegulations: project?.localRegulations || '',
     },
   });
 
@@ -60,13 +64,19 @@ export function ProjectForm({ onSubmit, isLoading: externalLoading }: Readonly<P
         cadastralReference: data.cadastralReference || null,
         localRegulations: data.localRegulations || null,
       };
-      await projectService.create(payload);
+
+      if (project?.id) {
+        await projectService.update(project.id, payload);
+      } else {
+        await projectService.create(payload);
+      }
+      
       onSubmit();
     } catch (err) {
       if (err instanceof ApiError) {
         setApiError(err.message);
       } else {
-        setApiError('Error inesperado al crear el proyecto.');
+        setApiError('Error inesperado al guardar el proyecto.');
       }
     } finally {
       setIsSubmitting(false);
@@ -122,23 +132,17 @@ export function ProjectForm({ onSubmit, isLoading: externalLoading }: Readonly<P
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <label htmlFor="interventionType" className="text-sm font-medium text-gray-300">
-            Tipo de Intervención
-          </label>
-          <select
+          <Select
             id="interventionType"
+            label="Tipo de Intervención"
+            options={Object.entries(InterventionTypeLabels).map(([value, label]) => ({
+              value,
+              label,
+            }))}
             {...register('interventionType')}
-            className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:border-brand-primary outline-none transition-colors appearance-none"
-          >
-            {Object.entries(InterventionTypeLabels).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-          {errors.interventionType && (
-            <p className="text-xs text-red-500">{errors.interventionType.message}</p>
-          )}
+            error={errors.interventionType?.message}
+          />
+
         </div>
 
         <div className="space-y-2">
@@ -189,7 +193,7 @@ export function ProjectForm({ onSubmit, isLoading: externalLoading }: Readonly<P
       )}
 
       <Button type="submit" className="w-full h-12 mt-6" isLoading={loading}>
-        Crear Proyecto
+        {project?.id ? 'Actualizar Proyecto' : 'Crear Proyecto'}
       </Button>
     </form>
   );

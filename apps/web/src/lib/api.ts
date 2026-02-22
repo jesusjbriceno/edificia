@@ -1,4 +1,4 @@
-import axios, { AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
+import axios, { type AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
 import type { ProblemDetails, ValidationProblemDetails } from '@/lib/types';
 import { useAuthStore } from '@/store/useAuthStore';
 

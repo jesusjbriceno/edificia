@@ -13,6 +13,10 @@ public sealed record GenerateSectionTextCommand(
     string Prompt,
     string? Context) : IRequest<Result<GeneratedTextResponse>>
 {
-    public static GenerateSectionTextCommand Create(Guid projectId, GenerateTextRequest r)
-        => new(projectId, r.SectionId, r.Prompt, r.Context);
+    /// <summary>
+    /// Maps the DTO fields. <see cref="ProjectId"/> must be enriched
+    /// from the route param in the controller using a <c>with</c> expression.
+    /// </summary>
+    public static explicit operator GenerateSectionTextCommand(GenerateTextRequest r)
+        => new(Guid.Empty, r.SectionId, r.Prompt, r.Context);
 }

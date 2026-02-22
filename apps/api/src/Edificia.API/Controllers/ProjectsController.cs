@@ -1,6 +1,12 @@
+using System.Security.Claims;
 using Edificia.Application.Common;
+using Edificia.Application.Projects.Commands.ApproveProject;
 using Edificia.Application.Projects.Commands.CreateProject;
+using Edificia.Application.Projects.Commands.DeleteProject;
 using Edificia.Application.Projects.Commands.PatchSectionContent;
+using Edificia.Application.Projects.Commands.RejectProject;
+using Edificia.Application.Projects.Commands.SubmitForReview;
+using Edificia.Application.Projects.Commands.UpdateProject;
 using Edificia.Application.Projects.Commands.UpdateProjectTree;
 using Edificia.Application.Projects.Queries;
 using Edificia.Application.Projects.Queries.GetProjectById;
@@ -80,10 +86,50 @@ public sealed class ProjectsController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create([FromBody] CreateProjectRequest request)
     {
-        var command = (CreateProjectCommand)request;
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null) return Unauthorized();
+
+        var command = CreateProjectCommand.Create(currentUserId.Value, request);
         var result = await _sender.Send(command);
 
         return HandleCreated(result, nameof(GetById), id => new { id });
+    }
+
+    /// <summary>
+    /// Updates a project's settings (title, intervention type, LOE, etc.).
+    /// </summary>
+    /// <param name="id">The project ID.</param>
+    /// <param name="request">The project update data.</param>
+    /// <response code="204">Project updated successfully.</response>
+    /// <response code="400">Validation error in the request data.</response>
+    /// <response code="404">Project not found.</response>
+    [HttpPut("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProjectRequest request)
+    {
+        var command = UpdateProjectCommand.Create(id, request);
+        var result = await _sender.Send(command);
+
+        return HandleNoContent(result);
+    }
+
+    /// <summary>
+    /// Deletes a project permanently.
+    /// </summary>
+    /// <param name="id">The project ID.</param>
+    /// <response code="204">Project deleted successfully.</response>
+    /// <response code="404">Project not found.</response>
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        var command = new DeleteProjectCommand(id);
+        var result = await _sender.Send(command);
+
+        return HandleNoContent(result);
     }
 
     /// <summary>
@@ -120,7 +166,7 @@ public sealed class ProjectsController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateTree(Guid id, [FromBody] UpdateProjectTreeRequest request)
     {
-        var command = UpdateProjectTreeCommand.Create(id, request);
+        var command = (UpdateProjectTreeCommand)request with { ProjectId = id };
         var result = await _sender.Send(command);
 
         return HandleNoContent(result);
@@ -143,9 +189,81 @@ public sealed class ProjectsController : BaseApiController
     public async Task<IActionResult> PatchSectionContent(
         Guid id, string sectionId, [FromBody] UpdateSectionRequest request)
     {
-        var command = PatchSectionContentCommand.Create(id, sectionId, request);
+        var command = (PatchSectionContentCommand)request with { ProjectId = id, SectionId = sectionId };
         var result = await _sender.Send(command);
 
         return HandleNoContent(result);
+    }
+
+    /// <summary>
+    /// Submits a project for review. Transitions status to PendingReview.
+    /// Available from Draft or InProgress states.
+    /// </summary>
+    /// <param name="id">The project ID.</param>
+    /// <response code="204">Project submitted for review successfully.</response>
+    /// <response code="404">Project not found.</response>
+    /// <response code="422">Invalid state transition.</response>
+    [HttpPost("{id:guid}/submit-review")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> SubmitForReview(Guid id)
+    {
+        var command = new SubmitForReviewCommand(id);
+        var result = await _sender.Send(command);
+
+        return HandleNoContent(result);
+    }
+
+    /// <summary>
+    /// Approves a project under review. Transitions status to Completed.
+    /// Only available from PendingReview state. Requires Admin or Root role.
+    /// </summary>
+    /// <param name="id">The project ID.</param>
+    /// <response code="204">Project approved successfully.</response>
+    /// <response code="404">Project not found.</response>
+    /// <response code="422">Invalid state transition.</response>
+    [HttpPost("{id:guid}/approve")]
+    [Authorize(Policy = AppPolicies.RequireAdmin)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> ApproveProject(Guid id)
+    {
+        var command = new ApproveProjectCommand(id);
+        var result = await _sender.Send(command);
+
+        return HandleNoContent(result);
+    }
+
+    /// <summary>
+    /// Rejects a project under review. Transitions status back to Draft.
+    /// Only available from PendingReview state. Requires Admin or Root role.
+    /// </summary>
+    /// <param name="id">The project ID.</param>
+    /// <param name="request">The rejection reason.</param>
+    /// <response code="204">Project rejected successfully.</response>
+    /// <response code="400">Validation error (reason required).</response>
+    /// <response code="404">Project not found.</response>
+    /// <response code="422">Invalid state transition.</response>
+    [HttpPost("{id:guid}/reject")]
+    [Authorize(Policy = AppPolicies.RequireAdmin)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> RejectProject(Guid id, [FromBody] RejectProjectRequest request)
+    {
+        var command = new RejectProjectCommand(id, request.Reason);
+        var result = await _sender.Send(command);
+
+        return HandleNoContent(result);
+    }
+
+    private Guid? GetCurrentUserId()
+    {
+        var sub = User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.FindFirstValue("sub");
+        return Guid.TryParse(sub, out var id) ? id : null;
     }
 }

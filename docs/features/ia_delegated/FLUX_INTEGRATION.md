@@ -1,6 +1,6 @@
-# Flux Gateway Integration — EDIFICIA (n8n)
+# Flux Gateway Integration — EdificIA (n8n)
 
-This document summarizes the necessary configuration to integrate EDIFICIA's n8n Flux workflow with the Flux Gateway API (see `flux-openapi.json`). It complements `GUIA_WORKFLOWS_N8N.md`.
+This document summarizes the necessary configuration to integrate EdificIA's n8n Flux workflow with the Flux Gateway API (see `flux-openapi.json`). It complements `GUIA_WORKFLOWS_N8N.md`.
 
 ## Endpoints used by the workflow
 
