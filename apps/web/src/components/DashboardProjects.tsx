@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import ProjectCard from '@/components/ProjectCard';
-import ProjectWizard from '@/components/ProjectWizard';
 import { DeleteProjectModal } from '@/components/DeleteProjectModal';
 import { Button } from '@/components/ui/Button';
 import { Plus, AlertCircle, FolderOpen } from 'lucide-react';
@@ -19,7 +18,6 @@ export default function DashboardProjects() {
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [wizardOpen, setWizardOpen] = useState(false);
   const { addToast } = useToastStore();
 
   // Delete state (kept as modal — destructive action)
@@ -51,10 +49,6 @@ export default function DashboardProjects() {
   useEffect(() => {
     fetchProjects(page);
   }, [page, fetchProjects]);
-
-  const handleCreated = (projectId: string) => {
-    window.location.href = `/projects/${projectId}`;
-  };
 
   const handleCardClick = (id: string) => {
     window.location.href = `/projects/${id}`;
@@ -101,7 +95,7 @@ export default function DashboardProjects() {
           <h1 className="text-3xl font-bold text-white tracking-tight">Mis Proyectos</h1>
           <p className="text-gray-400 mt-1">Gestiona y redacta tus memorias de proyecto.</p>
         </div>
-        <Button onClick={() => setWizardOpen(true)} className="h-12 px-6">
+        <Button onClick={() => { window.location.href = '/admin/projects/new'; }} className="h-12 px-6">
           <Plus size={18} className="mr-2" />
           Nuevo Proyecto
         </Button>
@@ -126,7 +120,7 @@ export default function DashboardProjects() {
         <div className="flex flex-col items-center gap-4 py-20 text-center rounded-2xl border border-dashed border-white/10 bg-white/2">
           <FolderOpen size={48} className="text-gray-600" />
           <p className="text-gray-400">Aún no tienes ningún proyecto.</p>
-          <Button onClick={() => setWizardOpen(true)} size="sm">
+          <Button onClick={() => { window.location.href = '/admin/projects/new'; }} size="sm">
             <Plus size={16} className="mr-1" />
             Crear primer proyecto
           </Button>
@@ -176,13 +170,6 @@ export default function DashboardProjects() {
           )}
         </>
       )}
-
-      {/* ProjectWizard (create new) */}
-      <ProjectWizard
-        isOpen={wizardOpen}
-        onClose={() => setWizardOpen(false)}
-        onCreated={handleCreated}
-      />
 
       {/* Delete confirmation — kept as modal (destructive action) */}
       <DeleteProjectModal
