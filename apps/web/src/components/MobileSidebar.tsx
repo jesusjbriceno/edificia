@@ -69,7 +69,8 @@ export default function MobileSidebar() {
           {/* Sidebar panel */}
           <aside
             ref={sidebarRef}
-            className="absolute left-0 top-0 h-full w-72 bg-dark-bg border-r border-white/5 flex flex-col animate-in slide-in-from-left duration-200"
+            className="absolute left-0 top-0 h-full w-72 bg-dark-card border-r border-white/10 flex flex-col shadow-2xl shadow-black/60 animate-in slide-in-from-left duration-200"
+            style={{ backgroundColor: '#161618' }}
           >
             {/* Header */}
             <div className="flex items-center justify-between p-6">
