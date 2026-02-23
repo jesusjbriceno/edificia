@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: EDIFICIA API
+  title: EdificIA API
   version: 1.0.0
   description: |
     API para la redacción automatizada de Memorias de Proyecto de Ejecución (CTE/LOE).
@@ -16,7 +16,7 @@ info:
     ## Errores
     Todas las respuestas de error usan el formato RFC 7807 ProblemDetails.
   contact:
-    name: EDIFICIA
+    name: EdificIA
     url: https://edificia.jesusjbriceno.dev
   license:
     name: Apache 2.0

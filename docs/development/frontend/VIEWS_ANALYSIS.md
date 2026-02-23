@@ -6,7 +6,7 @@
 
 ```mermaid
 graph TD
-    root[/] --> Auth
+    root["/"] --> Auth
 
     subgraph "Public Zone"
         Auth[Login /]

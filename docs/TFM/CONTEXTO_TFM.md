@@ -25,7 +25,7 @@ EdificIA es un **SaaS profesional** para la redacción automatizada y asistida p
 ### Propuesta de valor diferencial
 
 - **Discriminación normativa inteligente:** El árbol de capítulos CTE se filtra automáticamente según el tipo de obra. Una reforma interior elimina los capítulos de Cimentación o Estructura al no ser necesarios.
-- **IA soberana y delegada:** La generación de texto no depende de un proveedor fijo. Se delega a flujos n8n intercambiables mediante la variable `AI_WEBHOOK_URL`.
+- **IA soberana y delegada:** La generación de texto no depende de un proveedor fijo. Se delega a flujos n8n intercambiables mediante la variable `N8N_WEBHOOK_URL`.
 - **Modo Túnel (offline):** Estado del editor persistido en IndexedDB, operativo sin conexión.
 - **Arquitectura escalable:** Clean Architecture + CQRS permite añadir nuevas funcionalidades sin reescritura.
 
@@ -39,9 +39,9 @@ Sin embargo, EdificIA **no está acoplado a Flux Gateway**. La arquitectura de I
 
 - **Flux Gateway** (`workflow-flux.json`): IA soberana, autenticación OAuth2, orientada a producción privada.
 - **Google Gemini** (`workflow-gemini.json`): Proveedor cloud, API key simple, menor latencia.
-- **Cualquier otro proveedor** (OpenAI, Anthropic, Ollama/LM Studio para uso local): basta con adaptar el workflow n8n correspondiente.
+- **Cualquier otro proveedor** (OpenAI, Anthropic — Ollama/LM Studio como futuros en Roadmap §9.3): basta con adaptar el workflow n8n correspondiente.
 
-El cambio de proveedor **no requiere modificaciones en el código del backend** (.NET). Solo se actualiza la variable de entorno `AI_WEBHOOK_URL` apuntando al webhook del flujo n8n elegido.
+El cambio de proveedor **no requiere modificaciones en el código del backend** (.NET). Solo se actualiza la variable de entorno `N8N_WEBHOOK_URL` apuntando al webhook del flujo n8n elegido.
 
 ---
 
@@ -49,32 +49,54 @@ El cambio de proveedor **no requiere modificaciones en el código del backend** 
 
 A continuación se describe cada vista implementada, con referencia al nombre de captura de pantalla que debe incluirse en las diapositivas correspondientes. **Las capturas deben reemplazar los placeholders** `📷 [IMAGEN: img_0X.png]` al preparar la presentación final.
 
-### Vista 1: Autenticación — `img_01_login.png`
+### Vista 1: Autenticación — `00_login.png`
 - **Ruta:** `/` (página raíz)
 - **Descripción:** Formulario de login con fondo arquitectónico premium. Enlace a recuperación de contraseña. JWT + Refresh Tokens. Guard de autenticación activo.
 - **Aspectos a destacar:** Diseño profesional orientado al sector AEC (Arquitectura, Ingeniería, Construcción). Validación con Zod.
 
-### Vista 2: Dashboard de Proyectos — `img_02_dashboard.png`
+![Pantalla de autenticación](images/00_login.png)
+
+### Vista 2: Dashboard de Proyectos — `01_dashboard.png`
 - **Ruta:** `/dashboard`
 - **Descripción:** Grid de tarjetas de proyectos activos del usuario. Botón "Nuevo Proyecto" lanza un Wizard de creación. Sidebar con navegación principal. Header con búsqueda, notificaciones y menú de usuario.
 - **Aspectos a destacar:** Wizard multi-paso para alta de proyecto (Título, Descripción, Tipo de intervención: Obra Nueva / Reforma). El tipo seleccionado determina la estructura del árbol normativo.
 
-### Vista 3: Editor de Memoria Técnica — `img_03_editor.png`
+![Dashboard de proyectos](images/01_dashboard.png)
+
+![Listado de proyectos](images/02_projects.png)
+
+### Vista 3: Editor de Memoria Técnica — `04_project_memory.png`
 - **Ruta:** `/projects/:id`
 - **Descripción:** Layout de dos columnas: árbol lateral de capítulos CTE (sidebar) + editor central TipTap (editor WYSIWYG headless). La barra de herramientas ofrece formato básico (negrita, cursiva, encabezados, listas). El sidebar incluye búsqueda en tiempo real que filtra recursivamente el árbol.
 - **Aspectos a destacar:** Cabecera multi-nivel con tipo de intervención en contexto. Estado guardado automáticamente en IndexedDB (Modo Túnel offline). Botón "Generar con IA" que invoca el webhook n8n del backend.
 
-### Vista 4: Panel de Administración — `img_04_admin.png`
+![Detalles del proyecto](images/03_project_details.png)
+
+![Editor de memoria técnica](images/04_project_memory.png)
+
+![Formulario de proyecto](images/05_project_form.png)
+
+### Vista 4: Panel de Administración — `06_users.png`
 - **Ruta:** `/admin/users`, `/admin/projects`, `/admin/notifications`
 - **Descripción:** Panel accesible solo para roles Admin/SuperAdmin. Gestión completa de usuarios (CRUD con roles), proyectos (con estados: En Ejecución / En Espera / Finalizado) y notificaciones del sistema (campana con contador de no leídas).
 - **Aspectos a destacar:** Tabla de usuarios con búsqueda y filtrado. Formularios validados con Zod. Dropdown con portal para evitar clipping en layouts complejos.
 
-### Vista 5: Flujo de Integración IA — `img_05_ai_flow.png`
-- **Descripción:** Diagrama del flujo de integración IA delegada. El backend .NET envía un contexto técnico al webhook n8n. n8n procesa y llama al proveedor de IA (Flux Gateway o Gemini). La respuesta normalizada retorna al backend. El frontend muestra el texto generado en el editor.
-- **Nota:** Esta es una captura del flujo en n8n o un diagrama de arquitectura, no una vista de la aplicación web.
+![Gestión de usuarios](images/06_users.png)
 
-### Vista 6: Infraestructura de despliegue — `img_06_deploy.png`
-- **Descripción:** Diagrama del entorno de producción: Coolify v4 como PaaS self-hosted, Traefik como reverse proxy con TLS automático (Let's Encrypt), contenedores Docker para API (.NET 8) y Web (Astro), PostgreSQL y Redis como servicios auxiliares.
+![Formulario de usuario](images/07_user_form.png)
+
+![Notificaciones](images/08_notifications.png)
+
+![Gestor de notificaciones](images/09_notifications_manager.png)
+
+![Email de sistema](images/10_email.png)
+
+### Vista 5: Flujo de Integración IA — *(pendiente captura n8n)*
+- **Descripción:** Diagrama del flujo de integración IA delegada. El backend .NET envía un contexto técnico al webhook n8n. n8n procesa y llama al proveedor de IA (Flux Gateway o Gemini). La respuesta normalizada retorna al backend. El frontend muestra el texto generado en el editor.
+- **Nota:** Captura del flujo en n8n o un diagrama de arquitectura, no una vista de la aplicación web.
+
+### Vista 6: Infraestructura de despliegue — *(pendiente captura Coolify)*
+- **Descripción:** Diagrama del entorno de producción: Coolify v4 como PaaS self-hosted, Traefik como reverse proxy con TLS automático (Let's Encrypt), contenedores Docker para API (.NET 10) y Web (Astro), PostgreSQL y Redis como servicios auxiliares.
 - **Nota:** Captura del panel de Coolify o diagrama de arquitectura de despliegue.
 
 ---
@@ -123,12 +145,12 @@ Al generar las diapositivas, el modelo debe:
    2. **Agenda** (contenido): Índice de la presentación (6-7 puntos)
    3. **El problema** (contenido): Pain points del sector construcción en España (documentación manual, CTE/LOE complejo)
    4. **La solución: EdificIA** (contenido): Propuesta de valor, discriminación Obra Nueva/Reforma
-   5. **Arquitectura técnica** (contenido): Clean Architecture + CQRS + stack (.NET 8, Astro, PostgreSQL, n8n, Docker)
+   5. **Arquitectura técnica** (contenido): Clean Architecture + CQRS + stack (.NET 10, Astro, PostgreSQL, n8n, Docker)
    6. **Demo: Login y autenticación** (imagen): `img_01_login.png`
    7. **Demo: Dashboard de proyectos** (imagen): `img_02_dashboard.png`
    8. **Demo: Editor de Memoria** (imagen): `img_03_editor.png`
    9. **Demo: Panel de Administración** (imagen): `img_04_admin.png`
-   10. **IA delegada: arquitectura** (contenido): Flux Gateway (herramienta accesoria soberana) + n8n + Gemini, intercambiables vía `AI_WEBHOOK_URL`
+   10. **IA delegada: arquitectura** (contenido): Flux Gateway (herramienta accesoria soberana) + n8n + Gemini, intercambiables vía `N8N_WEBHOOK_URL`
    11. **Demo: Flujo IA en n8n** (imagen): `img_05_ai_flow.png`
    12. **Despliegue en producción** (contenido): Docker + Coolify + Traefik + TLS automático
    13. **Resultados obtenidos** (contenido): MVP completo, todas las fases implementadas, en producción
