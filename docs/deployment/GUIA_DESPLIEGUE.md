@@ -1,8 +1,8 @@
 # **🚀 Guía de Despliegue y Configuración de Entornos — EdificIA**
 
-**Versión:** 2.0  
-**Última actualización:** 2026-02-17  
-**Enfoque:** Contenerización para Producción (Docker).
+**Versión:** 2.1  
+**Última actualización:** 2026-06-14  
+**Enfoque:** Contenerización para Producción (Docker + Coolify v4).
 
 **Objetivo:** Publicar la solución en un servidor VPS o Cloud (Linux).
 
@@ -31,7 +31,7 @@ El Backend lee la configuración en este orden (el último gana):
 
 Define la **estructura completa** de configuración. No contiene secretos reales en el repositorio.
 
-> **Nota:** Las secciones de configuración (`Jwt`, `Email`, `Security`, `FluxGateway`)
+> **Nota:** Las secciones de configuración (`Jwt`, `Email`, `Security`, `AI`)
 > están mapeadas a clases C# con `SectionName` constante en Infrastructure.
 
 ```json
@@ -49,12 +49,11 @@ Define la **estructura completa** de configuración. No contiene secretos reales
   "Cors": {
     "AllowedOrigins": ["https://edificia.jesusjbriceno.dev"]
   },
-  "FluxGateway": {
-    "AuthUrl": "https://dashboard-flux.jesusjbriceno.dev/api/v1/auth/login",
-    "ChatUrl": "https://dashboard-flux.jesusjbriceno.dev/api/v1/chat/completions",
-    "ClientId": "",
-    "ClientSecret": "",
-    "Model": null
+  "AI": {
+    "Provider": "n8n",
+    "WebhookUrl": "http://localhost:5678/webhook/generar-memoria",
+    "ApiSecret": "",
+    "TimeoutSeconds": 210
   },
   "Security": {
     "RootEmail": "admin@edificia.dev",
@@ -89,7 +88,7 @@ Define la **estructura completa** de configuración. No contiene secretos reales
 | `Jwt`              | `JwtSettings`         | Infrastructure.Identity  |
 | `Security`         | `SecuritySettings`    | Infrastructure.Identity  |
 | `Email`            | `EmailSettings`       | Infrastructure.Email     |
-| `FluxGateway`      | `FluxGatewaySettings` | Infrastructure.Ai        |
+| `AI`               | `AiSettings`          | Infrastructure.Ai        |
 | `Cors`             | (lectura directa)     | API.Configuration        |
 | `ConnectionStrings`| (lectura directa)     | Infrastructure           |
 
@@ -176,13 +175,13 @@ Multi-stage build para SSR con el adaptador Node.js de Astro.
 
 ```dockerfile
 # --- ETAPA 1: DEPENDENCIAS ---
-FROM node:20-alpine AS deps
+FROM node:22-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev
 
 # --- ETAPA 2: BUILD ---
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
@@ -190,7 +189,7 @@ COPY . .
 RUN npm run build
 
 # --- ETAPA 3: RUNTIME ---
-FROM node:20-alpine AS runtime
+FROM node:22-alpine AS runtime
 WORKDIR /app
 
 COPY --from=build /app/dist ./dist
@@ -206,6 +205,8 @@ EXPOSE 4321
 
 CMD ["node", "./dist/server/entry.mjs"]
 ```
+
+> **⚠️ Importante:** El Dockerfile del frontend **no incluye `HEALTHCHECK`**. Si se añade, Traefik excluye automáticamente los contenedores `unhealthy` del routing, impidiendo el acceso al frontend hasta que el check pase. El Dockerfile del API sí incluye `HEALTHCHECK` apuntando a `/health/live`.
 
 > **Prerrequisito:** Instalar el adaptador de Node:
 > ```bash
@@ -278,8 +279,11 @@ docker compose -f docker-compose.apps.yml --env-file .env up -d
 | `DB_PASSWORD`      | Contraseña PostgreSQL                  | (generada)                  |
 | `REDIS_PASSWORD`   | Contraseña Redis                       | (generada)                  |
 | `JWT_SECRET`       | Clave JWT (mín. 32 chars)              | `openssl rand -base64 64`   |
-| `FLUX_CLIENT_ID`   | Client ID de Flux Gateway              | —                           |
-| `FLUX_CLIENT_SECRET`| Client Secret de Flux Gateway         | —                           |
+| `N8N_WEBHOOK_URL`  | URL del webhook n8n para generación IA | `https://n8n.example.com/webhook/...` |
+| `N8N_API_SECRET`   | Clave `X-Edificia-Auth` para n8n       | (generada)                  |
+| `EMAIL_FROM_ADDRESS`| Dirección remitente de emails          | `noreply@edificia.dev`      |
+| `EMAIL_FROM_NAME`  | Nombre remitente de emails             | `EdificIA`                  |
+| `DATABASE_URL`     | URL completa PostgreSQL (alternativa)  | `postgresql://user:pass@host:5432/db` |
 | `EMAIL_PROVIDER`   | `Smtp` o `Brevo`                       | `Smtp`                      |
 | `BREVO_API_KEY`    | API Key de Brevo (si Provider=Brevo)   | —                           |
 | `SMTP_HOST`        | Servidor SMTP                          | `smtp.example.com`          |
@@ -300,14 +304,18 @@ Docker traduce `__` (doble guión bajo) a `:` para la jerarquía de configuraci�
 | `Jwt__SecretKey`                         | `Jwt:SecretKey`                     |
 | `Jwt__Issuer`                            | `Jwt:Issuer`                        |
 | `Jwt__Audience`                          | `Jwt:Audience`                      |
-| `FluxGateway__ClientId`                  | `FluxGateway:ClientId`              |
-| `FluxGateway__ClientSecret`              | `FluxGateway:ClientSecret`          |
+| `AI__WebhookUrl`                         | `AI:WebhookUrl`                     |
+| `AI__ApiSecret`                          | `AI:ApiSecret`                      |
+| `AI__Provider`                           | `AI:Provider`                       |
+| `AI__TimeoutSeconds`                     | `AI:TimeoutSeconds`                 |
 | `Email__Provider`                        | `Email:Provider`                    |
+| `Email__FromAddress`                     | `Email:FromAddress`                 |
+| `Email__FromName`                        | `Email:FromName`                    |
 | `Email__BrevoApiKey`                     | `Email:BrevoApiKey`                 |
 | `Email__SmtpHost`                        | `Email:SmtpHost`                    |
 | `Email__SmtpPort`                        | `Email:SmtpPort`                    |
-| `Email__SmtpUsername`                     | `Email:SmtpUsername`                |
-| `Email__SmtpPassword`                    | `Email:SmtpPassword`               |
+| `Email__SmtpUsername`                    | `Email:SmtpUsername`                |
+| `Email__SmtpPassword`                    | `Email:SmtpPassword`                |
 | `Email__SmtpUseSsl`                      | `Email:SmtpUseSsl`                  |
 | `Security__RootEmail`                    | `Security:RootEmail`                |
 | `Security__RootInitialPassword`          | `Security:RootInitialPassword`      |
@@ -315,13 +323,25 @@ Docker traduce `__` (doble guión bajo) a `:` para la jerarquía de configuraci�
 
 ---
 
-## **5. Proxy Inverso (Nginx / Caddy)**
+## **5. Proxy Inverso**
 
-### **5.1. Ejemplo con Caddy (Recomendado — SSL automático)**
+### **5.1. Producción: Coolify v4 + Traefik (Recomendado)**
+
+En el entorno de producción, **Coolify v4 gestiona Traefik automáticamente**. No es necesario configurar ningún proxy manualmente ni añadir etiquetas Traefik a los contenedores. Basta con:
+
+1. Configurar los dominios en la interfaz de Coolify (`api-edificia.jesusjbriceno.dev` y `edificia.jesusjbriceno.dev`).
+2. Activar "Generate SSL Certificate" — Coolify/Traefik emite y renueva los certificados TLS (Let's Encrypt) de forma automática.
+3. El contenedor de la API expone el puerto `8080` internamente; el frontend expone el `4321`. Coolify mapea los dominios a estos puertos.
+
+> **⚠️ Aviso:** Los contenedores con `HEALTHCHECK` en estado `unhealthy` son excluidos del routing por Traefik. Para el frontend, **no incluir `HEALTHCHECK`** en el Dockerfile (ver Sección 3.2).
+
+### **5.2. Alternativa: Caddy (SSL automático)**
+
+Para entornos on-premise sin Coolify:
 
 ```caddyfile
 api-edificia.jesusjbriceno.dev {
-    reverse_proxy localhost:5000
+    reverse_proxy localhost:8080
 }
 
 edificia.jesusjbriceno.dev {
@@ -329,7 +349,7 @@ edificia.jesusjbriceno.dev {
 }
 ```
 
-### **5.2. Ejemplo con Nginx**
+### **5.3. Alternativa: Nginx**
 
 ```nginx
 server {
@@ -340,7 +360,7 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/api-edificia.jesusjbriceno.dev/privkey.pem;
 
     location / {
-        proxy_pass http://localhost:5000;
+        proxy_pass http://localhost:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -374,7 +394,8 @@ server {
 - [ ] **Archivo `.env` creado** a partir de `.env.example` con valores reales.
 - [ ] **`DB_PASSWORD`** — Contraseña compleja generada.
 - [ ] **`JWT_SECRET`** — Mínimo 32 caracteres aleatorios (`openssl rand -base64 64`).
-- [ ] **`FLUX_CLIENT_SECRET`** — Credenciales de la pasarela IA.
+- [ ] **`N8N_WEBHOOK_URL`** — URL del webhook n8n para la generación de contenido IA.
+- [ ] **`N8N_API_SECRET`** — Clave secreta compartida entre la API y el workflow n8n (`X-Edificia-Auth`).
 - [ ] **`ROOT_PASSWORD`** — Contraseña fuerte para el admin inicial.
 - [ ] **`REDIS_PASSWORD`** — Contraseña para Redis.
 
@@ -388,9 +409,9 @@ server {
 
 ### **6.3. SSL / Proxy Inverso**
 
-- [ ] Certificados SSL configurados (Let's Encrypt / Caddy automático).
-- [ ] `api-edificia.jesusjbriceno.dev` → `localhost:5000`.
-- [ ] `edificia.jesusjbriceno.dev` → `localhost:4321`.
+- [ ] Certificados SSL configurados (Let's Encrypt automático vía Coolify/Caddy, o manual).
+- [ ] `api-edificia.jesusjbriceno.dev` → `localhost:8080` (puerto interno del contenedor API).
+- [ ] `edificia.jesusjbriceno.dev` → `localhost:4321` (puerto interno del contenedor web).
 
 ### **6.4. CORS**
 
@@ -405,8 +426,8 @@ curl -f https://api-edificia.jesusjbriceno.dev/health/live
 # Health check (readiness - incluye BD)
 curl -f https://api-edificia.jesusjbriceno.dev/health/ready
 
-# Swagger (solo disponible en Development — no expuesto en producción)
-# curl https://api-edificia.jesusjbriceno.dev/swagger
+# Swagger (accesible en producción — útil para verificar la API)
+curl -s https://api-edificia.jesusjbriceno.dev/swagger/index.html | head -c 200
 ```
 
 ---
