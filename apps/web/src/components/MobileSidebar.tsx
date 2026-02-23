@@ -57,27 +57,37 @@ export default function MobileSidebar() {
         <Menu size={22} />
       </button>
 
-      {/* Overlay + Sidebar */}
+      {/* Overlay + Sidebar — rendered as two independent fixed layers to avoid
+          stacking context conflicts caused by backdrop-filter on the overlay */}
       {open && (
-        <div className="fixed inset-0 z-50 md:hidden">
-          {/* Backdrop */}
+        <>
+          {/* Backdrop — z-[998] */}
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 md:hidden bg-black/60 backdrop-blur-sm"
+            style={{ zIndex: 998 }}
             onClick={() => setOpen(false)}
           />
 
-          {/* Sidebar panel */}
+          {/* Sidebar panel — z-[999], always above backdrop */}
           <aside
             ref={sidebarRef}
-            className="absolute left-0 top-0 h-full w-72 flex flex-col shadow-2xl animate-in slide-in-from-left duration-200"
-            style={{ backgroundColor: '#161618', borderRight: '1px solid rgba(255,255,255,0.08)', isolation: 'isolate' }}
+            className="fixed left-0 top-0 h-full w-72 md:hidden flex flex-col animate-in slide-in-from-left duration-200"
+            style={{
+              zIndex: 999,
+              backgroundColor: '#161618',
+              borderRight: '1px solid rgba(255,255,255,0.1)',
+              boxShadow: '4px 0 24px rgba(0,0,0,0.6)',
+            }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-6 shrink-0" style={{ backgroundColor: '#161618' }}>
+            <div
+              className="flex items-center justify-between px-6 py-5 shrink-0"
+              style={{ backgroundColor: '#161618', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+            >
               <a href="/dashboard">
-                <img 
-                  src="/logo-completo.webp" 
-                  alt="EDIFICIA" 
+                <img
+                  src="/logo-completo.webp"
+                  alt="EDIFICIA"
                   className="h-8 w-auto object-contain"
                 />
               </a>
@@ -92,7 +102,10 @@ export default function MobileSidebar() {
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 px-4 space-y-2 mt-2 overflow-y-auto" style={{ backgroundColor: '#161618' }}>
+            <nav
+              className="flex-1 px-4 py-4 space-y-1 overflow-y-auto"
+              style={{ backgroundColor: '#161618' }}
+            >
               {NAV_ITEMS.map(({ href, label, Icon }) => (
                 <a
                   key={href}
@@ -110,7 +123,10 @@ export default function MobileSidebar() {
             </nav>
 
             {/* Footer */}
-            <div className="p-4 space-y-2 shrink-0" style={{ backgroundColor: '#161618', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            <div
+              className="p-4 space-y-2 shrink-0"
+              style={{ backgroundColor: '#161618', borderTop: '1px solid rgba(255,255,255,0.06)' }}
+            >
               <span className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-500 cursor-not-allowed rounded-lg opacity-50">
                 <Settings size={18} />
                 Ajustes
@@ -118,7 +134,7 @@ export default function MobileSidebar() {
               <SidebarLogout />
             </div>
           </aside>
-        </div>
+        </>
       )}
     </>
   );
