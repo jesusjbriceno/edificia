@@ -64,6 +64,7 @@ services:
     environment:
       PUBLIC_API_URL: "https://api-edificia.jesusjbriceno.dev/api"  # Con /api — baseURL de Axios
       INTERNAL_API_URL: "http://api:8080"                           # Red interna Docker (SSR login proxy)
+      NODE_ENV: "production"
       HOST: "0.0.0.0"
       PORT: "4321"
     ports:
