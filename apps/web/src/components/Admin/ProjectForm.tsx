@@ -23,7 +23,7 @@ const projectSchema = z.object({
 type ProjectFormData = z.infer<typeof projectSchema>;
 
 interface ProjectFormProps {
-  onSubmit: () => void;
+  onSubmit: (projectId?: string) => void;
   project?: ProjectResponse;
   isLoading?: boolean;
 }
@@ -67,11 +67,11 @@ export function ProjectForm({ onSubmit, project, isLoading: externalLoading }: R
 
       if (project?.id) {
         await projectService.update(project.id, payload);
+        onSubmit();
       } else {
-        await projectService.create(payload);
+        const createdId = await projectService.create(payload);
+        onSubmit(createdId);
       }
-      
-      onSubmit();
     } catch (err) {
       if (err instanceof ApiError) {
         setApiError(err.message);

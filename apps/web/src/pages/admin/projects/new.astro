@@ -4,8 +4,8 @@ import { AuthGuard } from '@/components/auth/AuthGuard';
 import AdminProjectFormPage from '@/components/Admin/AdminProjectFormPage';
 ---
 
-<DashboardLayout title="Admin — Nuevo Proyecto">
-	<AuthGuard allowedRoles={['Root', 'Admin']} client:load>
+<DashboardLayout title="Nuevo Proyecto">
+	<AuthGuard client:load>
 		<div class="max-w-4xl mx-auto space-y-8">
 			<AdminProjectFormPage client:load />
 		</div>
