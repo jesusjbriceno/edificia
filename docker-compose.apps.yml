@@ -39,15 +39,38 @@ services:
       - "coolify.managed=true"
     networks:
       - coolify-network
-    env_file:
-      - path: .env
-        required: false
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      # Fixed production values (secrets come from .env / Coolify UI)
+      # ── Base de datos ──
+      DATABASE_URL: ${DATABASE_URL:-}
+      DB_HOST: ${DB_HOST:-}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-edificia_db}
+      DB_USER: ${DB_USER:-edificia}
+      DB_PASSWORD: ${DB_PASSWORD:-}
+      # ── JWT ──
+      JWT_SECRET: ${JWT_SECRET:-}
       Jwt__Issuer: "https://api-edificia.jesusjbriceno.dev"
       Jwt__Audience: "https://edificia.jesusjbriceno.dev"
+      # ── CORS ──
       Cors__AllowedOrigins__0: "https://edificia.jesusjbriceno.dev"
+      # ── IA (n8n) ──
+      N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL:-}
+      N8N_API_SECRET: ${N8N_API_SECRET:-}
+      N8N_TIMEOUT: ${N8N_TIMEOUT:-120}
+      # ── Email ──
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-}
+      EMAIL_FROM_ADDRESS: ${EMAIL_FROM_ADDRESS:-}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-}
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_USE_SSL: ${SMTP_USE_SSL:-true}
+      # ── Root Admin (seed inicial) ──
+      ROOT_EMAIL: ${ROOT_EMAIL:-}
+      ROOT_PASSWORD: ${ROOT_PASSWORD:-}
 
   # ── Frontend Web ──
   web:
@@ -58,12 +81,9 @@ services:
     container_name: edificia_prod_web
     restart: always
     exclude_from_hc: true
-    env_file:
-      - path: .env
-        required: false
     environment:
-      PUBLIC_API_URL: "https://api-edificia.jesusjbriceno.dev/api"  # Con /api — baseURL de Axios
-      INTERNAL_API_URL: "http://api:8080"                           # Red interna Docker (SSR login proxy)
+      PUBLIC_API_URL: "https://api-edificia.jesusjbriceno.dev/api"
+      INTERNAL_API_URL: "http://api:8080"
       NODE_ENV: "production"
       HOST: "0.0.0.0"
       PORT: "4321"
