@@ -22,6 +22,8 @@
 - ✅ Stores Zustand (useAuthStore, useEditorStore)
 - ✅ Suite de tests centralizada en src/tests (Vitest)
 - ✅ .github/copilot-instructions.md con guías del proyecto para GitHub Copilot
+- ✅ Storybook v8: catálogo visual de componentes UI (`Button`, `Badge`, `Input`, `Modal`, `Skeleton`) con autodocs generadas desde los tipos TypeScript
+- ✅ `MobileSidebar` con `createPortal → document.body` (v1.2.15)
 
 **Progreso Backend Actual:**
 - ✅ Entidad `Notification` en Domain con métodos de fábrica y `MarkAsRead()`
@@ -272,3 +274,9 @@ Para considerar una **Feature** cerrada:
 | ID | Feature Branch | Descripción |
 | :---- | :---- | :---- |
 | **9.3.1** | feature/ai-local-ollama | **Motivación:** Permitir ejecutar la IA completamente offline o en entornos sin acceso a APIs externas (privacidad, costes). **Implementación propuesta:** Crear un nuevo flujo n8n que actúe como adaptador hacia Ollama o LM Studio (ambos exponen una API REST compatible con OpenAI). El backend no requiere cambios: solo actualizar `AI_WEBHOOK_URL` en las variables de entorno al nuevo webhook. El flujo n8n seleccionaría el modelo local y adaptaría el prompt. |
+
+### **9.4 — Gestión de Organización (Multi-tenant branding)**
+
+| ID | Feature Branch | Descripción |
+| :---- | :---- | :---- |
+| **9.4.1** | feature/organization-management | **Objetivo:** Permitir al rol `SuperAdmin` configurar los datos de la organización/empresa que usa la plataforma EdificIA, parametrizando la identidad visual y corporativa de la aplicación. **Alcance backend:** Nueva entidad `Organization` (singleton por instalación) con campos: `name`, `logoUrl`, `faviconUrl`, `primaryColor`, `address`, `cif`, `phone`, `email`, `website`. CRUD vía `OrganizationController` (`GET /organization`, `PUT /organization`). Solo accesible con rol `SuperAdmin`. Los datos se exponen en el endpoint público `GET /organization/public` (sin autenticación) para que el frontend los consuma al arrancar. **Alcance frontend:** Nueva página `/admin/organization` con formulario de configuración (upload de logo/favicon, datos de empresa). Store Zustand `useOrganizationStore` que carga los datos una vez al arrancar desde `GET /organization/public`. Si `organization.name` está configurado, se usa en lugar del literal "EdificIA" en la UI (header, login, emails). Logo y favicon se sustituyen dinámicamente. Si no hay datos registrados, se aplica la identidad por defecto (logo `logo-completo.webp`, nombre "EdificIA"). **Impacto en memorias:** Si se ha configurado un logo de organización, el exportador DOCX puede incluirlo como cabecera o pie en el documento generado. |

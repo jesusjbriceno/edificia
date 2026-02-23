@@ -38,7 +38,8 @@
 * **Estado:** Zustand \+ IndexedDB (idb-keyval) para persistencia offline.  
 * **Validación:** Zod.  
 * **Editor:** TipTap (Headless WYSIWYG).  
-* **Testing:** Vitest.
+* **Testing:** Vitest (unitarios/integración) \+ Storybook v8 (catálogo visual y documentación de componentes).
+* **Documentación de componentes:** Storybook 8 (`npm run storybook` → `localhost:6006`, `npm run build-storybook` para exportar estático).
 
 ### **☁️ Infraestructura**
 
