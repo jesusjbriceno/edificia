@@ -77,10 +77,10 @@ export function UserForm({ initialData, onSubmit, isLoading }: UserFormProps) {
         error={errors.role?.message}
       />
 
-      {selectedRole === 'Architect' && (
+      {(selectedRole === 'Architect' || selectedRole === 'Admin') && (
         <div className="space-y-2">
           <label htmlFor="collegiateNumber" className="text-sm font-medium text-gray-300">
-            Número de Colegiado
+            Número de Colegiado <span className="text-gray-500 font-normal">(opcional)</span>
           </label>
           <input
             id="collegiateNumber"
