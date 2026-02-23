@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { LayoutDashboard, FolderKanban, Users, Settings, X, Menu } from 'lucide-react';
 import SidebarLogout from '@/components/SidebarLogout';
 
@@ -57,32 +58,34 @@ export default function MobileSidebar() {
         <Menu size={22} />
       </button>
 
-      {/* Overlay + Sidebar — rendered as two independent fixed layers to avoid
-          stacking context conflicts caused by backdrop-filter on the overlay */}
-      {open && (
+      {/* Portal: renders directly into document.body, escaping any parent
+          stacking context created by backdrop-filter on the header */}
+      {open && typeof document !== 'undefined' && createPortal(
         <>
-          {/* Backdrop — z-[998] */}
+          {/* Backdrop */}
           <div
-            className="fixed inset-0 md:hidden bg-black/60 backdrop-blur-sm"
-            style={{ zIndex: 998 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            style={{ zIndex: 9998 }}
             onClick={() => setOpen(false)}
           />
 
-          {/* Sidebar panel — z-[999], always above backdrop */}
+          {/* Sidebar panel */}
           <aside
             ref={sidebarRef}
-            className="fixed left-0 top-0 h-full w-72 md:hidden flex flex-col animate-in slide-in-from-left duration-200"
+            className="fixed left-0 top-0 flex flex-col animate-in slide-in-from-left duration-200"
             style={{
-              zIndex: 999,
+              zIndex: 9999,
+              height: '100dvh',
+              width: '288px',
               backgroundColor: '#161618',
               borderRight: '1px solid rgba(255,255,255,0.1)',
-              boxShadow: '4px 0 24px rgba(0,0,0,0.6)',
+              boxShadow: '4px 0 24px rgba(0,0,0,0.7)',
             }}
           >
             {/* Header */}
             <div
               className="flex items-center justify-between px-6 py-5 shrink-0"
-              style={{ backgroundColor: '#161618', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+              style={{ backgroundColor: '#161618', borderBottom: '1px solid rgba(255,255,255,0.08)' }}
             >
               <a href="/dashboard">
                 <img
@@ -125,7 +128,7 @@ export default function MobileSidebar() {
             {/* Footer */}
             <div
               className="p-4 space-y-2 shrink-0"
-              style={{ backgroundColor: '#161618', borderTop: '1px solid rgba(255,255,255,0.06)' }}
+              style={{ backgroundColor: '#161618', borderTop: '1px solid rgba(255,255,255,0.08)' }}
             >
               <span className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-500 cursor-not-allowed rounded-lg opacity-50">
                 <Settings size={18} />
@@ -134,7 +137,8 @@ export default function MobileSidebar() {
               <SidebarLogout />
             </div>
           </aside>
-        </>
+        </>,
+        document.body
       )}
     </>
   );
