@@ -1,39 +1,56 @@
-# Flux Gateway Integration — EdificIA (n8n)
+# Integración con Flux Gateway — EdificIA (n8n)
 
-This document summarizes the necessary configuration to integrate EdificIA's n8n Flux workflow with the Flux Gateway API (see `flux-openapi.json`). It complements `GUIA_WORKFLOWS_N8N.md`.
+Este documento resume la configuración necesaria para integrar el workflow n8n de Flux de EdificIA con la API de Flux Gateway (ver `flux-openapi.json`). Complementa a `GUIA_WORKFLOWS_N8N.md`.
 
-## Endpoints used by the workflow
+> **Repositorio de Flux Gateway:** [github.com/jesusjbriceno/flux-free-gateway](https://github.com/jesusjbriceno/flux-free-gateway)
 
-- POST `/api/v1/auth/app` — Exchange `clientId` + `clientSecret` for a JWT token. The n8n workflow uses this endpoint to obtain the Bearer token.
-- POST `/api/v1/chat` — Send a chat request with `{ messages }` or `{ message }` and receive `{ content, usage, model_used, provider }`.
+---
 
-## n8n credentials / environment variables
+## 1. Endpoints utilizados por el workflow
 
-Set the following variables in your n8n environment (Docker Compose, .env, or n8n UI variables):
+- `POST /api/v1/auth/app` — Intercambia `clientId` + `clientSecret` por un token JWT. El workflow de n8n utiliza este endpoint para obtener el Bearer token.
+- `POST /api/v1/chat` — Envía una petición de chat con `{ messages }` o `{ message }` y recibe `{ content, usage, model_used, provider }`.
 
-- `EDIFICIA_API_SECRET`: Shared secret validated by the workflow (X-Edificia-Auth).
-- `FLUX_CLIENT_ID`: Client ID for the Flux application (use n8n credentials or env var).
-- `FLUX_CLIENT_SECRET`: Client Secret for the Flux application.
-- `FLUX_MODEL` (optional): Default model to request (e.g., `flux-pro`).
+---
 
-We added placeholders in the repository `.env.example` for convenience:
+## 2. Credenciales n8n / Variables de entorno
 
-```
+Configura las siguientes variables en tu entorno n8n (Docker Compose, `.env` o desde Settings → Variables en la UI de n8n):
+
+| Variable | Descripción |
+|---|---|
+| `EDIFICIA_API_SECRET` | Clave compartida validada por el workflow (`X-Edificia-Auth`). |
+| `FLUX_CLIENT_ID` | ID de cliente de la aplicación Flux (usar credenciales n8n o variable de entorno). |
+| `FLUX_CLIENT_SECRET` | Secreto de cliente de la aplicación Flux. |
+| `FLUX_MODEL` _(opcional)_ | Modelo por defecto a solicitar (por ejemplo, `flux-pro`). |
+
+En el `.env.example` del repositorio se incluyen marcadores de posición por comodidad:
+
+```dotenv
 FLUX_CLIENT_ID=CHANGE_ME_flux_client_id
 FLUX_CLIENT_SECRET=CHANGE_ME_flux_client_secret
 ```
 
-## Request/Response contract notes
+---
 
-- The workflow expects the Flux `/api/v1/chat` response to include either a top-level `content` (string) or an OpenAI-like `choices` array. The workflow normalizes both into the `{ generatedText, usage }` contract consumed by the backend.
-- Tokens can be read from `response.usage.total_tokens` or `response.usage.tokens` depending on provider implementation.
+## 3. Notas sobre el contrato Request/Response
 
-## Troubleshooting
+- El workflow espera que la respuesta de Flux `/api/v1/chat` incluya `content` (string) en el nivel superior o un array `choices` compatible con OpenAI. El workflow normaliza ambos formatos al contrato `{ generatedText, usage }` que consume el backend.
+- Los tokens pueden leerse de `response.usage.total_tokens` o `response.usage.tokens` según la implementación del proveedor.
 
-- 401/403 on login: verify `FLUX_CLIENT_ID` and `FLUX_CLIENT_SECRET` are correct and the application is active in Flux.
-- No `content` in response: check `response` payload in n8n Executions and ensure `messages` or `choices` are present.
+---
 
-## Reference
+## 4. Resolución de problemas
 
-- API spec: `docs/features/ia_delegated/flux-openapi.json`
+| Síntoma | Causa probable | Solución |
+|---|---|---|
+| 401/403 en login | `FLUX_CLIENT_ID` o `FLUX_CLIENT_SECRET` incorrectos, o la aplicación está inactiva en Flux | Verificar las credenciales en el panel de Flux |
+| Sin `content` en la respuesta | El payload no incluye `messages` ni `choices` | Revisar el payload en n8n → Executions y comprobar los nodos de respuesta |
+
+---
+
+## 5. Referencias
+
+- Especificación de la API: `docs/features/ia_delegated/flux-openapi.json`
 - Workflow: `apps/n8n/workflow-flux.json`
+- Repositorio Flux Gateway: [github.com/jesusjbriceno/flux-free-gateway](https://github.com/jesusjbriceno/flux-free-gateway)

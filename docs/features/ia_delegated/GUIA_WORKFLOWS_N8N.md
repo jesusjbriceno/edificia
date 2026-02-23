@@ -1,7 +1,7 @@
 # **⚙️ Guía de Workflows n8n — EdificIA**
 
 > **Versión:** 1.0  
-> **Fecha:** Enero 2025  
+> **Fecha:** Febrero 2026  
 > **Ubicación workflows:** `apps/n8n/`
 
 ## **1. Resumen**
