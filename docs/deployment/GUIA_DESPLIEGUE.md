@@ -1,7 +1,7 @@
 # **🚀 Guía de Despliegue y Configuración de Entornos — EdificIA**
 
 **Versión:** 2.1  
-**Última actualización:** 2026-06-14  
+**Última actualización:** Febrero 2026  
 **Enfoque:** Contenerización para Producción (Docker + Coolify v4).
 
 **Objetivo:** Publicar la solución en un servidor VPS o Cloud (Linux).
@@ -134,7 +134,8 @@ RUN dotnet publish -c Release -o /app/publish --no-restore
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS runtime
 WORKDIR /app
 
-RUN apk add --no-cache icu-libs
+# Instalar icu-libs para globalización y krb5-libs para Npgsql (necesario en alpine)
+RUN apk add --no-cache icu-libs krb5-libs
 ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
 
 COPY --from=build /app/publish .

@@ -3,7 +3,7 @@
 **Plataforma SaaS para la Redacción Automatizada de Memorias de Arquitectura (CTE/LOE).**
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![.NET](https://img.shields.io/badge/.NET-8.0-purple.svg)](https://dotnet.microsoft.com/)
+[![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)](https://dotnet.microsoft.com/)
 [![Astro](https://img.shields.io/badge/Astro-4.0-orange.svg)](https://astro.build/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue.svg)](https://www.postgresql.org/)
 
@@ -88,7 +88,7 @@ docker-compose up -d
 ├── docker-compose.apps.yml          # Orquestador (apps — Coolify prod)
 │
 ├── apps/
-│   ├── api/                         # Backend .NET 8
+│   ├── api/                         # Backend .NET 10
 │   │   ├── src/
 │   │   │   ├── Edificia.Domain/     #   Entidades, ValueObjects, Reglas
 │   │   │   ├── Edificia.Shared/     #   Kernel: Result<T>, Utils
@@ -107,7 +107,8 @@ docker-compose up -d
 │   │
 │   └── n8n/                         # Workflows IA
 │       ├── workflow-flux.json       #   Proveedor: Flux Gateway (OAuth2)
-│       └── workflow-gemini.json     #   Proveedor: Google Gemini
+│       ├── workflow-gemini.json     #   Proveedor: Google Gemini
+│       └── workflow-tfm.json        #   Generador de Memoria TFM (Google Drive → Gemini → Slides)
 │
 └── docs/                            # Documentación completa (ver índice abajo)
 ```
@@ -120,7 +121,7 @@ docker-compose up -d
 
 | Capa | Tecnología |
 |:-----|:-----------|
-| Framework | .NET 8 Web API |
+| Framework | .NET 10 Web API |
 | Arquitectura | Clean Architecture + CQRS (MediatR) |
 | ORM (Escritura) | Entity Framework Core → PostgreSQL |
 | ORM (Lectura) | Dapper (SQL Raw optimizado) |
@@ -140,7 +141,7 @@ docker-compose up -d
 | Estado | Zustand + IndexedDB (idb-keyval) |
 | Editor | TipTap (Headless WYSIWYG) |
 | Formularios | react-hook-form + Zod |
-| Testing | Vitest + Testing Library |
+| Testing | Vitest + Testing Library + Storybook v8 |
 
 ### Infraestructura
 
@@ -158,7 +159,7 @@ docker-compose up -d
 
 ```
 ┌────────────┐     JSON/REST      ┌──────────────────────────────────────────┐
-│            │ ──────────────────► │  Edificia.API (.NET 8)                   │
+│            │ ──────────────────► │  Edificia.API (.NET 10)                  │
 │  Frontend  │                    │  ┌──────────────────────────────────────┐ │
 │  Astro 4   │ ◄────────────────  │  │ Application (CQRS Handlers)         │ │
 │  React 18  │                    │  │   ▼ Domain (Entities, Rules)         │ │
@@ -180,13 +181,15 @@ docker-compose up -d
 
 ## **🤖 Integración IA**
 
-EdificIA **no se acopla a ningún proveedor de IA**. La generación de contenido se delega a workflows n8n mediante la variable de entorno `AI_WEBHOOK_URL`, lo que permite intercambiar proveedores sin modificar código:
+EdificIA **no se acopla a ningún proveedor de IA**. La generación de contenido se delega a workflows n8n mediante la variable de entorno `N8N_WEBHOOK_URL`, lo que permite intercambiar proveedores sin modificar código:
 
 ```
 Backend (.NET) ──webhook POST──► n8n ──► Flux Gateway (OAuth2)
                                     └──► Google Gemini
-                                    └──► Ollama / LM Studio (futuro)
+                                    └──► Otros proveedores (futuro: Ollama / LM Studio)
 ```
+
+> ⚠️ **Ollama / LM Studio** son proveedores futuros documentados en el Roadmap §9.3. Actualmente los workflows disponibles son `workflow-flux.json` y `workflow-gemini.json`.
 
 Los workflows se encuentran en `apps/n8n/`. Consulta la [Guía de Workflows n8n](docs/features/ia_delegated/GUIA_WORKFLOWS_N8N.md) para configuración y despliegue.
 
@@ -202,7 +205,7 @@ Toda la documentación del proyecto se organiza en `docs/`. A continuación el �
 |:----------|:------------|
 | [**Memoria del TFM**](docs/TFM/MEMORIA_TFM_EdificIA.md) | Memoria académica completa: resumen, objetivos, metodología, desarrollo técnico y resultados |
 | [Contexto TFM](docs/TFM/CONTEXTO_TFM.md) | Información auxiliar del proyecto para el flujo de generación automática |
-| [Flujo n8n TFM](docs/TFM/FLUJO_TFM_n8n.md) | Documentación del workflow n8n que genera la memoria y las diapositivas |
+| [Flujo n8n TFM](apps/n8n/workflow-tfm.json) | Workflow que genera automáticamente la Memoria TFM y las diapositivas desde Google Drive |
 
 ### Análisis y Diseño
 

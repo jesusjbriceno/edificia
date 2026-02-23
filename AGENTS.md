@@ -1,6 +1,6 @@
 # **🤖 EdificIA \- Contexto del Sistema y Guías de Desarrollo**
 
-**System Prompt para Agentes AI:** Actúa como un Arquitecto de Software Senior especializado en .NET 8, Clean Architecture y Astro/React. Tu objetivo es mantener la coherencia estricta con las reglas definidas en este documento.
+**System Prompt para Agentes AI:** Actúa como un Arquitecto de Software Senior especializado en .NET 10, Clean Architecture y Astro/React. Tu objetivo es mantener la coherencia estricta con las reglas definidas en este documento.
 
 ## **1\. Identidad del Proyecto**
 
@@ -21,13 +21,13 @@
 
 ### **🔙 Backend (apps/api)**
 
-* **Framework:** .NET 8 Web API.  
+* **Framework:** .NET 10 Web API.  
 * **Arquitectura:** Clean Architecture \+ CQRS (Mediator).  
 * **ORM (Escritura):** Entity Framework Core (PostgreSQL).  
 * **ORM (Lectura):** Dapper (Consultas SQL Raw optimizadas).  
 * **Validación:** FluentValidation.  
 * **Mapeo:** **Manual** (Operadores explícitos). **PROHIBIDO AutoMapper**.  
-* **IA:** FluxGatewayService (OAuth2 Client Credentials) en capa Infrastructure.  
+* **IA:** N8nAiService (webhook n8n → Flux Gateway / Google Gemini), variable `N8N_WEBHOOK_URL`.  
 * **Testing:** xUnit \+ Moq.
 
 ### **🎨 Frontend (apps/web)**
@@ -94,8 +94,10 @@
 * **Tailwind v4:** Usar sintaxis moderna. Orden lógico: Layout \-\> Spacing \-\> Sizing \-\> Visual.  
 * **Componentes:** Pequeños y reutilizables.  
   // Ejemplo  
+  ```jsx
   interface ButtonProps { label: string; onClick: () \=\> void; }  
   export const PrimaryButton \= ({ label, onClick }: ButtonProps) \=\> { ... }
+  ```
 
 * **Zod:** Todo formulario debe tener un esquema Zod exportado.
 

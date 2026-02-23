@@ -1,32 +1,34 @@
-Estimado tribunal y equipo de evaluación,
+# Memoria del Trabajo Fin de Máster (TFM)
 
-Como ingeniero experto y redactor académico especializado en proyectos de software, presento a continuación la memoria completa del Trabajo Fin de Máster (TFM) del proyecto EDIFICIA. Este documento ha sido redactado basándose **únicamente** en la documentación proporcionada, sin incorporar información externa o inventada, reflejando así el rigor y la solidez técnica del producto desarrollado.
+**Proyecto:** EdificIA — Plataforma SaaS para la Redacción Automatizada de Memorias de Arquitectura (CTE/LOE)  
+**Máster:** Máster en Desarrollo de Aplicaciones con IA  
+**Fecha:** Febrero 2026  
+**Repositorio:** [github.com/jesusjbriceno/edificia](https://github.com/jesusjbriceno/edificia)  
+**Aplicación en producción:** [edificia.jesusjbriceno.dev](https://edificia.jesusjbriceno.dev)
 
 ---
 
-## MEMORIA DE TRABAJO FIN DE MÁSTER (TFM)
+## 1. Resumen
 
-### 1. Resumen
-
-EDIFICIA es una plataforma SaaS profesional concebida para la redacción automatizada y asistida por Inteligencia Artificial (IA) de Memorias de Proyecto de Ejecución en España, siguiendo estrictamente la normativa del Código Técnico de la Edificación (CTE) y la Ley de Ordenación de la Edificación (LOE). El presente TFM aborda la ineficiencia de los procesos manuales y repetitivos en el sector de la construcción, que a menudo resultan en documentos genéricos y propensos a errores.
+EdificIA es una plataforma SaaS profesional concebida para la redacción automatizada y asistida por Inteligencia Artificial (IA) de Memorias de Proyecto de Ejecución en España, siguiendo estrictamente la normativa del Código Técnico de la Edificación (CTE) y la Ley de Ordenación de la Edificación (LOE). El presente TFM aborda la ineficiencia de los procesos manuales y repetitivos en el sector de la construcción, que a menudo resultan en documentos genéricos y propensos a errores.
 
 El objetivo central de este trabajo es demostrar la viabilidad técnica de una solución MVP escalable que, a la vez, sirva como producto profesional entregable. La arquitectura se fundamenta en Clean Architecture y CQRS sobre .NET 10 para el backend, y un frontend con Astro/React (Islands Architecture). La integración de la IA se gestiona mediante la delegación a flujos n8n (utilizando Flux Gateway o Google Gemini), permitiendo la intercambiabilidad de proveedores a través de la variable de entorno `N8N_WEBHOOK_URL` sin modificar el código del backend. Flux Gateway, una herramienta accesoria, provee una IA soberana con autenticación OAuth2. El despliegue en producción se realiza con Docker y Coolify v4, incluyendo Traefik, TLS automático y healthchecks.
 
 Los resultados clave incluyen la discriminación normativa inteligente (Obra Nueva/Reforma y exenciones LOE Art. 2.2), un "Modo Túnel" para trabajo offline con persistencia en IndexedDB, y una arquitectura diseñada para la escalabilidad. El proyecto refleja tanto el rigor académico como la solidez técnica, destacando su aplicabilidad real en la optimización de la gestión de proyectos y la reducción de la carga burocrática en el sector de la construcción español.
 
-### 2. Introducción
+## 2. Introducción
 
 El sector de la arquitectura y la ingeniería en España se enfrenta a la compleja tarea de elaborar Memorias de Proyecto de Ejecución que deben cumplir con una extensa y detallada normativa, principalmente el Código Técnico de la Edificación (CTE) y la Ley de Ordenación de la Edificación (LOE). Este proceso, fundamental para la obtención de licencias y el visado profesional, es tradicionalmente manual, repetitivo y altamente susceptible a errores, lo que impone una significativa carga burocrática y reduce la eficiencia de los profesionales. Además, la naturaleza genérica de muchas herramientas de redacción impide una adaptación precisa a la especificidad de cada intervención (obra nueva, reforma o ampliación).
 
-EDIFICIA emerge como una solución innovadora y tecnológica a esta problemática, consolidándose como un "Asistente Estratégico de Visado". Su visión se materializa en una plataforma SaaS que va más allá de la automatización básica. EdificIA incorpora "Inteligencia Constructiva", lo que le permite comprender el contexto de cada proyecto para adaptar dinámicamente tanto el contenido de la memoria como la normativa aplicable. Esta capacidad incluye la discriminación automática entre Obra Nueva y Rehabilitación, gestionando de forma inteligente las exenciones contempladas en el Artículo 2.2 de la LOE para obras menores, y evitando la inclusión de capítulos irrelevantes o innecesarios.
+EdificIA emerge como una solución innovadora y tecnológica a esta problemática, consolidándose como un “Asistente Estratégico de Visado”. Su visión se materializa en una plataforma SaaS que va más allá de la automatización básica. EdificIA incorpora "Inteligencia Constructiva", lo que le permite comprender el contexto de cada proyecto para adaptar dinámicamente tanto el contenido de la memoria como la normativa aplicable. Esta capacidad incluye la discriminación automática entre Obra Nueva y Rehabilitación, gestionando de forma inteligente las exenciones contempladas en el Artículo 2.2 de la LOE para obras menores, y evitando la inclusión de capítulos irrelevantes o innecesarios.
 
 La plataforma integra Inteligencia Artificial para asistir en la redacción de descripciones técnicas, justificaciones normativas y otros apartados complejos de la memoria. La particularidad de esta integración reside en su estrategia de "IA soberana y delegada": si bien Flux Gateway fue desarrollado como herramienta accesoria del ecosistema para proveer un control y autenticación OAuth2 sobre el modelo Flux, la arquitectura de EdificIA no está acoplada a este proveedor. La generación de contenido se delega a flujos n8n intercambiables mediante la variable de entorno `N8N_WEBHOOK_URL`, lo que permite transitar sin modificaciones en el código del backend entre Flux Gateway, Google Gemini, Ollama/LM Studio u otros proveedores de IA. Además, la solución incorpora un "Modo Túnel" que garantiza la persistencia del estado del editor en IndexedDB, permitiendo a los arquitectos trabajar sin conexión a internet, una necesidad real en entornos de obra.
 
-La motivación subyacente a este Trabajo Fin de Máster es doble: por un lado, demostrar la viabilidad técnica de una solución de software compleja y escalable que aborde un problema real y persistente en el sector de la construcción; por otro lado, aplicar y consolidar principios avanzados de ingeniería de software, como la Clean Architecture, el patrón CQRS, el uso de sistemas distribuidos y un diseño de interfaz de usuario enfocado en la experiencia del profesional. Este documento detallará la concepción, el diseño arquitectónico, la implementación técnica y los resultados obtenidos por EDIFICIA, concluyendo con una reflexión sobre sus implicaciones y futuras líneas de desarrollo.
+La motivación subyacente a este Trabajo Fin de Máster es doble: por un lado, demostrar la viabilidad técnica de una solución de software compleja y escalable que aborde un problema real y persistente en el sector de la construcción; por otro lado, aplicar y consolidar principios avanzados de ingeniería de software, como la Clean Architecture, el patrón CQRS, el uso de sistemas distribuidos y un diseño de interfaz de usuario enfocado en la experiencia del profesional. Este documento detallará la concepción, el diseño arquitectónico, la implementación técnica y los resultados obtenidos por EdificIA, concluyendo con una reflexión sobre sus implicaciones y futuras líneas de desarrollo.
 
-### 3. Objetivos
+## 3. Objetivos
 
-El objetivo principal de este proyecto de TFM es desarrollar una plataforma SaaS integral, EDIFICIA, que actúe como un Asistente Estratégico de Visado para arquitectos en España, automatizando y asistiendo la redacción de Memorias de Proyecto de Ejecución (CTE/LOE) de manera inteligente y adaptativa. Este MVP escalable y entregable profesional debe demostrar la viabilidad técnica de una solución que combine rigor académico con solidez técnica.
+El objetivo principal de este proyecto de TFM es desarrollar una plataforma SaaS integral, EdificIA, que actúe como un Asistente Estratégico de Visado para arquitectos en España, automatizando y asistiendo la redacción de Memorias de Proyecto de Ejecución (CTE/LOE) de manera inteligente y adaptativa. Este MVP escalable y entregable profesional debe demostrar la viabilidad técnica de una solución que combine rigor académico con solidez técnica.
 
 Para lograr este objetivo general, se han definido los siguientes objetivos específicos:
 
@@ -39,9 +41,9 @@ Para lograr este objetivo general, se han definido los siguientes objetivos espe
 *   **RNF-ARCH-01:** Asegurar el cumplimiento estricto de los principios de Clean Architecture y la separación de responsabilidades para garantizar la mantenibilidad y escalabilidad del sistema, utilizando patrones como CQRS y mapeo manual de DTOs.
 *   **Despliegue y Operación:** Implementar un despliegue en producción con Docker y Coolify v4, asegurando la contenerización de las aplicaciones, la configuración de entornos mediante variables y el uso de Traefik para reverse proxy y TLS automático.
 
-### 4. Metodología
+## 4. Metodología
 
-La metodología adoptada para el desarrollo de EDIFICIA se fundamenta en un enfoque ágil e iterativo, guiado por los principios de la "Guía de Estilo y Estándares de Desarrollo" y el "Plan de Implementación Detallado". Este marco buscó equilibrar el rigor académico con la eficiencia en el desarrollo de un producto técnico sólido.
+La metodología adoptada para el desarrollo de EdificIA se fundamenta en un enfoque ágil e iterativo, guiado por los principios de la "Guía de Estilo y Estándares de Desarrollo" y el "Plan de Implementación Detallado". Este marco buscó equilibrar el rigor académico con la eficiencia en el desarrollo de un producto técnico sólido.
 
 **Fases del Proyecto (según Plan de Implementación Detallado):**
 
@@ -71,13 +73,13 @@ El proyecto empleó un stack tecnológico moderno y estrictamente definido en la
 
 Se utilizó la metodología Git Flow (`feature/...` → `develop` → `main`) con un flujo de Pull Requests estricto. Se prohibieron los commits directos a `main` y `develop`, requiriendo que todos los cambios pasaran por una PR desde una rama de feature o hotfix, referenciando el ID del Roadmap. Los mensajes de commit siguieron el estándar Conventional Commits. La "Definición de Hecho" (DoD) para cada feature exigía código sin warnings, tests unitarios en verde, cumplimiento de Clean Architecture, validaciones implementadas y funcionalidad en Docker.
 
-### 5. Desarrollo técnico
+## 5. Desarrollo técnico
 
-El desarrollo técnico de EDIFICIA se ha estructurado en torno a una arquitectura robusta y escalable, adhiriéndose a principios de diseño de software avanzados y utilizando un stack tecnológico moderno y estricto.
+El desarrollo técnico de EdificIA se ha estructurado en torno a una arquitectura robusta y escalable, adhiriéndose a principios de diseño de software avanzados y utilizando un stack tecnológico moderno y estricto.
 
-**5.1. Arquitectura del Sistema (Visión General)**
+### 5.1. Arquitectura del Sistema (Visión General)
 
-El sistema EDIFICIA se concibe como un monorepo que alberga dos aplicaciones principales: `apps/api` para el backend en .NET 10 y `apps/web` para el frontend en Astro/React. Estas aplicaciones interactúan a través de una API RESTful, y se apoyan en servicios de infraestructura contenerizados y externos.
+EdificIA se concibe como un monorepo que alberga dos aplicaciones principales: `apps/api` para el backend en .NET 10 y `apps/web` para el frontend en Astro/React. Estas aplicaciones interactúan a través de una API RESTful, y se apoyan en servicios de infraestructura contenerizados y externos.
 
 ```mermaid
 graph TD
@@ -90,9 +92,9 @@ graph TD
     UI -->|"IndexedDB"| Local[("Persistencia Offline")]
 ```
 
-**5.2. Arquitectura del Backend (.NET)**
+### 5.2. Arquitectura del Backend (.NET)
 
-El backend de EDIFICIA implementa la Clean Architecture, dividiendo la solución en capas bien definidas para una clara separación de responsabilidades y la inversión de dependencias:
+El backend de EdificIA implementa la Clean Architecture, dividiendo la solución en capas bien definidas para una clara separación de responsabilidades y la inversión de dependencias:
 
 *   **`Edificia.Domain`**: Contiene la lógica de negocio fundamental, entidades puras (`Project`, `ApplicationUser`, `Notification`, `RefreshToken`), Value Objects y reglas de dominio, sin dependencias de infraestructura o UI.
     *   La entidad `Project` incluye propiedades clave como `InterventionType` (enum: `NewConstruction`, `Reform`, `Extension`), `IsLoeRequired` para la adaptación normativa, y una columna `ContentTreeJson` de tipo **JSONB** en PostgreSQL para almacenar la estructura jerárquica y el contenido editable de la memoria técnica.
@@ -111,7 +113,7 @@ El backend de EDIFICIA implementa la Clean Architecture, dividiendo la solución
     *   **Autorización RBAC**: Se definen roles (`Root`, `Admin`, `Architect`, `Collaborator`) y políticas (`ActiveUser`, `RequireAdmin`, `RequireArchitect`, `RequireRoot`) para un control de acceso granular a los recursos de la API.
     *   **Bootstrapping de Usuario Root**: Un `IHostedService` (`IdentityDataInitializer`) se encarga de crear el usuario `Root` inicial con credenciales de variables de entorno y `MustChangePassword = true`, forzando el cambio en el primer login para asegurar la seguridad.
 
-**5.3. Arquitectura del Frontend (Astro + React)**
+### 5.3. Arquitectura del Frontend (Astro + React)
 
 El frontend de EDIFICIA se construye como una Single Page Application (SPA) utilizando Astro 4 para el renderizado del shell y el enrutamiento (SSR), e integrando React 18 para la interactividad de componentes (Islands Architecture).
 
@@ -137,9 +139,9 @@ El frontend de EDIFICIA se construye como una Single Page Application (SPA) util
 *   **Estilos y Componentes UI**: Tailwind CSS v4 es el framework principal de estilos, implementando un tema oscuro premium y un diseño atómico. Se utilizan componentes avanzados como `Dropdown` (basado en portal para evitar clipping en layouts complejos) y `MobileSidebar` (basado en portal hacia `document.body` para resolver el conflicto de stacking context causado por `backdrop-filter` en el header del layout).
 *   **Catálogo de Componentes — Storybook v8**: La biblioteca de componentes atómicos (`ui/`) está documentada con Storybook 8 (`@storybook/react-vite`). Cada componente expone sus variantes, estados y props interactivos mediante el formato CSF (Component Story Format) con `autodocs`, generando documentación automática a partir de los tipos TypeScript. Los componentes cubiertos son: `Button` (4 variantes, loading, disabled), `Badge` (5 variantes semánticas), `Input` (con label, error, password, disabled), `Modal` (interactivo con trigger y estado fijo) y `Skeleton` (placeholder, líneas de texto, `ProjectCardSkeleton`, `ProjectGridSkeleton`). La configuración (`.storybook/main.ts`) integra Tailwind CSS v4 como plugin de Vite mediante `viteFinal`, aplica el tema oscuro de la aplicación (`background: #0a0a0b`) y resuelve el alias `@/` para importar desde `src/`. Se accede localmente en `http://localhost:6006` (`npm run storybook`) y puede exportarse como sitio estático con `npm run build-storybook`.
 
-**5.4. Integración de Inteligencia Artificial (Delegación a n8n)**
+### 5.4. Integración de Inteligencia Artificial (Delegación a n8n)
 
-La arquitectura de IA en EDIFICIA ha evolucionado hacia un modelo de delegación a n8n, lo que permite un desacoplamiento completo del backend respecto a los proveedores de IA y la lógica de construcción de prompts.
+La arquitectura de IA en EdificIA ha evolucionado hacia un modelo de delegación a n8n, lo que permite un desacoplamiento completo del backend respecto a los proveedores de IA y la lógica de construcción de prompts.
 
 *   **Contexto y Motivación**: La arquitectura original acoplaba el backend directamente a proveedores de IA (Google Gemini) o pasarelas (Flux Gateway), lo que resultaba en rigidez (necesidad de recompilar y redesplegar para cambios) y complejidad en el mantenimiento de tokens y reintentos. La solución propuesta delega la inteligencia en n8n, haciendo que el backend sea "agnóstico" al proveedor.
 *   **Mecánica**: El backend envía un `AiGenerationRequest` tipado vía `POST` a un webhook de n8n (`/webhook/generar-memoria`). n8n, que ha validado previamente la autenticación mediante la cabecera `X-Edificia-Auth`, construye el prompt contextual según el `projectType` y `technicalContext` proporcionados, llama al proveedor de IA configurado (Flux Gateway o Google Gemini), y normaliza la respuesta a `N8nAiResponse` antes de devolverla al backend. Solo un workflow de n8n (`workflow-gemini.json` o `workflow-flux.json`) debe estar activo a la vez para un webhook dado.
@@ -148,9 +150,9 @@ La arquitectura de IA en EDIFICIA ha evolucionado hacia un modelo de delegación
 *   **Prompt Engineering**: Ambos workflows de n8n (`workflow-gemini.json` y `workflow-flux.json`) construyen un `System Prompt` fijo ("Eres un arquitecto técnico experto...") y un `User Prompt` dinámico basado en los datos recibidos en el `AiGenerationRequest`, inyectando el contexto técnico. La personalización de este prompt se realiza editando el nodo **Build Prompt** (Code) en el workflow de n8n.
 *   **Beneficios**: Esta delegación permite un "Hot-Swap" de proveedores de IA sin modificar el backend, implementar lógica híbrida de prompts (ej. diferentes modelos según el tipo de intervención), y mejorar la observabilidad de las ejecuciones de IA en n8n, al tiempo que simplifica el código del backend.
 
-**5.5. Diseño de API REST (OpenAPI 3.0.3)**
+### 5.5. Diseño de API REST (OpenAPI 3.0.3)
 
-La API REST de EDIFICIA expone **21 endpoints** organizados en 5 módulos principales (Auth, Projects, Users, AI, Export), detalladamente documentados con OpenAPI 3.0.3 y accesibles vía Swagger en `https://api-edificia.jesusjbriceno.dev/swagger`.
+La API REST de EdificIA expone **21 endpoints** organizados en 5 módulos principales (Auth, Projects, Users, AI, Export), detalladamente documentados con OpenAPI 3.0.3 y accesibles vía Swagger en `https://api-edificia.jesusjbriceno.dev/swagger`.
 
 *   **Convenciones**: La API utiliza JSON (`application/json`) para la entrada y salida de datos, el estándar RFC 7807 ProblemDetails para todas las respuestas de error, paginación mediante `page` y `pageSize` (con límites de 1 a 50 elementos), y utiliza IDs UUID v4 (`Guid`) para los recursos, con fechas en formato ISO 8601 UTC.
 *   **Endpoints clave**:
@@ -162,21 +164,21 @@ La API REST de EDIFICIA expone **21 endpoints** organizados en 5 módulos princi
 *   **Errores**: Se utiliza ProblemDetails para estandarizar las respuestas de error, mapeando prefijos de código de error a HTTP Status Codes (ej. `NotFound.*` a 404, `Validation.*` a 400).
 *   **Arquitectura Interna**: La API sigue un pipeline de Request (Controller → MediatR Pipeline → Handlers) y un modelo CQRS donde los Comandos utilizan Entity Framework Core para la escritura y las Queries emplean Dapper con SQL raw para la lectura. El contenido de la memoria se almacena como JSONB en la columna `content_tree_json`.
 
-**5.6. Configuración de Despliegue y Entornos**
+### 5.6. Configuración de Despliegue y Entornos
 
-EDIFICIA se adhiere al principio de **"Configuración en el Entorno"**, utilizando variables de entorno para gestionar la configuración específica de cada entorno (desarrollo, producción).
+EdificIA se adhiere al principio de **"Configuración en el Entorno"**, utilizando variables de entorno para gestionar la configuración específica de cada entorno (desarrollo, producción).
 
 *   **Dockerización**: Se proporcionan Dockerfiles multi-stage para el API (.NET 10 sobre Alpine) y el Frontend (Node 22 sobre Alpine con Astro Node.js adapter), optimizados para generar imágenes mínimas y seguras (ejecución con usuario no-root). El Dockerfile de la API incluye `HEALTHCHECK` (`/health/live`) para la monitorización del servicio; el Dockerfile del frontend **no incluye `HEALTHCHECK`** deliberadamente, ya que los contenedores marcados como `unhealthy` son excluidos automáticamente del routing por Traefik, lo que impediría el acceso al frontend.
 *   **Orquestación**: Docker Compose se utiliza para:
     *   **Desarrollo local (`docker-compose.yml`)**: Levanta únicamente la infraestructura de apoyo (PostgreSQL, Redis, MailHog), permitiendo que la API y el Frontend se ejecuten fuera de Docker para facilitar el hot-reload.
       *   **Producción (`docker-compose.prod.yml`, `docker-compose.apps.yml`)**: Permiten desplegar el stack completo (Base de Datos + Redis + API + Web) o solo las aplicaciones (API + Web) en entornos donde la Base de Datos y Redis ya existen o son gestionados externamente. El archivo `docker-compose.apps.yml` está diseñado para Coolify v4, que gestiona el routing Traefik y los certificados TLS (Let's Encrypt) automáticamente; **no se requieren etiquetas Traefik manuales** en los contenedores. Las variables de entorno se declaran en la sección `environment:` mediante la notación `${VAR_NAME:-}`, compatible con la inyección nativa de Coolify.
 *   **Variables de Entorno**: Las variables sensibles —`DB_USER`, `DB_PASSWORD`, `JWT_SECRET`, `N8N_WEBHOOK_URL`, `N8N_API_SECRET`, `EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME`, `ROOT_PASSWORD`, etc.— se inyectan como variables de entorno del contenedor desde la interfaz de Coolify, o mediante un archivo `.env` en despliegues manuales. Docker traduce la notación `__` (doble guion bajo) a `:` para la jerarquía de configuración de .NET (ej. `AI__WebhookUrl` mapea a `AI:WebhookUrl`, `Jwt__SecretKey` mapea a `Jwt:SecretKey`).
-*   **Proxy Inverso**: En producción, EDIFICIA utiliza **Coolify v4 con Traefik integrado** como proxy inverso, que gestiona automáticamente el routing HTTPS y la renovación de certificados TLS (Let's Encrypt) a través de los dominios configurados en la plataforma, sin intervención manual. Para despliegues on-premise sin Coolify, puede usarse Caddy (SSL automático) o Nginx como alternativa, dirigiendo el tráfico a los puertos internos de los contenedores (API en `8080`, Web en `4321`).
+*   **Proxy Inverso**: En producción, EdificIA utiliza **Coolify v4 con Traefik integrado** como proxy inverso, que gestiona automáticamente el routing HTTPS y la renovación de certificados TLS (Let's Encrypt) a través de los dominios configurados en la plataforma, sin intervención manual. Para despliegues on-premise sin Coolify, puede usarse Caddy (SSL automático) o Nginx como alternativa, dirigiendo el tráfico a los puertos internos de los contenedores (API en `8080`, Web en `4321`).
 *   **Checklist de Producción**: Se detalla un checklist que incluye la creación de un archivo `.env` seguro, la configuración de contraseñas y secretos, la aplicación de migraciones, la configuración de certificados SSL/proxy inverso y la verificación post-despliegue mediante health checks.
 
-**5.7. Estrategia de Testing y Calidad (TDD)**
+### 5.7. Estrategia de Testing y Calidad (TDD)
 
-EDIFICIA incorpora una estrategia de testing integral que cubre tanto el backend como el frontend. La **Definición de Hecho (DoD)** del proyecto exige que ningún cambio llegue a revisión sin tests unitarios en verde, garantizando la regresión continua y la confianza en los refactors.
+EdificIA incorpora una estrategia de testing integral que cubre tanto el backend como el frontend. La **Definición de Hecho (DoD)** del proyecto exige que ningún cambio llegue a revisión sin tests unitarios en verde, garantizando la regresión continua y la confianza en los refactors.
 
 *   **Backend — xUnit + Moq**: El testing del backend se organiza en dos proyectos xUnit dentro de `apps/api/tests/`:
     *   **`Edificia.Domain.Tests`**: Valida las reglas de negocio puras, sin dependencias de infraestructura. Cubre las entidades `Project` (transiciones de estado, guardas, métodos de fábrica), `ApplicationUser` (inicialización de claims y roles), `RefreshToken` (lógica de expiración y revocación) y `ProjectSectionContent`. También incluye tests para `Exceptions`, `Primitives` y `Shared`.
@@ -207,24 +209,24 @@ EDIFICIA incorpora una estrategia de testing integral que cubre tanto el backend
 
 ---
 
-### 6. Conclusiones y trabajo futuro
+## 6. Conclusiones y trabajo futuro
 
-**Conclusiones**
+### Conclusiones
 
-El desarrollo de EDIFICIA como plataforma SaaS representa un avance significativo en la digitalización y optimización de la redacción de memorias de proyectos arquitectónicos en España, logrando un MVP escalable y profesional que satisface los objetivos establecidos en este TFM. Se ha demostrado con éxito tanto el rigor académico como la solidez técnica del producto:
+El desarrollo de EdificIA como plataforma SaaS representa un avance significativo en la digitalización y optimización de la redacción de memorias de proyectos arquitectónicos en España, logrando un MVP escalable y profesional que satisface los objetivos establecidos en este TFM. Se ha demostrado con éxito tanto el rigor académico como la solidez técnica del producto:
 
 *   **Inteligencia Estratégica y Adaptativa**: La implementación de un motor de normativa robusto en el frontend permite al sistema adaptarse dinámicamente a la tipología de obra (Obra Nueva/Reforma) y a la aplicación de la LOE, filtrando de manera contextual el árbol de contenidos. Esta funcionalidad reduce drásticamente la información irrelevante y el tiempo de ajuste manual, reflejando una aplicabilidad real y un valor diferencial en el sector.
 *   **Redacción Asistida por IA Segura y Desacoplada**: La delegación de la lógica de IA a n8n, con una integración basada en webhooks seguros y el uso de Flux Gateway (o Google Gemini), ha permitido un acoplamiento débil con los proveedores de IA. Esta estrategia facilita el "hot-swap" de modelos sin redespliegues del backend, mejora la observabilidad de las ejecuciones de IA y ofrece flexibilidad en la gestión del prompt contextual, cumpliendo con la visión de IA soberana.
 *   **Editor Robusto y Offline-First**: El editor basado en TipTap, integrado con una `SidebarNavigation` recursiva y capacidades de búsqueda en tiempo real, junto con la persistencia offline de contenido vía Zustand e IndexedDB, proporciona una experiencia de usuario fluida y resiliente. Esta característica es crucial para arquitectos que trabajan en entornos sin conectividad, abordando una necesidad crítica del sector mediante el "Modo Túnel".
 *   **Arquitectura Sólida y Mantenible**: La adhesión estricta a los principios de Clean Architecture, el patrón CQRS híbrido (EF Core para Writes, Dapper para Reads) y la prohibición de librerías de mapeo automático, aseguran un código modular, testeable y fácilmente mantenible. Esto garantiza que la arquitectura está preparada para crecer y adaptarse a futuras funcionalidades sin requerir reescrituras significativas.
 *   **Seguridad Integral**: La implementación de un sistema de autenticación JWT Bearer con Refresh Token Rotation y detección de robo de tokens, junto con un sistema de roles RBAC y el bootstrapping seguro del usuario Root, establece una base de seguridad robusta para proteger la plataforma y sus usuarios.
-*   **Eficiencia Operativa y Escalabilidad**: Al automatizar la generación de texto técnico y adaptar la estructura normativa, EDIFICIA contribuye directamente a una reducción significativa de los tiempos de redacción, la minimización de errores y una mayor coherencia en la documentación. El diseño contenerizado con Docker y el despliegue en Coolify demuestran la escalabilidad y entregabilidad profesional de la solución.
+*   **Eficiencia Operativa y Escalabilidad**: Al automatizar la generación de texto técnico y adaptar la estructura normativa, EdificIA contribuye directamente a una reducción significativa de los tiempos de redacción, la minimización de errores y una mayor coherencia en la documentación. El diseño contenerizado con Docker y el despliegue en Coolify demuestran la escalabilidad y entregabilidad profesional de la solución.
 
-En resumen, EDIFICIA trasciende la mera función de una herramienta de redacción; se posiciona como un asistente inteligente que comprende el complejo contexto arquitectónico español, liberando a los profesionales de tareas repetitivas y permitiéndoles centrarse en el diseño, la innovación y la toma de decisiones críticas.
+En resumen, EdificIA trasciende la mera función de una herramienta de redacción; se posiciona como un asistente inteligente que comprende el complejo contexto arquitectónico español, liberando a los profesionales de tareas repetitivas y permitiéndoles centrarse en el diseño, la innovación y la toma de decisiones críticas.
 
-**Trabajo Futuro**
+### Trabajo Futuro
 
-Aunque EDIFICIA ha alcanzado un alto nivel de funcionalidad y robustez como MVP, se han identificado varias líneas de trabajo futuro para seguir evolucionando la plataforma, priorizadas para un backlog post-release:
+Aunque EdificIA ha alcanzado un alto nivel de funcionalidad y robustez como MVP, se han identificado varias líneas de trabajo futuro para seguir evolucionando la plataforma, priorizadas para un backlog post-release:
 
 1.  **Flujo de Revisión y Validación de Memorias (Roadmap Fase 8)**: Implementar el ciclo de vida completo de una memoria (Borrador → Pendiente de Revisión → Completado/Rechazado) con notificaciones a administradores y funcionalidades de solo lectura. Esto incluirá el desarrollo de comandos (`SubmitForReviewCommand`, `ApproveProjectCommand`, `RejectProjectCommand`) y la interfaz de usuario para la bandeja de revisión del administrador.
 2.  **Sincronización Offline Optimizada (Roadmap Fase 4.2)**: Optimizar la lógica "Debounce Save" y la sincronización con la API para gestionar grandes volúmenes de texto de manera más eficiente y resiliente, asegurando la consistencia de los datos en entornos con conectividad intermitente.

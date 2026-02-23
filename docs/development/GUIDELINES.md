@@ -8,7 +8,7 @@ Este documento define las reglas innegociables para el código de EdificIA.
 
 ## **1\. Stack Tecnológico**
 
-### **Backend (.NET 8\)**
+### **Backend (.NET 10)**
 
 * **API:** Web API (Controllers). **OpenAPI/Swagger** obligatorio.  
 * **Validación:** **FluentValidation**.  
@@ -24,7 +24,7 @@ Este documento define las reglas innegociables para el código de EdificIA.
 * **Estilos:** **Tailwind CSS v4**.  
 * **Validación:** **Zod**.  
 * **Estado:** Zustand \+ IndexedDB.  
-* **Testing:** **Vitest**.
+* **Testing:** **Vitest** \+ **Storybook v8** (catálogo visual de componentes UI).
 
 ### **Infraestructura**
 
@@ -49,6 +49,7 @@ PostgreSQL usa snake\_case. .NET usa PascalCase.
 **OBLIGATORIO:** Usar operadores de conversión en los DTOs o métodos de extensión.
 
 // Ejemplo: Explicit Operator  
+```csharp
 public class ProjectResponse   
 {  
     public Guid Id { get; set; }  
@@ -62,6 +63,7 @@ public class ProjectResponse
         };  
     }  
 }
+```
 
 ### **2.3. Validación**
 
