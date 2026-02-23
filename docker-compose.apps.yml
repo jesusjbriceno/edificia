@@ -11,9 +11,11 @@
 # Consulta .env.example para la lista completa.
 #
 # NOTAS Coolify v4:
-#   • Los puertos NO se exponen en el host; Traefik gestiona el routing HTTPS.
-#   • Los labels de Traefik configuran las reglas de dominio y TLS.
-#   • El healthcheck del web espera a que la API esté sana antes de arrancar.
+#   • El routing HTTPS y los certificados Let's Encrypt los genera Coolify
+#     automáticamente desde los dominios configurados en la UI.
+#   • NO definir labels traefik.http.routers manualmente — Coolify los inyecta
+#     usando el patrón http-0-UUID-service / https-0-UUID-service.
+#   • Exponer los puertos internos para que Coolify sepa dónde dirigir el tráfico.
 # ============================================================
 
 services:
@@ -31,22 +33,10 @@ services:
       timeout: 5s
       start_period: 60s
       retries: 5
+    ports:
+      - "8080"
     labels:
       - "coolify.managed=true"
-      - "traefik.enable=true"
-      - "traefik.http.middlewares.gzip.compress=true"
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-      # Router HTTP — redirige a HTTPS (el challenge ACME se intercepta antes del routing)
-      - "traefik.http.routers.edificia-api-http.entryPoints=http"
-      - "traefik.http.routers.edificia-api-http.middlewares=redirect-to-https"
-      - "traefik.http.routers.edificia-api-http.rule=Host(`api-edificia.jesusjbriceno.dev`) && PathPrefix(`/`)"
-      # Router HTTPS
-      - "traefik.http.routers.edificia-api.entryPoints=https"
-      - "traefik.http.routers.edificia-api.middlewares=gzip"
-      - "traefik.http.routers.edificia-api.rule=Host(`api-edificia.jesusjbriceno.dev`) && PathPrefix(`/`)"
-      - "traefik.http.routers.edificia-api.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.edificia-api.tls=true"
-      - "traefik.http.services.edificia-api.loadbalancer.server.port=8080"
     networks:
       - coolify-network
     env_file:
@@ -67,9 +57,6 @@ services:
     image: ghcr.io/jesusjbriceno/edificia-web:latest
     container_name: edificia_prod_web
     restart: always
-    # Sin healthcheck propio: el SSR de Astro puede fallar en arranque si la API
-    # aún no está lista, lo que haría que Coolify marcase el contenedor como
-    # "unhealthy" y Traefik dejase de enrutarle tráfico (sirve cert auto-firmado).
     exclude_from_hc: true
     env_file:
       - path: .env
@@ -79,25 +66,13 @@ services:
       INTERNAL_API_URL: "http://api:8080"                           # Red interna Docker (SSR login proxy)
       HOST: "0.0.0.0"
       PORT: "4321"
+    ports:
+      - "4321"
     depends_on:
       api:
         condition: service_started
     labels:
       - "coolify.managed=true"
-      - "traefik.enable=true"
-      - "traefik.http.middlewares.gzip.compress=true"
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-      # Router HTTP — redirige a HTTPS (el challenge ACME se intercepta antes del routing)
-      - "traefik.http.routers.edificia-web-http.entryPoints=http"
-      - "traefik.http.routers.edificia-web-http.middlewares=redirect-to-https"
-      - "traefik.http.routers.edificia-web-http.rule=Host(`edificia.jesusjbriceno.dev`) && PathPrefix(`/`)"
-      # Router HTTPS
-      - "traefik.http.routers.edificia-web.entryPoints=https"
-      - "traefik.http.routers.edificia-web.middlewares=gzip"
-      - "traefik.http.routers.edificia-web.rule=Host(`edificia.jesusjbriceno.dev`) && PathPrefix(`/`)"
-      - "traefik.http.routers.edificia-web.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.edificia-web.tls=true"
-      - "traefik.http.services.edificia-web.loadbalancer.server.port=4321"
     networks:
       - coolify-network
 
