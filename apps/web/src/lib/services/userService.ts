@@ -54,4 +54,9 @@ export const userService = {
   async resetPassword(id: string): Promise<void> {
     await apiClient.post(`/users/${id}/reset-password`);
   },
+
+  /** DELETE /users/:id */
+  async remove(id: string): Promise<void> {
+    await apiClient.delete(`/users/${id}`);
+  },
 } as const;
