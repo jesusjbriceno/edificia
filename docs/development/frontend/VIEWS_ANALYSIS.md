@@ -99,6 +99,7 @@ graph TD
 | `Dropdown` | `ui/Dropdown.tsx` | Dropdown portal-based (evita clipping en tablas/layouts) |
 | `Select` | `ui/Select.tsx` | Selector estilizado con soporte de opciones tipadas |
 | `Modal` | `ui/Modal.tsx` | Modal accesible con portal |
+| `MobileSidebar` | `MobileSidebar.tsx` | Menú lateral móvil con portal (`createPortal → document.body`) para escapar el stacking context generado por `backdrop-filter` en el header |
 | `HeaderUser` | `HeaderUser.tsx` | Avatar con dropdown (Mi Perfil, Cerrar Sesión) |
 | `SidebarLogout` | `SidebarLogout.tsx` | Botón de logout en el sidebar con limpieza de sesión |
 | `NotificationBell` | `Admin/NotificationBell.tsx` | Icono de campana con contador de no leídas |

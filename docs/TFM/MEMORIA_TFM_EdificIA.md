@@ -134,7 +134,7 @@ El frontend de EDIFICIA se construye como una Single Page Application (SPA) util
     *   El `notificationService` se conecta directamente a los endpoints de notificaciones de la API.
 *   **Gestión de Usuarios (Frontend)**: Los componentes `UserTable`, `UserRow`, `UserForm` en `/admin/users` facilitan la visualización y administración de usuarios por parte de los administradores, mostrando datos reales obtenidos de la API.
 *   **Validación de Formularios**: Todos los formularios emplean `react-hook-form` junto con `Zod` para la definición de esquemas de validación, garantizando la robustez de la entrada de datos. Se sigue la regla de orden en Zod de colocar `.min(1)` antes de `.email()` para priorizar los mensajes de campo obligatorio.
-*   **Estilos y Componentes UI**: Tailwind CSS v4 es el framework principal de estilos, implementando un tema oscuro premium y un diseño atómico. Se utilizan componentes avanzados como `Dropdown` (basado en portal para evitar clipping en layouts complejos).
+*   **Estilos y Componentes UI**: Tailwind CSS v4 es el framework principal de estilos, implementando un tema oscuro premium y un diseño atómico. Se utilizan componentes avanzados como `Dropdown` (basado en portal para evitar clipping en layouts complejos) y `MobileSidebar` (basado en portal hacia `document.body` para resolver el conflicto de stacking context causado por `backdrop-filter` en el header del layout).
 
 **5.4. Integración de Inteligencia Artificial (Delegación a n8n)**
 

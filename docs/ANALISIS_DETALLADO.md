@@ -41,4 +41,5 @@ Para cumplir con la visión del cliente ("No pedir hormigón en una reforma de b
 * **Búsqueda en SidebarNavigation:** Función recursiva `searchTree(nodes, query)` que filtra el árbol de capítulos CTE en tiempo real sin afectar al estado global. Implementada con `useMemo` para optimización de renders.  
 * **EditorHeader multi-nivel:** Cabecera con contexto completo del proyecto (nombre + tipo de intervención), botón de retorno al dashboard y separadores visuales.  
 * **Portal-based Dropdown:** `ui/Dropdown.tsx` usa `ReactDOM.createPortal` para evitar clipping en tablas (gestión de usuarios) y selectores dentro de contenedores con `overflow: hidden`.  
+* **Portal-based MobileSidebar:** `MobileSidebar.tsx` usa `ReactDOM.createPortal` hacia `document.body` para escapar el containing block que crea `backdrop-filter: blur()` en el `<header>` del `DashboardLayout`. Sin el portal, `position: fixed` en WebKit/Blink queda confinado al stacking context del header, ignorando el z-index respecto al resto del viewport.  
 * **Limpieza de datos hardcoded:** Eliminación de usuarios y notificaciones hardcodeados en las vistas admin, dando paso a datos reales desde la API.
