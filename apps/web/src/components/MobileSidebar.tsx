@@ -69,11 +69,11 @@ export default function MobileSidebar() {
           {/* Sidebar panel */}
           <aside
             ref={sidebarRef}
-            className="absolute left-0 top-0 h-full w-72 bg-dark-card border-r border-white/10 flex flex-col shadow-2xl shadow-black/60 animate-in slide-in-from-left duration-200"
-            style={{ backgroundColor: '#161618' }}
+            className="absolute left-0 top-0 h-full w-72 flex flex-col shadow-2xl animate-in slide-in-from-left duration-200"
+            style={{ backgroundColor: '#161618', borderRight: '1px solid rgba(255,255,255,0.08)', isolation: 'isolate' }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-6">
+            <div className="flex items-center justify-between p-6 shrink-0" style={{ backgroundColor: '#161618' }}>
               <a href="/dashboard">
                 <img 
                   src="/logo-completo.webp" 
@@ -92,7 +92,7 @@ export default function MobileSidebar() {
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 px-4 space-y-2 mt-2">
+            <nav className="flex-1 px-4 space-y-2 mt-2 overflow-y-auto" style={{ backgroundColor: '#161618' }}>
               {NAV_ITEMS.map(({ href, label, Icon }) => (
                 <a
                   key={href}
@@ -110,7 +110,7 @@ export default function MobileSidebar() {
             </nav>
 
             {/* Footer */}
-            <div className="p-4 border-t border-white/5 space-y-2">
+            <div className="p-4 space-y-2 shrink-0" style={{ backgroundColor: '#161618', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
               <span className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-500 cursor-not-allowed rounded-lg opacity-50">
                 <Settings size={18} />
                 Ajustes
