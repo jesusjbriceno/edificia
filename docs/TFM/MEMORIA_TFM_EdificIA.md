@@ -10,7 +10,7 @@ Como ingeniero experto y redactor académico especializado en proyectos de softw
 
 EDIFICIA es una plataforma SaaS profesional concebida para la redacción automatizada y asistida por Inteligencia Artificial (IA) de Memorias de Proyecto de Ejecución en España, siguiendo estrictamente la normativa del Código Técnico de la Edificación (CTE) y la Ley de Ordenación de la Edificación (LOE). El presente TFM aborda la ineficiencia de los procesos manuales y repetitivos en el sector de la construcción, que a menudo resultan en documentos genéricos y propensos a errores.
 
-El objetivo central de este trabajo es demostrar la viabilidad técnica de una solución MVP escalable que, a la vez, sirva como producto profesional entregable. La arquitectura se fundamenta en Clean Architecture y CQRS sobre .NET 8 para el backend, y un frontend con Astro/React (Islands Architecture). La integración de la IA se gestiona mediante la delegación a flujos n8n (utilizando Flux Gateway o Google Gemini), permitiendo la intercambiabilidad de proveedores a través de la variable de entorno `AI_WEBHOOK_URL` sin modificar el código del backend. Flux Gateway, una herramienta accesoria, provee una IA soberana con autenticación OAuth2. El despliegue en producción se realiza con Docker y Coolify v4, incluyendo Traefik, TLS automático y healthchecks.
+El objetivo central de este trabajo es demostrar la viabilidad técnica de una solución MVP escalable que, a la vez, sirva como producto profesional entregable. La arquitectura se fundamenta en Clean Architecture y CQRS sobre .NET 10 para el backend, y un frontend con Astro/React (Islands Architecture). La integración de la IA se gestiona mediante la delegación a flujos n8n (utilizando Flux Gateway o Google Gemini), permitiendo la intercambiabilidad de proveedores a través de la variable de entorno `N8N_WEBHOOK_URL` sin modificar el código del backend. Flux Gateway, una herramienta accesoria, provee una IA soberana con autenticación OAuth2. El despliegue en producción se realiza con Docker y Coolify v4, incluyendo Traefik, TLS automático y healthchecks.
 
 Los resultados clave incluyen la discriminación normativa inteligente (Obra Nueva/Reforma y exenciones LOE Art. 2.2), un "Modo Túnel" para trabajo offline con persistencia en IndexedDB, y una arquitectura diseñada para la escalabilidad. El proyecto refleja tanto el rigor académico como la solidez técnica, destacando su aplicabilidad real en la optimización de la gestión de proyectos y la reducción de la carga burocrática en el sector de la construcción español.
 
@@ -20,7 +20,7 @@ El sector de la arquitectura y la ingeniería en España se enfrenta a la comple
 
 EDIFICIA emerge como una solución innovadora y tecnológica a esta problemática, consolidándose como un "Asistente Estratégico de Visado". Su visión se materializa en una plataforma SaaS que va más allá de la automatización básica. EdificIA incorpora "Inteligencia Constructiva", lo que le permite comprender el contexto de cada proyecto para adaptar dinámicamente tanto el contenido de la memoria como la normativa aplicable. Esta capacidad incluye la discriminación automática entre Obra Nueva y Rehabilitación, gestionando de forma inteligente las exenciones contempladas en el Artículo 2.2 de la LOE para obras menores, y evitando la inclusión de capítulos irrelevantes o innecesarios.
 
-La plataforma integra Inteligencia Artificial para asistir en la redacción de descripciones técnicas, justificaciones normativas y otros apartados complejos de la memoria. La particularidad de esta integración reside en su estrategia de "IA soberana y delegada": si bien Flux Gateway fue desarrollado como herramienta accesoria del ecosistema para proveer un control y autenticación OAuth2 sobre el modelo Flux, la arquitectura de EdificIA no está acoplada a este proveedor. La generación de contenido se delega a flujos n8n intercambiables mediante la variable de entorno `AI_WEBHOOK_URL`, lo que permite transitar sin modificaciones en el código del backend entre Flux Gateway, Google Gemini, Ollama/LM Studio u otros proveedores de IA. Además, la solución incorpora un "Modo Túnel" que garantiza la persistencia del estado del editor en IndexedDB, permitiendo a los arquitectos trabajar sin conexión a internet, una necesidad real en entornos de obra.
+La plataforma integra Inteligencia Artificial para asistir en la redacción de descripciones técnicas, justificaciones normativas y otros apartados complejos de la memoria. La particularidad de esta integración reside en su estrategia de "IA soberana y delegada": si bien Flux Gateway fue desarrollado como herramienta accesoria del ecosistema para proveer un control y autenticación OAuth2 sobre el modelo Flux, la arquitectura de EdificIA no está acoplada a este proveedor. La generación de contenido se delega a flujos n8n intercambiables mediante la variable de entorno `N8N_WEBHOOK_URL`, lo que permite transitar sin modificaciones en el código del backend entre Flux Gateway, Google Gemini, Ollama/LM Studio u otros proveedores de IA. Además, la solución incorpora un "Modo Túnel" que garantiza la persistencia del estado del editor en IndexedDB, permitiendo a los arquitectos trabajar sin conexión a internet, una necesidad real en entornos de obra.
 
 La motivación subyacente a este Trabajo Fin de Máster es doble: por un lado, demostrar la viabilidad técnica de una solución de software compleja y escalable que aborde un problema real y persistente en el sector de la construcción; por otro lado, aplicar y consolidar principios avanzados de ingeniería de software, como la Clean Architecture, el patrón CQRS, el uso de sistemas distribuidos y un diseño de interfaz de usuario enfocado en la experiencia del profesional. Este documento detallará la concepción, el diseño arquitectónico, la implementación técnica y los resultados obtenidos por EDIFICIA, concluyendo con una reflexión sobre sus implicaciones y futuras líneas de desarrollo.
 
@@ -31,7 +31,7 @@ El objetivo principal de este proyecto de TFM es desarrollar una plataforma SaaS
 Para lograr este objetivo general, se han definido los siguientes objetivos específicos:
 
 *   **RF-PROJ-01 y RF-PROJ-02:** Implementar un sistema de gestión estratégica del proyecto que permita clasificar la intervención (Obra Nueva/Reforma/Ampliación) y su ámbito LOE (Art. 4 vs. Exención Art. 2.2), así como definir normativa municipal específica para contextualizar la generación de contenido por IA.
-*   **RF-IA-01 y RF-IA-02:** Integrar una pasarela unificada de Inteligencia Artificial (IA) utilizando flujos n8n (Flux Gateway y Google Gemini), para generar texto contextualizado que considere la tipología de obra y la normativa aplicable, garantizando la rotación transparente de modelos subyacentes mediante la configuración de `AI_WEBHOOK_URL`.
+*   **RF-IA-01 y RF-IA-02:** Integrar una pasarela unificada de Inteligencia Artificial (IA) utilizando flujos n8n (Flux Gateway y Google Gemini), para generar texto contextualizado que considere la tipología de obra y la normativa aplicable, garantizando la rotación transparente de modelos subyacentes mediante la configuración de `N8N_WEBHOOK_URL`.
 *   **Roadmap Fase 2 y 4:** Desarrollar las funcionalidades CRUD para la gestión de proyectos y un editor de memorias basado en TipTap, que incluya persistencia offline del contenido en IndexedDB y un sistema de navegación adaptativo con búsqueda recursiva de capítulos CTE.
 *   **Roadmap Fase 4.3:** Implementar un sistema completo de notificaciones en tiempo real, con indicadores visuales de no leídas y funcionalidades de administración de notificaciones por parte del usuario.
 *   **Roadmap Fase 6.1:** Desarrollar la capacidad de exportar la memoria técnica completa a formato DOCX, con el contenido generado.
@@ -53,7 +53,7 @@ El proyecto se estructuró en una secuencia de fases iterativas, priorizando la 
 4.  **Fase 3: El Motor de Normativa (JSON Engine):** Se implementó el almacenamiento del árbol de contenido normativo (`ContentTreeJson`) como JSONB en la entidad `Project`. El frontend desarrolló una utilidad `filterTree(nodes, config)` para ocultar ramas (`requiresNewWork: true`) según el `InterventionType` del proyecto, y una `SidebarNavigation` recursiva con `searchTree` para la búsqueda en tiempo real de capítulos.
 5.  **Fase 4: Editor y Persistencia (The Core):** Se integró el editor WYSIWYG TipTap en `EditorShell`, acompañado de una `EditorToolbar`. Se implementó una lógica de "Debounce Save" en el `useEditorStore` de Zustand, utilizando `idb-keyval` para la persistencia offline en IndexedDB y sincronización con el backend vía un endpoint `PATCH /projects/{id}/sections`.
 6.  **Fase 4.3: Sistema de Notificaciones (Completado):** Se implementó la entidad `Notification` con métodos de fábrica (`Create()`) y comportamiento (`MarkAsRead()`), un flujo CQRS completo para su gestión, y un `NotificationsController` en la API. El frontend incluyó `NotificationBell` y `NotificationsList`.
-7.  **Fase 5: Inteligencia Artificial (Delegada a n8n):** Se adoptó una estrategia de delegación a webhooks n8n para la integración IA. El backend (`N8nAiService`) envía un contexto técnico a un webhook configurado en `AI_WEBHOOK_URL`, que puede apuntar a Flux Gateway (OAuth2) o Google Gemini. n8n construye el prompt contextualizado y normaliza la respuesta.
+7.  **Fase 5: Inteligencia Artificial (Delegada a n8n):** Se adoptó una estrategia de delegación a webhooks n8n para la integración IA. El backend (`N8nAiService`) envía un contexto técnico a un webhook configurado en `N8N_WEBHOOK_URL`, que puede apuntar a Flux Gateway (OAuth2) o Google Gemini. n8n construye el prompt contextualizado y normaliza la respuesta.
 8.  **Fase 6: Exportación y Cierre:** Se desarrolló la funcionalidad de exportación a DOCX utilizando OpenXml para mapear el contenido del editor a un documento Word, accesible vía un endpoint `GET /export` y un botón en el frontend.
 9.  **Fase 7: Refactor - Mapeos y Limpieza:** Se centralizaron los mapeos entre DTOs y Comandos/Queries mediante operadores de conversión explícitos (prohibiendo librerías de mapeo automático) y se extrajeron las consultas SQL raw de Dapper a clases de constantes para mejorar la claridad y mantenibilidad del código.
 10. **Fase 8: Flujo de Revisión y Validación de Memorias:** (Identificada como trabajo futuro, pero modelada en el `ProjectStatus`) Esta fase futura ya define un nuevo estado `PendingReview` en el dominio y transiciones asociadas.
@@ -62,7 +62,7 @@ El proyecto se estructuró en una secuencia de fases iterativas, priorizando la 
 
 El proyecto empleó un stack tecnológico moderno y estrictamente definido en la "Guía de Estilo y Estándares de Desarrollo":
 
-*   **Backend (.NET 8):** Clean Architecture, CQRS Híbrido (EF Core para Writes, Dapper para Reads), FluentValidation, mapeo manual de DTOs, ASP.NET Core Identity (JWT Bearer, Refresh Token Rotation, RBAC), Redis, xUnit, Moq.
+*   **Backend (.NET 10):** Clean Architecture, CQRS Híbrido (EF Core para Writes, Dapper para Reads), FluentValidation, mapeo manual de DTOs, ASP.NET Core Identity (JWT Bearer, Refresh Token Rotation, RBAC), Redis, xUnit, Moq.
 *   **Frontend (Astro 4 + React 18):** Islands Architecture, TypeScript (Strict), Tailwind CSS v4 (tema oscuro), Zustand + IndexedDB (`idb-keyval`), Zod + `react-hook-form`, TipTap, Vitest.
 *   **Infraestructura:** PostgreSQL 16 (`snake_case`, columna JSONB), Docker y Docker Compose (contenerización), Coolify v4 (PaaS self-hosted con Traefik para reverse proxy y TLS automático).
 *   **Integración IA:** n8n (orquestador de workflows), Flux Gateway (proveedor IA soberana con OAuth2), Google Gemini (proveedor IA cloud).
@@ -77,17 +77,17 @@ El desarrollo técnico de EDIFICIA se ha estructurado en torno a una arquitectur
 
 **5.1. Arquitectura del Sistema (Visión General)**
 
-El sistema EDIFICIA se concibe como un monorepo que alberga dos aplicaciones principales: `apps/api` para el backend en .NET 8 y `apps/web` para el frontend en Astro/React. Estas aplicaciones interactúan a través de una API RESTful, y se apoyan en servicios de infraestructura contenerizados y externos.
+El sistema EDIFICIA se concibe como un monorepo que alberga dos aplicaciones principales: `apps/api` para el backend en .NET 10 y `apps/web` para el frontend en Astro/React. Estas aplicaciones interactúan a través de una API RESTful, y se apoyan en servicios de infraestructura contenerizados y externos.
 
 ```mermaid
 graph TD
-    UI[Frontend: Astro 4 / React 18] -->|JSON (REST API)| API[Edificia.API .NET 8]
-    API -->|EF Core (Writes)| DB[(PostgreSQL 16)]
-    API -->|Dapper (Reads)| DB
-    API -->|Webhook POST + X-Edificia-Auth| N8N[n8n Workflows]
-    N8N -->|OAuth2 + JSON| FluxGateway[Flux Gateway]
-    FluxGateway -.->|Proxy| LLM[LLM Providers (e.g., Google Gemini)]
-    UI -->|IndexedDB| Local[(Persistencia Offline)]
+    UI["Frontend: Astro 4 / React 18"] -->|"JSON (REST API)"| API["Edificia.API .NET 10"]
+    API -->|"EF Core (Writes)"| DB[("PostgreSQL 16")]
+    API -->|"Dapper (Reads)"| DB
+    API -->|"Webhook POST + X-Edificia-Auth"| N8N["n8n Workflows"]
+    N8N -->|"OAuth2 + JSON"| FluxGateway["Flux Gateway"]
+    FluxGateway -.->|"Proxy"| LLM["LLM Providers (e.g., Google Gemini)"]
+    UI -->|"IndexedDB"| Local[("Persistencia Offline")]
 ```
 
 **5.2. Arquitectura del Backend (.NET)**
@@ -198,7 +198,7 @@ Aunque EDIFICIA ha alcanzado un alto nivel de funcionalidad y robustez como MVP,
 4.  **Soporte para Plantillas de Exportación DOTX (Roadmap Fase 6.1.1)**: Permitir la carga de archivos `.dotx` (plantillas Word) para aplicar estilos corporativos personalizados al documento exportado, utilizando OpenXml para abrir el `.dotx` como base antes de mapear el contenido de TipTap.
 5.  **Soporte para Múltiples Normativas (Roadmap Fase 9.1)**: Permitir la carga y selección de otras normativas (p. ej., normativas autonómicas, versiones anteriores del CTE, RITE), incluyendo un selector de normativa en el wizard de creación de proyecto y filtrando el árbol de contenidos según la normativa activa.
 6.  **Delegación del Envío de Emails a n8n (Roadmap Fase 9.2)**: Reemplazar el servicio de email actual por un `IEmailDispatcherService` que haga `POST` a un webhook n8n. El flujo n8n gestionaría la selección de plantillas, el envío a través de Brevo (con fallback a SMTP) y el registro de trazabilidad, simplificando el código backend.
-7.  **Soporte para IAs Locales (Ollama / LM Studio) (Roadmap Fase 9.3)**: Crear un nuevo flujo n8n que actúe como adaptador hacia Ollama o LM Studio, exponiendo una API REST compatible con OpenAI. Esto permitiría ejecutar la IA completamente offline o en entornos sin acceso a APIs externas, sin requerir cambios en el código del backend, solo actualizando `AI_WEBHOOK_URL`.
+7.  **Soporte para IAs Locales (Ollama / LM Studio) (Roadmap Fase 9.3)**: Crear un nuevo flujo n8n que actúe como adaptador hacia Ollama o LM Studio, exponiendo una API REST compatible con OpenAI. Esto permitiría ejecutar la IA completamente offline o en entornos sin acceso a APIs externas, sin requerir cambios en el código del backend, solo actualizando `N8N_WEBHOOK_URL`.
 8.  **Colaboración en Tiempo Real**: Investigar e implementar funcionalidades que permitan a múltiples arquitectos colaborar en la misma memoria simultáneamente, lo que requeriría la introducción de tecnologías como WebSockets o SignalR.
 9.  **Integración BIM/CAD**: Explorar la integración con herramientas de modelado de información de construcción (BIM) o diseño asistido por computadora (CAD) para importar datos directamente al contexto del proyecto, enriqueciendo automáticamente las memorias y reduciendo la entrada manual de datos.
 10. **Métricas y Analíticas**: Desarrollar un módulo de analíticas que proporcione a los administradores y usuarios estadísticas sobre el uso de la plataforma, el rendimiento de la IA y los tiempos de redacción.
