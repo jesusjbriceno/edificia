@@ -69,14 +69,16 @@ public class ProjectResponse
 
 La validación de entrada NO ocurre en el controlador, sino en el Pipeline de MediatR o mediante filtros de FluentValidation.
 
-public class CreateProjectValidator : AbstractValidator\<CreateProjectCommand\>  
-{  
-    public CreateProjectValidator()  
-    {  
-        RuleFor(x \=\> x.Title).NotEmpty().MaximumLength(200);  
-        RuleFor(x \=\> x.CadastralRef).Matches(@"^\[0-9A-Z\]{20}$");  
-    }  
+```csharp
+public class CreateProjectValidator : AbstractValidator<CreateProjectCommand>
+{
+    public CreateProjectValidator()
+    {
+        RuleFor(x => x.Title).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.CadastralRef).Matches(@"^[0-9A-Z]{20}$");
+    }
 }
+```
 
 ### **2.4. Estrategia de Acceso a Datos (CQRS Híbrido)**
 
