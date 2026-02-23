@@ -38,11 +38,13 @@ export default function AdminProjectFormPage({
     load();
   }, [projectId]);
 
-  const handleSubmit = () => {
-    // Navigate back to the project detail or the list
-    window.location.href = isEditMode
-      ? `/admin/projects/${projectId}`
-      : '/admin/projects';
+  const handleSubmit = (createdId?: string) => {
+    if (isEditMode) {
+      window.location.href = `/admin/projects/${projectId}`;
+    } else {
+      // Redirect to the newly created project detail
+      window.location.href = createdId ? `/projects/${createdId}` : '/dashboard';
+    }
   };
 
   // ── Loading ────────────────────────────────────────────────
@@ -79,18 +81,18 @@ export default function AdminProjectFormPage({
 
   const backHref = isEditMode
     ? `/admin/projects/${projectId}`
-    : '/admin/projects';
+    : '/dashboard';
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-gray-500">
         <a
-          href="/admin/projects"
+          href={isEditMode ? '/admin/projects' : '/dashboard'}
           className="hover:text-white transition-colors flex items-center gap-1.5"
         >
           <ArrowLeft size={14} />
-          Proyectos
+          {isEditMode ? 'Proyectos' : 'Inicio'}
         </a>
         {isEditMode && project && (
           <>
