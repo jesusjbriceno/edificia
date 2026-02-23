@@ -165,13 +165,42 @@ La API REST de EDIFICIA expone **21 endpoints** organizados en 5 módulos princi
 
 EDIFICIA se adhiere al principio de **"Configuración en el Entorno"**, utilizando variables de entorno para gestionar la configuración específica de cada entorno (desarrollo, producción).
 
-*   **Dockerización**: Se proporcionan Dockerfiles multi-stage para el API (.NET 10 sobre Alpine) y el Frontend (Node 20 sobre Alpine con Astro Node.js adapter), optimizados para generar imágenes mínimas y seguras (ejecución con usuario no-root) e incluyen `HEALTHCHECK` para la monitorización de contenedores.
+*   **Dockerización**: Se proporcionan Dockerfiles multi-stage para el API (.NET 10 sobre Alpine) y el Frontend (Node 22 sobre Alpine con Astro Node.js adapter), optimizados para generar imágenes mínimas y seguras (ejecución con usuario no-root). El Dockerfile de la API incluye `HEALTHCHECK` (`/health/live`) para la monitorización del servicio; el Dockerfile del frontend **no incluye `HEALTHCHECK`** deliberadamente, ya que los contenedores marcados como `unhealthy` son excluidos automáticamente del routing por Traefik, lo que impediría el acceso al frontend.
 *   **Orquestación**: Docker Compose se utiliza para:
     *   **Desarrollo local (`docker-compose.yml`)**: Levanta únicamente la infraestructura de apoyo (PostgreSQL, Redis, MailHog), permitiendo que la API y el Frontend se ejecuten fuera de Docker para facilitar el hot-reload.
-    *   **Producción (`docker-compose.prod.yml`, `docker-compose.apps.yml`)**: Permiten desplegar el stack completo (Base de Datos + Redis + API + Web) o solo las aplicaciones (API + Web) en entornos donde la Base de Datos y Redis ya existen o son gestionados externamente. El archivo `docker-compose.apps.yml` está específicamente diseñado para entornos como Coolify v4, utilizando etiquetas Traefik para el routing HTTPS y la gestión automática de certificados TLS.
-*   **Variables de Entorno**: Las variables sensibles (ej. `DB_USER`, `JWT_SECRET`, `N8N_WEBHOOK_URL`, `N8N_API_SECRET`) se inyectan a través de un archivo `.env` o desde la interfaz de Coolify. Docker traduce la notación `__` (doble guion bajo) a `:` para la jerarquía de configuración de .NET (ej. `Jwt__SecretKey` mapea a `Jwt:SecretKey`).
-*   **Proxy Inverso**: Se recomienda el uso de Caddy o Nginx para la exposición de la API y el frontend con SSL automático (Let's Encrypt), dirigiendo el tráfico a los puertos internos de los contenedores (API en 8080, Web en 4321).
+      *   **Producción (`docker-compose.prod.yml`, `docker-compose.apps.yml`)**: Permiten desplegar el stack completo (Base de Datos + Redis + API + Web) o solo las aplicaciones (API + Web) en entornos donde la Base de Datos y Redis ya existen o son gestionados externamente. El archivo `docker-compose.apps.yml` está diseñado para Coolify v4, que gestiona el routing Traefik y los certificados TLS (Let's Encrypt) automáticamente; **no se requieren etiquetas Traefik manuales** en los contenedores. Las variables de entorno se declaran en la sección `environment:` mediante la notación `${VAR_NAME:-}`, compatible con la inyección nativa de Coolify.
+*   **Variables de Entorno**: Las variables sensibles —`DB_USER`, `DB_PASSWORD`, `JWT_SECRET`, `N8N_WEBHOOK_URL`, `N8N_API_SECRET`, `EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME`, `ROOT_PASSWORD`, etc.— se inyectan como variables de entorno del contenedor desde la interfaz de Coolify, o mediante un archivo `.env` en despliegues manuales. Docker traduce la notación `__` (doble guion bajo) a `:` para la jerarquía de configuración de .NET (ej. `AI__WebhookUrl` mapea a `AI:WebhookUrl`, `Jwt__SecretKey` mapea a `Jwt:SecretKey`).
+*   **Proxy Inverso**: En producción, EDIFICIA utiliza **Coolify v4 con Traefik integrado** como proxy inverso, que gestiona automáticamente el routing HTTPS y la renovación de certificados TLS (Let's Encrypt) a través de los dominios configurados en la plataforma, sin intervención manual. Para despliegues on-premise sin Coolify, puede usarse Caddy (SSL automático) o Nginx como alternativa, dirigiendo el tráfico a los puertos internos de los contenedores (API en `8080`, Web en `4321`).
 *   **Checklist de Producción**: Se detalla un checklist que incluye la creación de un archivo `.env` seguro, la configuración de contraseñas y secretos, la aplicación de migraciones, la configuración de certificados SSL/proxy inverso y la verificación post-despliegue mediante health checks.
+
+**5.7. Estrategia de Testing y Calidad (TDD)**
+
+EDIFICIA incorpora una estrategia de testing integral que cubre tanto el backend como el frontend. La **Definición de Hecho (DoD)** del proyecto exige que ningún cambio llegue a revisión sin tests unitarios en verde, garantizando la regresión continua y la confianza en los refactors.
+
+*   **Backend — xUnit + Moq**: El testing del backend se organiza en dos proyectos xUnit dentro de `apps/api/tests/`:
+    *   **`Edificia.Domain.Tests`**: Valida las reglas de negocio puras, sin dependencias de infraestructura. Cubre las entidades `Project` (transiciones de estado, guardas, métodos de fábrica), `ApplicationUser` (inicialización de claims y roles), `RefreshToken` (lógica de expiración y revocación) y `ProjectSectionContent`. También incluye tests para `Exceptions`, `Primitives` y `Shared`.
+    *   **`Edificia.Application.Tests`**: Valida la capa de aplicación usando Moq para sustituir las dependencias de infraestructura (repositorios, servicios de correo, IA). Los subdirectorios cubren:
+        *   **`Auth/`** (11 test files): Handlers de login, refresh token, change password y update profile; tests de mapping entre Request/Command/Response; y tests de los validadores FluentValidation correspondientes.
+        *   **`Projects/`, `Users/`, `Notifications/`**: Handlers de CRUD con verificaciones de autorización, guards de dominio y mappings.
+        *   **`Ai/`**: Invocación al `N8nAiService` con mocks del `HttpClient`, verificación del contrato JSON enviado al webhook y tratamiento de errores de red.
+        *   **`Export/`**: Generación del blob DOCX mediante OpenXml, verificando la estructura del documento resultante.
+        *   **`Behaviors/`**: Tests del `ValidationBehavior` de MediatR, comprobando que los comandos inválidos no alcanzan el handler.
+        *   **`Validators/`**: Tests unitarios directos sobre los validadores FluentValidation de cada comando.
+    *   **Ejecución**: `dotnet test` desde `apps/api/`.
+
+*   **Frontend — Vitest**: El testing del frontend se centraliza en `apps/web/src/tests/` (18 archivos) con Vitest y jsdom como entorno de ejecución. Los tests se clasifican en:
+    *   **Componentes UI atómicos**: `Button.test.tsx`, `Dropdown.test.tsx`, `Select.test.tsx` — validan renderizado correcto y emisión de eventos.
+    *   **Formularios y flujos de autenticación**: `LoginForm.test.tsx`, `ForgotPassword.test.tsx`, `UserForm.test.tsx`, `ProfileView.test.tsx`, `ProjectForm.test.tsx` — validan el ciclo completo formulario → validación Zod → submit con mock de la API.
+    *   **Guards y autorización**: `AuthGuard.test.tsx` — asegura que las rutas protegidas redirigen correctamente a usuarios no autenticados.
+    *   **Stores y estado global**: `useAuthStore.test.ts` — valida las mutaciones del store Zustand (login, logout, token refresh) y su persistencia.
+    *   **Servicios**: `notificationService.test.ts` — tests de integración ligeros con mocks de `fetch` para los endpoints de notificaciones.
+    *   **Lógica de negocio frontend**: `contentTree.test.ts` (filtrado recursivo del árbol normativo según `InterventionType`), `syncManager.test.ts` (reconciliación offline/online con IndexedDB), `ExportDocx.test.tsx` (verificación de la generación del blob DOCX).
+    *   **Componentes de notificaciones y administración**: `NotificationBell.test.tsx`, `NotificationsList.test.tsx`, `UserRow.test.tsx`, `AiAssistantPanel.test.tsx`.
+    *   **Ejecución**: `pnpm test` o `pnpm vitest run` desde `apps/web/`.
+
+*   **Definición de Hecho (DoD)**: Toda feature debe tener los tests en verde antes de ser mergeada. Los tests se ejecutan en el pipeline CI (GitHub Actions) en cada Pull Request, bloqueando el merge ante cualquier regresión.
+
+---
 
 ### 6. Conclusiones y trabajo futuro
 
