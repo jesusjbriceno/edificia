@@ -90,20 +90,23 @@ graph TD
 
 ## **3. Inventario de Componentes UI**
 
-| Componente | Ubicación | Propósito |
-| :--- | :--- | :--- |
-| `Button` | `ui/Button.tsx` | Botón reutilizable con variantes y estados |
-| `Input` | `ui/Input.tsx` | Campo de entrada estilizado |
-| `Card` | `ui/Card.tsx` | Tarjeta contenedora |
-| `Badge` | `ui/Badge.tsx` | Etiqueta de estado |
-| `Dropdown` | `ui/Dropdown.tsx` | Dropdown portal-based (evita clipping en tablas/layouts) |
-| `Select` | `ui/Select.tsx` | Selector estilizado con soporte de opciones tipadas |
-| `Modal` | `ui/Modal.tsx` | Modal accesible con portal |
-| `MobileSidebar` | `MobileSidebar.tsx` | Menú lateral móvil con portal (`createPortal → document.body`) para escapar el stacking context generado por `backdrop-filter` en el header |
-| `HeaderUser` | `HeaderUser.tsx` | Avatar con dropdown (Mi Perfil, Cerrar Sesión) |
-| `SidebarLogout` | `SidebarLogout.tsx` | Botón de logout en el sidebar con limpieza de sesión |
-| `NotificationBell` | `Admin/NotificationBell.tsx` | Icono de campana con contador de no leídas |
-| `NotificationsList` | `Admin/NotificationsList.tsx` | Lista de notificaciones con acciones de lectura |
+| Componente | Ubicación | Propósito | Storybook |
+| :--- | :--- | :--- | :---: |
+| `Button` | `ui/Button.tsx` | Botón reutilizable con variantes y estados | ✅ |
+| `Input` | `ui/Input.tsx` | Campo de entrada estilizado | ✅ |
+| `Card` | `ui/Card.tsx` | Tarjeta contenedora | — |
+| `Badge` | `ui/Badge.tsx` | Etiqueta de estado | ✅ |
+| `Dropdown` | `ui/Dropdown.tsx` | Dropdown portal-based (evita clipping en tablas/layouts) | — |
+| `Select` | `ui/Select.tsx` | Selector estilizado con soporte de opciones tipadas | — |
+| `Modal` | `ui/Modal.tsx` | Modal accesible con portal | ✅ |
+| `Skeleton` | `ui/Skeleton.tsx` | Placeholders animados para estados de carga | ✅ |
+| `MobileSidebar` | `MobileSidebar.tsx` | Menú lateral móvil con portal (`createPortal → document.body`) para escapar el stacking context generado por `backdrop-filter` en el header | — |
+| `HeaderUser` | `HeaderUser.tsx` | Avatar con dropdown (Mi Perfil, Cerrar Sesión) | — |
+| `SidebarLogout` | `SidebarLogout.tsx` | Botón de logout en el sidebar con limpieza de sesión | — |
+| `NotificationBell` | `Admin/NotificationBell.tsx` | Icono de campana con contador de no leídas | — |
+| `NotificationsList` | `Admin/NotificationsList.tsx` | Lista de notificaciones con acciones de lectura | — |
+
+> ✅ = tiene fichero `.stories.tsx` co-localizado con autodocs. Accede al catálogo con `npm run storybook` (`localhost:6006`).
 
 ## **4. Stores (Zustand)**
 

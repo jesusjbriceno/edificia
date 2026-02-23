@@ -63,7 +63,7 @@ El proyecto se estructuró en una secuencia de fases iterativas, priorizando la 
 El proyecto empleó un stack tecnológico moderno y estrictamente definido en la "Guía de Estilo y Estándares de Desarrollo":
 
 *   **Backend (.NET 10):** Clean Architecture, CQRS Híbrido (EF Core para Writes, Dapper para Reads), FluentValidation, mapeo manual de DTOs, ASP.NET Core Identity (JWT Bearer, Refresh Token Rotation, RBAC), Redis, xUnit, Moq.
-*   **Frontend (Astro 4 + React 18):** Islands Architecture, TypeScript (Strict), Tailwind CSS v4 (tema oscuro), Zustand + IndexedDB (`idb-keyval`), Zod + `react-hook-form`, TipTap, Vitest.
+*   **Frontend (Astro 4 + React 18):** Islands Architecture, TypeScript (Strict), Tailwind CSS v4 (tema oscuro), Zustand + IndexedDB (`idb-keyval`), Zod + `react-hook-form`, TipTap, Vitest, Storybook v8.
 *   **Infraestructura:** PostgreSQL 16 (`snake_case`, columna JSONB), Docker y Docker Compose (contenerización), Coolify v4 (PaaS self-hosted con Traefik para reverse proxy y TLS automático).
 *   **Integración IA:** n8n (orquestador de workflows), Flux Gateway (proveedor IA soberana con OAuth2), Google Gemini (proveedor IA cloud).
 
@@ -135,6 +135,7 @@ El frontend de EDIFICIA se construye como una Single Page Application (SPA) util
 *   **Gestión de Usuarios (Frontend)**: Los componentes `UserTable`, `UserRow`, `UserForm` en `/admin/users` facilitan la visualización y administración de usuarios por parte de los administradores, mostrando datos reales obtenidos de la API.
 *   **Validación de Formularios**: Todos los formularios emplean `react-hook-form` junto con `Zod` para la definición de esquemas de validación, garantizando la robustez de la entrada de datos. Se sigue la regla de orden en Zod de colocar `.min(1)` antes de `.email()` para priorizar los mensajes de campo obligatorio.
 *   **Estilos y Componentes UI**: Tailwind CSS v4 es el framework principal de estilos, implementando un tema oscuro premium y un diseño atómico. Se utilizan componentes avanzados como `Dropdown` (basado en portal para evitar clipping en layouts complejos) y `MobileSidebar` (basado en portal hacia `document.body` para resolver el conflicto de stacking context causado por `backdrop-filter` en el header del layout).
+*   **Catálogo de Componentes — Storybook v8**: La biblioteca de componentes atómicos (`ui/`) está documentada con Storybook 8 (`@storybook/react-vite`). Cada componente expone sus variantes, estados y props interactivos mediante el formato CSF (Component Story Format) con `autodocs`, generando documentación automática a partir de los tipos TypeScript. Los componentes cubiertos son: `Button` (4 variantes, loading, disabled), `Badge` (5 variantes semánticas), `Input` (con label, error, password, disabled), `Modal` (interactivo con trigger y estado fijo) y `Skeleton` (placeholder, líneas de texto, `ProjectCardSkeleton`, `ProjectGridSkeleton`). La configuración (`.storybook/main.ts`) integra Tailwind CSS v4 como plugin de Vite mediante `viteFinal`, aplica el tema oscuro de la aplicación (`background: #0a0a0b`) y resuelve el alias `@/` para importar desde `src/`. Se accede localmente en `http://localhost:6006` (`npm run storybook`) y puede exportarse como sitio estático con `npm run build-storybook`.
 
 **5.4. Integración de Inteligencia Artificial (Delegación a n8n)**
 
@@ -196,7 +197,11 @@ EDIFICIA incorpora una estrategia de testing integral que cubre tanto el backend
     *   **Servicios**: `notificationService.test.ts` — tests de integración ligeros con mocks de `fetch` para los endpoints de notificaciones.
     *   **Lógica de negocio frontend**: `contentTree.test.ts` (filtrado recursivo del árbol normativo según `InterventionType`), `syncManager.test.ts` (reconciliación offline/online con IndexedDB), `ExportDocx.test.tsx` (verificación de la generación del blob DOCX).
     *   **Componentes de notificaciones y administración**: `NotificationBell.test.tsx`, `NotificationsList.test.tsx`, `UserRow.test.tsx`, `AiAssistantPanel.test.tsx`.
-    *   **Ejecución**: `pnpm test` o `pnpm vitest run` desde `apps/web/`.
+    *   **Ejecución**: `npm test` o `npm run vitest run` desde `apps/web/`.
+
+*   **Frontend — Storybook v8 (documentación visual)**: Complementario a Vitest, Storybook actúa como taller de componentes y documentación viva. Cada componente atómico de `ui/` tiene su fichero `.stories.tsx` co-localizado con el componente. El addon `autodocs` (activado con `tags: ['autodocs']`) genera automáticamente una página de referencia de props a partir de las interfaces TypeScript sin configuración adicional. El addon `addon-interactions` permite definir flujos de interacción (click, escritura) como tests deterministas ejecutables desde la propia UI de Storybook. La configuración `.storybook/package.json` con `{ "type": "commonjs" }` resuelve la incompatibilidad de `require()` en el entorno ESM del proyecto (`"type": "module"` en `package.json` raíz de `apps/web`).
+    *   **Componentes documentados**: `Button`, `Badge`, `Input`, `Modal`, `Skeleton`.
+    *   **Ejecución**: `npm run storybook` (dev, `localhost:6006`) · `npm run build-storybook` (exportar estático).
 
 *   **Definición de Hecho (DoD)**: Toda feature debe tener los tests en verde antes de ser mergeada. Los tests se ejecutan en el pipeline CI (GitHub Actions) en cada Pull Request, bloqueando el merge ante cualquier regresión.
 
