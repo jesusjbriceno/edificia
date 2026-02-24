@@ -76,7 +76,7 @@ export function SyncBadge({ status, pendingCount }: Readonly<SyncBadgeProps>) {
         <span
           role="status"
           aria-label="Borrador guardado localmente"
-          className={`${BASE} text-gray-500 bg-white/5 border-white/5`}
+          className={`${BASE} text-gray-300 bg-white/5 border-white/10`}
         >
           <Save size={12} className="mr-2" aria-hidden="true" />
           Borrador Local

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import type { Editor } from '@tiptap/react';
 import { useEditorStore } from '@/store/useEditorStore';
 import { projectService } from '@/lib/services/projectService.js';
@@ -20,6 +20,10 @@ export function useEditorActions(editor: Editor | null) {
 
   const [exporting, setExporting] = useState(false);
   const [submittingReview, setSubmittingReview] = useState(false);
+
+  // Refs para garantizar que el guard nunca lee un closure estale
+  const exportingRef = useRef(false);
+  const submittingReviewRef = useRef(false);
 
   const canSubmitForReview =
     projectStatus === ProjectStatus.Draft || projectStatus === ProjectStatus.InProgress;
@@ -48,8 +52,9 @@ export function useEditorActions(editor: Editor | null) {
 
   /** Solicita la exportación DOCX y dispara la descarga en el navegador. */
   const handleExport = useCallback(async () => {
-    if (!projectId || exporting) return;
+    if (!projectId || exportingRef.current) return;
 
+    exportingRef.current = true;
     setExporting(true);
     try {
       const { blob, fileName } = await projectService.exportDocx(projectId);
@@ -66,14 +71,16 @@ export function useEditorActions(editor: Editor | null) {
     } catch {
       toast.error('No se pudo exportar el documento. Inténtalo de nuevo.');
     } finally {
+      exportingRef.current = false;
       setExporting(false);
     }
-  }, [projectId, exporting]);
+  }, [projectId]);
 
   /** Cambia el estado del proyecto a PendingReview vía API. */
   const handleSubmitForReview = useCallback(async () => {
-    if (!projectId || submittingReview || !canSubmitForReview) return;
+    if (!projectId || submittingReviewRef.current || !canSubmitForReview) return;
 
+    submittingReviewRef.current = true;
     setSubmittingReview(true);
     try {
       await projectService.submitForReview(projectId);
@@ -82,9 +89,10 @@ export function useEditorActions(editor: Editor | null) {
     } catch {
       toast.error('No se pudo enviar a revisión. Inténtalo de nuevo.');
     } finally {
+      submittingReviewRef.current = false;
       setSubmittingReview(false);
     }
-  }, [projectId, submittingReview, canSubmitForReview, setProjectStatus]);
+  }, [projectId, canSubmitForReview, setProjectStatus]);
 
   return {
     exporting,

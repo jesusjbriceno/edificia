@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useEditorActions } from '@/lib/hooks/useEditorActions';
 import { useEditorStore } from '@/store/useEditorStore';
+import { ProjectStatus } from '@/lib/types';
 
 // ── Mocks de dependencias externas ───────────────────────
 
@@ -35,7 +36,7 @@ const mockEditor = {
 
 // ── Helpers ───────────────────────────────────────────────
 
-function setupStore(status = 'Draft') {
+function setupStore(status: ProjectStatus = ProjectStatus.Draft) {
   useEditorStore.getState().initProject(
     'proj-actions-1',
     [],
@@ -70,7 +71,7 @@ beforeEach(() => {
   vi.spyOn(document, 'createElement').mockImplementation((tagName: string, ...args) => {
     if (tagName === 'a') {
       fakeAnchor = originalCreateElement('a');
-      fakeAnchor.click = clickSpy;
+      fakeAnchor.click = clickSpy as () => void;
       return fakeAnchor;
     }
     return originalCreateElement(tagName, ...args as [ElementCreationOptions?]);

@@ -95,10 +95,11 @@ export function EditorContextBar({
           {/* ── Enviar a Revisión ── */}
           {canSubmitForReview && (
             <Button
+              variant="ghost"
               size="sm"
               aria-label={submittingReview ? 'Enviando a revisión…' : 'Enviar memoria a revisión'}
               aria-busy={submittingReview}
-              className="h-9 px-4 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 font-bold transition-all"
+              className="h-9 px-4 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white border-0 font-bold transition-all shadow-lg shadow-emerald-500/20 cursor-pointer"
               onClick={onSubmitForReview}
               disabled={submittingReview}
             >
@@ -125,13 +126,13 @@ export function EditorContextBar({
             aria-pressed={aiPanelOpen}
             aria-expanded={aiPanelOpen}
             className={cn(
-              'h-9 px-4 text-blue-400 bg-blue-400/5 hover:bg-blue-400/15 border border-blue-400/10',
-              aiPanelOpen && 'ring-1 ring-blue-400/50 bg-blue-400/10',
+              'h-9 px-4 text-blue-300 bg-blue-500/15 hover:bg-blue-500/25 border border-blue-400/30 cursor-pointer',
+              aiPanelOpen && 'ring-1 ring-blue-400/60 bg-blue-500/25 text-blue-200',
             )}
             onClick={onToggleAi}
           >
-            <Sparkles size={14} className="mr-2 text-blue-400" aria-hidden="true" />
-            IA
+            <Sparkles size={14} className="mr-2 text-blue-300" aria-hidden="true" />
+            Asistente IA
           </Button>
 
           {/* ── Exportar DOCX ── */}
@@ -146,7 +147,7 @@ export function EditorContextBar({
             }
             aria-busy={exporting}
             title={!projectId ? 'El proyecto debe estar guardado para poder exportar' : undefined}
-            className="h-9 px-6 bg-brand-primary hover:bg-brand-primary-hover text-white shadow-lg shadow-brand-primary/20 transition-all font-bold"
+            className="h-9 px-6 bg-brand-primary hover:bg-brand-primary-hover text-white shadow-lg shadow-brand-primary/20 transition-all font-bold cursor-pointer"
             onClick={onExport}
             disabled={exporting || !projectId}
           >
