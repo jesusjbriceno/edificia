@@ -24,6 +24,9 @@
 - ✅ .github/copilot-instructions.md con guías del proyecto para GitHub Copilot
 - ✅ Storybook v8: catálogo visual de componentes UI (`Button`, `Badge`, `Input`, `Modal`, `Skeleton`) con autodocs generadas desde los tipos TypeScript
 - ✅ `MobileSidebar` con `createPortal → document.body` (v1.2.15)
+- ✅ Refactor `EditorShell` → descomposición en `SyncBadge`, `EditorContextBar`, `EditorEmptyState` + hook `useEditorActions` (v1.5.0)
+- ✅ Mejoras de accesibilidad WCAG AA en botones de acción del editor (contraste, `aria-pressed`, `aria-busy`, `sr-only`)
+- ✅ Storybook: nuevas stories `Editor/SyncBadge` y `Editor/EditorContextBar` (9 variants)
 
 **Progreso Backend Actual:**
 - ✅ Entidad `Notification` en Domain con métodos de fábrica y `MarkAsRead()`
@@ -117,6 +120,14 @@
 | **7.2** | feature/refactor-sql-constants | • Extraer todas las consultas SQL raw de los Query Handlers de Dapper a clases de constantes centralizadas (ej: `ProjectQueries.cs` con `GetById`, `GetPaged`, `Count`). • Refactorizar los Handlers para referenciar las constantes en lugar de SQL inline. • Verificar que todos los tests siguen pasando. | • N/A |
 
 **Contexto:** Según AGENTS.md, el mapeo debe ser **manual con operadores explícitos** (PROHIBIDO AutoMapper). La Feature 7.1 consolida los mapeos dispersos en los controllers dentro de los propios Commands/Queries. La Feature 7.2 centraliza las queries SQL de Dapper en ficheros de constantes por agregado, facilitando la revisión, reutilización y mantenimiento del SQL.
+
+### **7.3 — Refactor Frontend: Descomposición de EditorShell**
+
+**Objetivo:** Dividir el monolito `EditorShell.tsx` (278 líneas, 4 responsabilidades) en componentes presentacionales reutilizables y un hook de lógica de negocio, mejorando la testeabilidad, la cobertura de Storybook y el mantenimiento a largo plazo.
+
+| ID | Feature Branch | Tareas Backend (.NET) | Tareas Frontend (Astro/React) |
+| :---- | :---- | :---- | :---- |
+| **7.3** | ✅ feature/editor-shell-refactor | • N/A | ✅ • Extraer `SyncBadge` (6 estados de sync, `role=status/alert`, `aria-label`) a `components/Editor/SyncBadge.tsx`. • Crear `EditorContextBar` (breadcrumbs + acciones: Enviar a Revisión, Asistente IA, Exportar) completamente presentacional con `aria-pressed`, `aria-busy` y textos `sr-only` — cumple WCAG AA en contrastes (botón "Enviar a Revisión": fondo `emerald-500` sólido + texto blanco; botón "Asistente IA": `text-blue-300` ≈ 7.5:1; "Borrador Local": `text-gray-300`; Exportar: 4.8:1). • Crear `EditorEmptyState` como estado vacío aislado con `role=status`. • Extraer `useEditorActions` hook (`src/lib/hooks/`) con los handlers `handleExport`, `handleSubmitForReview`, `handleAiInsertContent` y los derivados `canSubmitForReview`, `isReadonly`. • `EditorShell` queda como orquestador de ~65 líneas. • Tests: `SyncBadge.test.tsx` (11 casos), `EditorContextBar.test.tsx` (19 casos), `useEditorActions.test.ts` (15 casos). • Storybook: `Editor/SyncBadge` (7 stories), `Editor/EditorContextBar` (9 stories). |
 
 ---
 

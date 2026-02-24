@@ -8,6 +8,7 @@ import { useEditorStore } from '@/store/useEditorStore';
 vi.mock('@/lib/services/projectService.js', () => ({
   projectService: {
     exportDocx: vi.fn(),
+    submitForReview: vi.fn(),
   },
 }));
 
