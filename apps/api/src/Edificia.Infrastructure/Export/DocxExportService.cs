@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -42,6 +43,37 @@ public sealed partial class DocxExportService : IDocumentExportService
 
             // ── Content tree ──
             ProcessContentTree(body, data.ContentTreeJson);
+
+            mainPart.Document.Save();
+        }
+
+        return Task.FromResult(stream.ToArray());
+    }
+
+    public Task<byte[]> ExportToDocxWithTemplateAsync(
+        ExportDocumentData data,
+        byte[] templateContent,
+        CancellationToken cancellationToken = default)
+    {
+        using var stream = new MemoryStream(templateContent.ToArray());
+
+        using (var wordDoc = WordprocessingDocument.Open(stream, true))
+        {
+            wordDoc.ChangeDocumentType(WordprocessingDocumentType.Document);
+
+            var mainPart = wordDoc.MainDocumentPart ?? wordDoc.AddMainDocumentPart();
+
+            if (mainPart.Document is null)
+            {
+                mainPart.Document = new Document(new Body());
+            }
+
+            var body = mainPart.Document.Body ?? mainPart.Document.AppendChild(new Body());
+
+            body.AppendChild(new Paragraph(new Run(new Break { Type = BreakValues.Page })));
+            AddTitlePage(body, data);
+            ProcessContentTree(body, data.ContentTreeJson);
+            ForceUpdateFieldsOnOpen(mainPart);
 
             mainPart.Document.Save();
         }
@@ -319,4 +351,21 @@ public sealed partial class DocxExportService : IDocumentExportService
 
     [GeneratedRegex(@"<[^>]+>")]
     private static partial Regex HtmlTagRegex();
+
+    private static void ForceUpdateFieldsOnOpen(MainDocumentPart mainPart)
+    {
+        var settingsPart = mainPart.DocumentSettingsPart ?? mainPart.AddNewPart<DocumentSettingsPart>();
+
+        if (settingsPart.Settings is null)
+        {
+            settingsPart.Settings = new Settings();
+        }
+
+        var hasUpdateFields = settingsPart.Settings.Elements<UpdateFieldsOnOpen>().Any();
+        if (!hasUpdateFields)
+        {
+            settingsPart.Settings.Append(new UpdateFieldsOnOpen { Val = true });
+            settingsPart.Settings.Save();
+        }
+    }
 }
