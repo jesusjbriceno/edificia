@@ -24,11 +24,12 @@ El sistema debe permitir la administración, almacenamiento y aplicación dinám
 
 ### Infraestructura y Parametrización
 
-* **RF-08 | Almacenamiento Agnostic:** La ruta física de guardado de los archivos `.dotx` debe ser inyectada por variables de entorno.  
-  * *Local/Dev:* Directorio en la máquina host (Ej. `./local_data/templates`).  
-  * *Producción:* Volumen montado en Docker persistente en el VPS.
+* **RF-08 | Almacenamiento Agnostic:** El sistema debe abstraer el guardado/lectura de plantillas detrás de un proveedor configurable por entorno (`local` o `n8n`).  
+  * *Local/Dev (`local`):* Directorio en la máquina host (Ej. `./local_data/templates`).  
+  * *Producción recomendada (`n8n`):* La API delega el guardado/lectura a un webhook de n8n, y el flujo persiste en el backend de storage elegido (Drive, OneDrive, S3, Synology, etc.) devolviendo identificador/ruta canónica.
 * **RF-09 | Límite de Tamaño:** Restringir el upload de plantillas a un máximo definido (ej. 10MB) para proteger los recursos del VPS KVM 2.
 
 ### Integración y Automatización (n8n)
 
-* **RF-10 | Hook de Validación (n8n):** Al subir una plantilla, el sistema puede disparar un Webhook hacia n8n para tareas asíncronas (notificación de actualización al equipo técnico o extracción de metadatos/etiquetas del XML).
+* **RF-10 | Gestión de Storage vía n8n (recomendado):** Al subir/recuperar una plantilla, la API puede delegar la operación al webhook de n8n y persistir metadatos en DB solo tras confirmación `OK` del flujo.
+* **RF-11 | Hook de Validación/Auditoría (n8n):** Tras operaciones de plantilla, el sistema puede disparar un Webhook adicional para tareas asíncronas (notificación técnica, auditoría, extracción de metadatos/etiquetas XML).

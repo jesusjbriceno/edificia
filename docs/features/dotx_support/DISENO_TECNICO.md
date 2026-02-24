@@ -10,7 +10,7 @@ public class AppTemplate : AuditableEntity // Hereda Id, CreatedAt, etc.
     public string Name { get; set; }
     public string Description { get; set; }
     public string TemplateType { get; set; } // Enum o String (Memoria, Certificado...)
-    public string StoragePath { get; set; }  // Ruta relativa del archivo
+    public string StoragePath { get; set; }  // Ruta/Key canónica devuelta por el proveedor de storage (n8n/local)
     public string OriginalFileName { get; set; }
     public string MimeType { get; set; }
     public long FileSizeBytes { get; set; }
@@ -21,7 +21,10 @@ public class AppTemplate : AuditableEntity // Hereda Id, CreatedAt, etc.
 
 ## 2. Patrón de Almacenamiento (Storage Provider Strategy)
 
-Para cumplir con el entorno paramétrico (Local vs Coolify/VPS), utilizaremos un patrón Strategy configurado vía Inyección de Dependencias.
+Para cumplir con el entorno paramétrico y reducir riesgo de desalineación DB/FileStorage, utilizaremos un patrón Strategy configurado vía Inyección de Dependencias:
+
+- `local` para desarrollo/local.
+- `n8n` como estrategia recomendada en producción, delegando persistencia y recuperación a workflows.
 
 ```mermaid
 classDiagram
@@ -39,8 +42,15 @@ classDiagram
         - volumePath: string
         +SaveFileAsync()
     }
+    class N8nTemplateStorage {
+        - webhookUrl: string
+        +SaveFileAsync()
+        +GetFileAsync()
+        +DeleteFileAsync()
+    }
     IFileStorageService <|-- LocalEnvironmentStorage
     IFileStorageService <|-- VolumeProductionStorage
+    IFileStorageService <|-- N8nTemplateStorage
     DocumentExportService --> IFileStorageService
 ```
 
@@ -77,6 +87,7 @@ sequenceDiagram
 ## 4. Integración con n8n (Webhooks)
 
 * **Endpoint en n8n:** `POST https://n8n.tudominio.com/webhook/template-events`
+* **Modo recomendado:** operación síncrona para `upload/get/delete` de plantillas.
 * **Payload desde .NET:**
 
 ```json
@@ -86,6 +97,30 @@ sequenceDiagram
   "templateType": "MemoriaTécnica",
   "uploadedBy": "Admin",
   "timestamp": "2026-02-24T12:00:00Z"
+}
+```
+
+### 4.1. Contrato recomendado para almacenamiento delegado
+
+```json
+{
+    "operation": "UPLOAD_TEMPLATE",
+    "templateType": "MemoriaTecnica",
+    "fileName": "Plantilla_Memoria_v3.dotx",
+    "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.template",
+    "contentBase64": "...",
+    "requestedBy": "admin@edificia.dev"
+}
+```
+
+Respuesta esperada:
+
+```json
+{
+    "success": true,
+    "storageProvider": "s3",
+    "storageKey": "templates/memoria/2026/02/plantilla-v3.dotx",
+    "version": 3
 }
 ```
 

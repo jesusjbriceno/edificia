@@ -6,14 +6,14 @@
 sequenceDiagram
     participant Astro as Cliente (Astro 4)
     participant API as .NET 10 API
-    participant Cache as L1 Cache / Redis L2
-    participant Volume as Docker Volume (NVMe)
+  participant Cache as L1 Cache (IMemoryCache)
+  participant N8N as n8n Template Storage
     
-    Astro->>API: POST /api/export/project/123
+  Astro->>API: GET /api/projects/{id}/export
     API->>Cache: Obtener Plantilla (byte[])
     alt Cache Miss
-        Cache->>Volume: Leer template.dotx
-        Volume-->>Cache: Retorna byte[]
+    Cache->>N8N: GET_TEMPLATE (webhook síncrono)
+    N8N-->>Cache: Retorna byte[]
         Cache-->>Cache: Guardar en MemoryCache
     end
     Cache-->>API: Retorna byte[]
@@ -25,7 +25,7 @@ sequenceDiagram
 
   - **Recursos Controlados 🛡️:** La ejecución del servicio de exportación se despliega con límites de memoria estrictos (ej. 1536M para la API) y `Server GC` habilitado (`DOTNET_gcServer=1`). Esto reduce la fragmentación y mejora el rendimiento de recolección de basura en entornos KVM con recursos limitados.
 
-  - **Redis como L2 con política LRU ♻️:** La caché de plantillas utiliza Redis configurado con `--maxmemory 256mb` y `--maxmemory-policy allkeys-lru` para garantizar que la memoria se mantenga estable en picos de demanda y que las plantillas menos usadas sean liberadas automáticamente.
+  - **Caché L1 en memoria ♻️:** La caché de plantillas utiliza `IMemoryCache` con TTL para reducir latencia en lecturas repetidas. Redis L2 queda como optimización futura, no como requisito inicial.
 
   - **RecyclableMemoryStream 🔁:** Para prevenir la fragmentación de la LOH (Large Object Heap) y evitar que la generación de documentos pesados fracture la memoria del KVM (VPS con ~2GB), se usa `RecyclableMemoryStreamManager`. Esto convierte la asignación temporal de grandes buffers en un pool reciclable, mejorando la latencia y permitiendo escalado concurrente de múltiples generaciones.
 
@@ -71,7 +71,7 @@ namespace Edificia.Application.Export
 
         public async Task<byte[]> GenerateReportAsync(string templateName, Dictionary<string, string> data, CancellationToken ct)
         {
-            // 1. Obtener el binario del .dotx (desde Caché L1 o Volumen)
+            // 1. Obtener el binario del .dotx (desde Caché L1 o proveedor de storage)
             byte[] templateBytes = await _templateProvider.GetTemplateAsync(templateName, ct);
 
             // 2. Usar RecyclableMemoryStream para eficiencia
@@ -142,7 +142,7 @@ namespace Edificia.Application.Export
 ```
 ---
 
-## Configuración Coolify / Docker Compose
+## Configuración recomendada (n8n como storage delegado)
 
 ```yaml
 version: '3.8'
@@ -156,14 +156,12 @@ services:
       - DOTNET_Environment=Production
       - DOTNET_gcServer=1 # Habilitar Server GC para mejor rendimiento en KVM
       - ConnectionStrings__DefaultConnection=Host=postgres;Database=edificia;Username=postgres;Password=${POSTGRES_PASSWORD}
-      - ConnectionStrings__Redis=redis:6379,abortConnect=false
-      - Templates__VolumePath=/app/templates
-    volumes:
-      # Mapeo de volumen para persistencia de los .dotx fuera del ciclo de vida del contenedor
-      - edificia_templates:/app/templates
+      - TemplateStorage__Provider=n8n
+      - TemplateStorage__N8nWebhookUrl=${TEMPLATE_STORAGE_N8N_WEBHOOK_URL}
+      - TemplateStorage__N8nApiSecret=${TEMPLATE_STORAGE_N8N_API_SECRET}
+      - TemplateStorage__TimeoutSeconds=60
     depends_on:
       - postgres
-      - redis
     restart: unless-stopped
     # Limitación estricta para VPS KVM 2 (Ej. 1.5GB Max para la API)
     deploy:
@@ -173,15 +171,4 @@ services:
         reservations:
           memory: 512M
 
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
-    volumes:
-      - edificia_redis_data:/data
-
-volumes:
-  edificia_templates:
-    name: edificia_templates_vol
-  edificia_redis_data:
 ```

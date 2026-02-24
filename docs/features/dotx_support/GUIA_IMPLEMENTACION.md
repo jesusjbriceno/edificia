@@ -2,25 +2,42 @@
 
 Esta guía detalla el orden lógico de ejecución (Least-To-Most) para implementar el Sistema de Plantillas en la arquitectura existente desplegada en Coolify.
 
+> Contrato del webhook de storage: ver `docs/features/dotx_support/ESPECIFICACION_TEMPLATE_STORAGE_N8N.md`.
+> Roadmap de ejecución de la feature: ver `docs/features/dotx_support/ROADMAP_IMPLEMENTACION_DOTX_N8N.md`.
+
 ## Fase 1: Infraestructura y Configuraciones Core
 
 ### 1. Variables de Entorno (appsettings.json y Coolify)
 
-Define la ubicación lógica del almacenamiento.
+Define proveedor y configuración de almacenamiento de plantillas.
+
+#### Opción recomendada (producción): proveedor `n8n`
+
+En `.env`:
+
+```bash
+TemplateStorage__Provider=n8n
+TemplateStorage__N8nWebhookUrl=https://n8n.tudominio.com/webhook/template-storage
+TemplateStorage__N8nApiSecret=REEMPLAZAR_SECRETO
+TemplateStorage__TimeoutSeconds=60
+```
+
+#### Opción local/dev: proveedor `local`
 
 En `.env` (local):
 
 ```bash
-Storage__TemplatesBasePath=./local_data/templates
+TemplateStorage__Provider=local
+TemplateStorage__BasePath=./local_data/templates
 ```
 
-En Docker Compose / Coolify (appsettings.Production.json o ENV var):
+En Docker Compose / Coolify (si se usa proveedor local en producción):
 
 ```bash
-Storage__TemplatesBasePath=/app/storage/templates
+TemplateStorage__BasePath=/app/storage/templates
 ```
 
-**(IMPORTANTE):** Modifica el `docker-compose.apps.yml` para asegurar que el volumen persiste:
+**(IMPORTANTE, solo proveedor `local`):** Modifica el `docker-compose.apps.yml` para asegurar que el volumen persiste:
 
 ```yaml
 services:
@@ -45,9 +62,14 @@ dotnet ef migrations add AddTemplateSystem -p src/Edificia.Infrastructure -s src
 
 ## Fase 2: Servicios Base (Capa de Infraestructura)
 
-### 1. Implementar `IFileStorageService`
+### 1. Implementar `IFileStorageService` + estrategias
 
-Crea el servicio que escribirá físicamente el `IFormFile` (convertido a stream) en el disco.
+Implementar dos estrategias:
+
+- `LocalFileStorageService` (desarrollo/local).
+- `N8nTemplateStorageService` (recomendada en producción).
+
+La estrategia `n8n` debe invocar un webhook síncrono y devolver `storageKey`/identificador para persistir en DB.
 
 ```csharp
 // Asegurar que el directorio exista en el constructor
@@ -58,8 +80,8 @@ Directory.CreateDirectory(_basePath);
 
 Dado que operamos en un nodo único (VPS KVM 2), evitaremos usar Redis para guardar binarios pesados en RAM. En su lugar, usaremos `IMemoryCache` de .NET.
 
-* **Lectura:** Antes de ir al disco (NVMe), el `DocumentExportService` busca la plantilla en caché.  
-* **Invalidación:** Cuando el Administrador sube una nueva versión de la plantilla, el `TemplateService` hace un `_cache.Remove($"Template_{templateType}")` para forzar la lectura del disco en la próxima petición.
+* **Lectura:** Antes de ir al proveedor (`n8n` o local), el `DocumentExportService` busca la plantilla en caché.  
+* **Invalidación:** Cuando el Administrador sube una nueva versión de la plantilla, el `TemplateService` hace un `_cache.Remove($"Template_{templateType}")` para forzar refresco en la próxima petición.
 
 ### 3. El Motor OpenXML (`TemplateDocxGenerator`)
 
@@ -100,9 +122,9 @@ Crear `TemplatesController.cs` con acceso restringido `[Authorize(Roles = AppRol
 * `GET /api/templates` (Paginado).  
 * `PUT /api/templates/{id}/toggle-status`.
 
-**Integración n8n (Opcional en esta fase):**
+**Integración n8n (recomendada en esta fase):**
 
-En el handler del `POST`, inyectar un `IHttpClientFactory` o usar un servicio de `n8nNotifier` para enviar un HTTP POST asíncrono y de fuego-y-olvidar (fire-and-forget) al webhook de n8n.
+En el handler del `POST`, inyectar un cliente HTTP para invocar de forma síncrona el webhook de storage de `n8n`. Persistir metadatos en DB solo cuando la respuesta sea exitosa.
 
 ## Fase 4: Frontend (Astro 4 / React)
 

@@ -3,7 +3,7 @@
 ## 1. Análisis de Impacto
 
 * **Rendimiento (VPS KVM 2):** Alto riesgo de fragmentación del LOH (Large Object Heap) en C# al cargar archivos binarios concurrentemente. Se mitiga implementando RecyclableMemoryStream.  
-* **Transaccionalidad:** Separación estricta entre los metadatos de la plantilla (PostgreSQL) y el binario físico (File System / Volumen Docker).  
+* **Transaccionalidad:** Para minimizar desalineación entre metadatos (PostgreSQL) y binario, se recomienda delegar la persistencia/recuperación del fichero a un flujo `n8n` síncrono y confirmar DB únicamente con respuesta `OK` del flujo.  
 * **Frontend (Astro 4):** Necesidad de crear nuevas rutas en el dashboard de administrador `/admin/templates` con formularios `multipart/form-data` manejados eficientemente sin colapsar el hilo de Node.js (Astro).
 
 ## 2. Actores del Sistema
@@ -22,8 +22,9 @@
   2. Hace click en "Nueva Plantilla".  
   3. Completa: Nombre, Tipo (Select: Memoria/Reporte), Descripción, Archivo `.dotx`.  
   4. El frontend envía un `multipart/form-data` a la API.  
-  5. La API guarda el archivo en el `StorageProvider` (ruta parametrizada) y crea un registro en PostgreSQL con la ruta relativa y metadata.  
-  6. (Opcional) La API envía un evento HTTP POST a n8n informando de una nueva versión disponible.
+  5. La API invoca de forma síncrona un webhook de `n8n` para guardar el archivo en el backend de almacenamiento configurado (Drive, OneDrive, S3, Synology, etc.).  
+  6. Si `n8n` responde `OK`, la API crea el registro en PostgreSQL con el identificador/ruta canónica devuelta por el flujo. Si responde error, la API falla la operación sin persistir metadatos.  
+  7. (Opcional) `n8n` encadena un workflow de auditoría/notificación.
 
 ### CU-02: Generar Exportación de Proyecto (Con Fallback)
 
@@ -32,7 +33,7 @@
   1. Usuario solicita descargar la "Memoria" del Proyecto X.  
   2. La API consulta en base de datos: ¿Existe una plantilla activa con Tipo = `MemoriaTécnica`?  
   3. **Alternativa A (Existe):**  
-     * Se lee el `.dotx` del Volumen (usando caché en RAM si es posible).  
+      * La API recupera el `.dotx` por proveedor configurado (`n8n` recomendado; `local` como fallback de entorno).  
      * Se instancia OpenXML, se inyectan los datos (Content Controls).  
      * Se devuelve el binario.  
   4. **Alternativa B (No Existe):**  
