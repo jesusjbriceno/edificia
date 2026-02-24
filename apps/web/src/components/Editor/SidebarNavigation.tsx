@@ -1,8 +1,9 @@
 import { useEditorStore } from '@/store/useEditorStore';
-import { ChevronRight, FileText, ChevronDown, Folder, Users, Search } from 'lucide-react';
+import { ChevronRight, FileText, ChevronDown, Folder, Users, Search, CheckCircle2 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import type { ContentTreeNode } from '@/lib/types';
+import { hasContent, getLeafStats } from '@/lib/contentUtils';
 
 interface SidebarNavigationProps {
   /** Original tree nodes to render. */
@@ -31,7 +32,7 @@ function searchTree(nodes: ContentTreeNode[], query: string): ContentTreeNode[] 
 
 
 export default function SidebarNavigation({ tree }: Readonly<SidebarNavigationProps>) {
-  const { activeSectionId, setActiveSection } = useEditorStore();
+  const { activeSectionId, setActiveSection, content } = useEditorStore();
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredTree = useMemo(() => searchTree(tree, searchQuery), [tree, searchQuery]);
@@ -71,6 +72,7 @@ export default function SidebarNavigation({ tree }: Readonly<SidebarNavigationPr
                 activeId={activeSectionId}
                 onSelect={setActiveSection}
                 autoOpen={searchQuery !== ''}
+                content={content}
               />
             ))
           )}
@@ -78,7 +80,7 @@ export default function SidebarNavigation({ tree }: Readonly<SidebarNavigationPr
       </div>
 
       {/* Basic Admin links relegated to bottom */}
-      <div className="p-3 border-t border-white/5 bg-white/[0.02]">
+      <div className="p-3 border-t border-white/5 bg-white/2">
         <div className="flex items-center gap-2">
           <a
             href="/admin/projects"
@@ -105,11 +107,13 @@ function TreeNode({
   activeId,
   onSelect,
   autoOpen = false,
+  content,
 }: Readonly<{
   node: ContentTreeNode;
   activeId: string | null;
   onSelect: (id: string) => void;
   autoOpen?: boolean;
+  content: Record<string, string>;
 }>) {
   const [isOpen, setIsOpen] = useState(true);
   const hasChildren = node.sections.length > 0;
@@ -117,6 +121,19 @@ function TreeNode({
 
   // Si estamos buscando, forzamos que esté abierto para mostrar resultados
   const effectiveOpen = autoOpen || isOpen;
+
+  // Completion state (only relevant for leaves)
+  const isCompleted = !hasChildren && hasContent(content[node.id]);
+
+  // Progress stats for parent nodes
+  const stats = hasChildren ? getLeafStats(node, content) : null;
+  const allComplete = stats !== null && stats.total > 0 && stats.completed === stats.total;
+  const pct = stats && stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
+
+  // Extract inactive class to avoid nested ternary
+  const inactiveClass = isCompleted
+    ? 'text-white/80 hover:text-white hover:bg-white/5'
+    : 'text-gray-400 hover:text-white hover:bg-white/5';
 
   return (
     <div className="space-y-1">
@@ -129,15 +146,46 @@ function TreeNode({
           'w-full flex items-start gap-2 px-3 py-2 text-xs rounded-lg transition-all group text-left',
           isActive
             ? 'bg-brand-primary/10 text-brand-primary font-medium'
-            : 'text-gray-400 hover:text-white hover:bg-white/5',
+            : inactiveClass,
         )}
       >
+        {/* Icon column */}
         <div className="mt-0.5 shrink-0">
-          {!hasChildren && <FileText size={14} className="ml-3.5" />}
+          {!hasChildren && isCompleted && (
+            <CheckCircle2 size={14} className={cn('ml-3.5', isActive ? 'text-brand-primary' : 'text-emerald-400')} />
+          )}
+          {!hasChildren && !isCompleted && <FileText size={14} className="ml-3.5" />}
           {hasChildren && effectiveOpen && <ChevronDown size={14} />}
           {hasChildren && !effectiveOpen && <ChevronRight size={14} />}
         </div>
-        <span className="leading-relaxed break-words">{node.title}</span>
+
+        {/* Text + progress bar column */}
+        <div className="flex-1 min-w-0">
+          <span className="leading-relaxed wrap-break-word">{node.title}</span>
+
+          {/* Mini progress bar for parent nodes */}
+          {hasChildren && stats && stats.total > 0 && (
+            <div className="flex items-center gap-1.5 mt-1.5">
+              <div className="flex-1 h-px rounded-full bg-white/10 overflow-hidden">
+                <div
+                  className={cn(
+                    'h-full rounded-full transition-all duration-500',
+                    allComplete ? 'bg-emerald-400' : 'bg-brand-primary/50',
+                  )}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              <span
+                className={cn(
+                  'text-[9px] shrink-0 tabular-nums',
+                  allComplete ? 'text-emerald-400' : 'text-gray-500',
+                )}
+              >
+                {stats.completed}/{stats.total}
+              </span>
+            </div>
+          )}
+        </div>
       </button>
 
       {hasChildren && effectiveOpen && (
@@ -149,6 +197,7 @@ function TreeNode({
               activeId={activeId}
               onSelect={onSelect}
               autoOpen={autoOpen}
+              content={content}
             />
           ))}
         </div>
