@@ -28,6 +28,7 @@
 * **Validación:** FluentValidation.  
 * **Mapeo:** **Manual** (Operadores explícitos). **PROHIBIDO AutoMapper**.  
 * **IA:** N8nAiService (webhook n8n → Flux Gateway / Google Gemini), variable `N8N_WEBHOOK_URL`.  
+* **Exportación DOCX:** Soporte híbrido con plantilla `.dotx` activa (`TemplateType = MemoriaTecnica`) y fallback automático al exportador estándar.  
 * **Testing:** xUnit \+ Moq.
 
 ### **🎨 Frontend (apps/web)**
@@ -67,7 +68,7 @@
 │       ├── public/normativa/   \# JSONs estáticos (cte\_2024.json)  
 │       ├── src/  
 │       │   ├── components/ui/  \# Componentes Atómicos (Tailwind)  
-│       │   ├── components/Admin/  \# Componentes de administración (Users, Projects, Notifications)  
+│       │   ├── components/Admin/  \# Componentes de administración (Users, Projects, Notifications, Templates)  
 │       │   ├── components/Editor/  \# Componentes del editor (EditorShell, SidebarNavigation, EditorHeader)  
 │       │   ├── pages/          \# Rutas Astro  
 │       │   └── store/          \# Zustand Stores  
@@ -122,6 +123,14 @@
 
 * La memoria del proyecto NO es una tabla. Es un árbol JSON guardado en Projects.ContentTreeJson.  
 * Usar PATCH endpoints para actualizaciones parciales y eficientes.
+
+### **6.4. Flujo de Plantillas de Exportación (`.dotx`)**
+
+* **Gestión Admin:** Endpoints en `/api/templates` protegidos con `RequireAdmin`.
+* **Formato soportado:** Solo `.dotx` (máx. 10 MB) para estilos corporativos de memoria.
+* **Tipo por defecto de exportación:** `MemoriaTecnica`.
+* **Resiliencia:** Si la plantilla activa no puede cargarse o procesarse, el sistema debe hacer fallback al exportador DOCX estándar sin romper la descarga.
+* **Frontend Admin:** La gestión de plantillas debe vivir en `/admin/templates` y reutilizar servicios tipados en `src/lib/services`.
 
 ## **7. Git Flow y Pull Requests (Obligatorio)**
 
