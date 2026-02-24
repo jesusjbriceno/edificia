@@ -4,6 +4,8 @@
 
 Ejecutar la feature de soporte de plantillas `.dotx` con almacenamiento delegado en `n8n`, manteniendo coherencia con Clean Architecture, `Git Flow`, `TDD` y gobernanza de `PRs`.
 
+Documento rector obligatorio durante toda la ejecución: `AGENTS.md`.
+
 ---
 
 ## 2. Estrategia de entrega
@@ -216,6 +218,27 @@ Ejecutar la feature de soporte de plantillas `.dotx` con almacenamiento delegado
 ### Salida
 
 - Feature lista para producción controlada.
+
+---
+
+## FASE 7 — Actualización de documentación del proyecto
+
+### Tareas
+
+1. Actualizar `docs/openapi.yaml` con endpoints de templates.
+2. Actualizar `docs/development/backend/API_DESIGN.md` con contratos request/response y errores.
+3. Actualizar `README.md` (sección de features/documentación) con soporte `.dotx` y storage delegado.
+4. Actualizar `docs/implementation/ROADMAP_DETALLADO.md` con estado real de `6.1.1`.
+5. Añadir guía operativa de contingencia (`provider=local`) y troubleshooting básico n8n.
+
+### TDD / Validación documental
+
+- Verificar consistencia entre documentación y comportamiento real de endpoints.
+- Validar ejemplos de request/response contra implementación final.
+
+### Salida
+
+- Documentación funcional/técnica sincronizada con el código implementado.
 
 ---
 
