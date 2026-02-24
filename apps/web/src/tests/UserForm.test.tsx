@@ -48,13 +48,25 @@ describe('UserForm component', () => {
     expect(screen.getByLabelText(/número de colegiado/i)).toBeInTheDocument();
   });
 
-  it('should hide CollegiateNumber field when role is not Architect', async () => {
+  it('should show CollegiateNumber field when role is Admin (can be a collegiate architect)', async () => {
     const user = userEvent.setup();
     render(<UserForm onSubmit={mockOnSubmit} />);
-    
+
     const roleSelect = screen.getByLabelText(/rol del usuario/i);
     await user.selectOptions(roleSelect, 'Admin');
 
+    // An Admin can be the studio director who signs/visas projects with their collegiate number
+    expect(screen.getByLabelText(/número de colegiado/i)).toBeInTheDocument();
+  });
+
+  it('should hide CollegiateNumber field when role is Collaborator', async () => {
+    const user = userEvent.setup();
+    render(<UserForm onSubmit={mockOnSubmit} />);
+
+    const roleSelect = screen.getByLabelText(/rol del usuario/i);
+    await user.selectOptions(roleSelect, 'Collaborator');
+
+    // Collaborators are administrative staff, collegiate number does not apply
     expect(screen.queryByLabelText(/número de colegiado/i)).not.toBeInTheDocument();
   });
 
