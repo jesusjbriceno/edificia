@@ -154,3 +154,5 @@ formData.append('file', selectedFile);
 3. **UI de Exportación:** La vista de exportación (ProjectDetailPage) no cambia. La magia del *fallback* ocurre transparentemente en el backend.
 
 4. **UI Admin de Plantillas:** Mostrar en la misma vista una tarjeta de reglas de subida (formato, tamaño, tags obligatorios y enlace a guía) para reducir errores de usuario antes del submit.
+
+5. **UX de errores de validación:** Mapear `Template.InvalidFormat` en frontend para mostrar mensajes accionables. Si el detalle del backend incluye "faltan Tag(s) obligatorios", extraer y listar los `Tag` faltantes en la alerta inline del formulario.

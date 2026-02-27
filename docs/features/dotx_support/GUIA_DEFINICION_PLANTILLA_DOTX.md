@@ -197,6 +197,13 @@ Si alguno falla, la API devuelve error de validación (`Template.InvalidFormat`)
 - Verifica que la plantilla está **activa** en `/admin/templates`.
 - Reexporta el documento.
 
+### Problema: “La subida falla por `Tag` obligatorios”
+
+- En la vista de `/admin/templates`, el mensaje de error indica los `Tag` faltantes (por ejemplo: `ProjectTitle`, `MD.01`, `MC.01`).
+- Abre la plantilla en Word y añade un **Content Control de texto enriquecido** por cada `Tag` faltante.
+- En **Propiedades** del control, configura la **Etiqueta (Tag)** exactamente con el valor esperado.
+- Guarda de nuevo como `.dotx` y vuelve a subir.
+
 ---
 
 ## 13) Buenas prácticas recomendadas
