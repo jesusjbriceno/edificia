@@ -12,11 +12,31 @@ const TEMPLATE_TYPES = [
   { value: 'MemoriaTecnica', label: 'Memoria Técnica' },
 ] as const;
 
+function extractMissingTags(detail: string): string[] {
+  const regex = /faltan Tag\(s\) obligatorios[^:]*:\s*([^.]+).?/i;
+  const match = regex.exec(detail);
+  if (!match?.[1]) return [];
+
+  return match[1]
+    .split(',')
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+}
+
 function getTemplateUploadErrorMessage(error: ApiError): string {
   const code = error.code ?? '';
   const detail = error.message ?? '';
 
   if (code.includes('Template.InvalidFormat')) {
+    const missingTags = extractMissingTags(detail);
+    if (missingTags.length > 0) {
+      return [
+        'La plantilla no cumple el contrato de tags para MemoriaTecnica.',
+        `Faltan estos tags obligatorios: ${missingTags.join(', ')}.`,
+        'Abre la plantilla en Word, añade los Content Controls y configura exactamente esos Tag.',
+      ].join('\n');
+    }
+
     return `La plantilla no cumple el formato requerido. ${detail}`;
   }
 
