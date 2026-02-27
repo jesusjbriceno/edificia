@@ -250,6 +250,21 @@ describe('useEditorActions — handleAiInsertContent', () => {
     expect(mockEditor.commands.setContent).toHaveBeenCalledWith('<p>Nuevo contenido</p>');
   });
 
+  it('sanitiza HTML malicioso antes de reemplazar contenido', () => {
+    const { result } = renderHook(() =>
+      useEditorActions(mockEditor as unknown as Parameters<typeof useEditorActions>[0]),
+    );
+
+    act(() => {
+      result.current.handleAiInsertContent('<img src=x onerror=alert(1)><p>Seguro</p><script>alert(1)</script>', 'replace');
+    });
+
+    const inserted = vi.mocked(mockEditor.commands.setContent).mock.calls.at(-1)?.[0] as string;
+    expect(inserted).toContain('<p>Seguro</p>');
+    expect(inserted).not.toContain('onerror');
+    expect(inserted).not.toContain('<script>');
+  });
+
   it('añade al final del editor en modo append', () => {
     const { result } = renderHook(() =>
       useEditorActions(mockEditor as unknown as Parameters<typeof useEditorActions>[0]),
@@ -261,6 +276,20 @@ describe('useEditorActions — handleAiInsertContent', () => {
 
     expect(mockEditor.commands.focus).toHaveBeenCalledWith('end');
     expect(mockEditor.commands.insertContent).toHaveBeenCalledWith('<p>Añadido</p>');
+  });
+
+  it('convierte markdown con tabla y enlace antes de insertar', () => {
+    const { result } = renderHook(() =>
+      useEditorActions(mockEditor as unknown as Parameters<typeof useEditorActions>[0]),
+    );
+
+    act(() => {
+      result.current.handleAiInsertContent('| A | B |\n|---|---|\n| 1 | [Norma](https://example.com) |', 'replace');
+    });
+
+    const inserted = vi.mocked(mockEditor.commands.setContent).mock.calls.at(-1)?.[0] as string;
+    expect(inserted).toContain('<table>');
+    expect(inserted).toContain('https://example.com');
   });
 
   it('no hace nada si el editor es null', () => {
