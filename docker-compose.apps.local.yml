@@ -30,6 +30,8 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Local
       ASPNETCORE_URLS: "http://+:8080"
+      TemplateStorage__Provider: "local"
+      TemplateStorage__BasePath: "/tmp/edificia-templates"
       # Fixed production values (secrets come from .env / Coolify UI)
       Jwt__Issuer: "http://localhost:5000"
       Jwt__Audience: "http://localhost:5000"
