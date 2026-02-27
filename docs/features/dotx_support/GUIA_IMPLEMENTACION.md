@@ -155,4 +155,6 @@ formData.append('file', selectedFile);
 
 4. **UI Admin de Plantillas:** Mostrar en la misma vista una tarjeta de reglas de subida (formato, tamaño, tags obligatorios y enlace a guía) para reducir errores de usuario antes del submit.
 
-5. **UX de errores de validación:** Mapear `Template.InvalidFormat` en frontend para mostrar mensajes accionables. Si el detalle del backend incluye "faltan Tag(s) obligatorios", extraer y listar los `Tag` faltantes en la alerta inline del formulario.
+5. **Subida de archivo (UX):** Soportar selección tradicional de fichero y zona **Drag & Drop** para `.dotx`, manteniendo las mismas validaciones de extensión/tamaño.
+
+6. **UX de errores de validación:** Mapear `Template.InvalidFormat` en frontend para mostrar mensajes accionables. Si el detalle del backend incluye "faltan Tag(s) obligatorios", extraer y listar los `Tag` faltantes en la alerta inline del formulario.

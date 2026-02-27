@@ -119,4 +119,63 @@ describe('TemplateManagement', () => {
     expect(await screen.findByText(/supera el tamaño máximo de 10 MB/i)).toBeInTheDocument();
     expect(templateService.create).not.toHaveBeenCalled();
   });
+
+  it('muestra el nombre del archivo cuando se suelta por drag & drop', async () => {
+    render(<TemplateManagement />);
+
+    await waitFor(() => {
+      expect(templateService.list).toHaveBeenCalled();
+    });
+
+    const dropZone = screen.getByText(/arrastra y suelta aquí tu plantilla/i);
+    const droppedFile = new File(['dummy'], 'drag-template.dotx', {
+      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.template',
+    });
+
+    fireEvent.drop(dropZone, {
+      dataTransfer: {
+        files: [droppedFile],
+      },
+    });
+
+    expect(await screen.findByText(/archivo seleccionado: drag-template\.dotx/i)).toBeInTheDocument();
+  });
+
+  it('envía plantilla seleccionada por drag & drop', async () => {
+    vi.mocked(templateService.create).mockResolvedValueOnce('template-id');
+
+    render(<TemplateManagement />);
+
+    await waitFor(() => {
+      expect(templateService.list).toHaveBeenCalled();
+    });
+
+    fireEvent.change(screen.getByPlaceholderText(/plantilla memoria v1/i), {
+      target: { value: 'Plantilla drag' },
+    });
+
+    const dropZone = screen.getByText(/arrastra y suelta aquí tu plantilla/i);
+    const droppedFile = new File(['dummy'], 'drag-template.dotx', {
+      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.template',
+    });
+
+    fireEvent.drop(dropZone, {
+      dataTransfer: {
+        files: [droppedFile],
+      },
+    });
+
+    const submitButton = screen.getByRole('button', { name: /subir plantilla/i });
+    fireEvent.submit(submitButton.closest('form') as HTMLFormElement);
+
+    await waitFor(() => {
+      expect(templateService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'Plantilla drag',
+          templateType: 'MemoriaTecnica',
+          file: expect.any(File),
+        }),
+      );
+    });
+  });
 });

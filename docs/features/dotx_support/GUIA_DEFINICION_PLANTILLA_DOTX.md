@@ -142,7 +142,7 @@ Nombre recomendado:
 
 1. Entra como **Admin**.
 2. Ve a **/admin/templates**.
-3. Sube el archivo `.dotx`.
+3. Sube el archivo `.dotx` (selección de archivo o arrastrar y soltar en la zona **Drag & Drop**).
 4. Asigna tipo `MemoriaTecnica`.
 5. Activa la plantilla.
 

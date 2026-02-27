@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, FileText, Loader2, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -73,6 +73,8 @@ export default function TemplateManagement() {
   const [templateType, setTemplateType] = useState('MemoriaTecnica');
   const [description, setDescription] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { addToast } = useToastStore();
 
@@ -160,6 +162,39 @@ export default function TemplateManagement() {
     }
   }
 
+  function handleFileSelect(selectedFile: File | null) {
+    setSubmitError(null);
+    setFile(selectedFile);
+  }
+
+  function handleDragOver(event: React.DragEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragOver(true);
+  }
+
+  function handleDragLeave(event: React.DragEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragOver(false);
+  }
+
+  function handleDrop(event: React.DragEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragOver(false);
+
+    const droppedFile = event.dataTransfer.files?.[0] ?? null;
+    handleFileSelect(droppedFile);
+  }
+
+  function handleDropZoneKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      fileInputRef.current?.click();
+    }
+  }
+
   async function handleToggleStatus(template: TemplateResponse) {
     try {
       await templateService.toggleStatus(template.id, !template.isActive);
@@ -226,14 +261,35 @@ export default function TemplateManagement() {
 
           <div className="md:col-span-2 space-y-1.5">
             <label htmlFor="template-file" className="text-xs font-medium text-gray-400 uppercase tracking-wider ml-1">Archivo .dotx</label>
+            <button
+              type="button"
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onKeyDown={handleDropZoneKeyDown}
+              onClick={() => fileInputRef.current?.click()}
+              aria-label="Arrastrar archivo de plantilla o pulsar para seleccionar"
+              className={[
+                'rounded-lg border-2 border-dashed px-4 py-6 text-center text-sm transition-colors',
+                isDragOver
+                  ? 'border-brand-primary bg-brand-primary/10 text-brand-primary'
+                  : 'border-white/15 bg-white/5 text-gray-300',
+              ].join(' ')}
+            >
+              Arrastra y suelta aquí tu plantilla `.dotx`
+            </button>
             <input
+              ref={fileInputRef}
               id="template-file"
               type="file"
               accept=".dotx,application/vnd.openxmlformats-officedocument.wordprocessingml.template"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              onChange={(e) => handleFileSelect(e.target.files?.[0] ?? null)}
               className="flex h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white file:mr-3 file:border-0 file:bg-brand-primary/20 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-brand-primary"
               required
             />
+            {file && (
+              <p className="text-xs text-gray-400">Archivo seleccionado: {file.name}</p>
+            )}
           </div>
 
           <div className="md:col-span-2 flex justify-end">
