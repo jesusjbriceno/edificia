@@ -112,6 +112,20 @@ export default function TemplateManagement() {
       </div>
 
       <div className="bg-dark-card border border-white/5 rounded-2xl p-6">
+        <h2 className="text-base font-semibold text-white">Pautas y reglas de subida</h2>
+        <ul className="mt-3 space-y-1.5 text-sm text-gray-300 list-disc pl-5">
+          <li>Formato permitido: <strong>.dotx</strong> (plantilla Word OpenXML).</li>
+          <li>Tamaño máximo: <strong>10 MB</strong>.</li>
+          <li>La plantilla debe contener <strong>Content Controls</strong> con <strong>Tag</strong>.</li>
+          <li>Para <strong>MemoriaTecnica</strong> son obligatorios: <strong>ProjectTitle</strong>, <strong>MD.01</strong>, <strong>MC.01</strong>.</li>
+          <li>Si falla la validación, la subida se rechaza y no se guarda la plantilla.</li>
+        </ul>
+        <p className="mt-3 text-xs text-gray-400">
+          Guía recomendada: <code>docs/features/dotx_support/GUIA_DEFINICION_PLANTILLA_DOTX.md</code>
+        </p>
+      </div>
+
+      <div className="bg-dark-card border border-white/5 rounded-2xl p-6">
         <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
           <Input
             label="Nombre"
