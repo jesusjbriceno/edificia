@@ -51,6 +51,22 @@
 
 ---
 
+## **🧪 Acceso temporal para pruebas**
+
+> ⚠️ **Temporal:** este apartado está destinado únicamente a pruebas y debe retirarse cuando deje de ser necesario.
+
+### **1) Usuario administrador**
+
+- **Email:** support@jesusjbriceno.dev
+- **Pass:** lUEGo#g&3%dR
+
+### **2) Usuario pruebas**
+
+- **Email:** demo@jesusjbriceno.dev
+- **Pass:** Huwy9V*v!!4N
+
+---
+
 ## **🚀 Quick Start (Despliegue Local)**
 
 Todo el entorno está contenerizado con Docker.
