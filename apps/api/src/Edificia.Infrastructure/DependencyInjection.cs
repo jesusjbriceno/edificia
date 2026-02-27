@@ -166,6 +166,7 @@ public static class DependencyInjection
             .Get<TemplateStorageSettings>() ?? new TemplateStorageSettings();
 
         services.AddScoped<LocalFileStorageService>();
+        services.AddScoped<ITemplateFormatValidator, DotxTemplateFormatValidator>();
 
         services.AddHttpClient<N8nTemplateStorageService>(client =>
         {

@@ -12,4 +12,7 @@ public static class TemplateErrors
 
     public static readonly Error ActivationFailed =
         Error.Failure("Template.ActivationFailed", "No se pudo actualizar el estado de la plantilla.");
+
+    public static Error InvalidFormat(string details) =>
+        Error.Validation("Template.InvalidFormat", $"Formato de plantilla inválido: {details}");
 }

@@ -10,15 +10,18 @@ public sealed class CreateTemplateHandler : IRequestHandler<CreateTemplateComman
 {
     private readonly ITemplateRepository _templateRepository;
     private readonly IFileStorageService _fileStorageService;
+    private readonly ITemplateFormatValidator _templateFormatValidator;
     private readonly ILogger<CreateTemplateHandler> _logger;
 
     public CreateTemplateHandler(
         ITemplateRepository templateRepository,
         IFileStorageService fileStorageService,
+        ITemplateFormatValidator templateFormatValidator,
         ILogger<CreateTemplateHandler> logger)
     {
         _templateRepository = templateRepository;
         _fileStorageService = fileStorageService;
+        _templateFormatValidator = templateFormatValidator;
         _logger = logger;
     }
 
@@ -26,6 +29,12 @@ public sealed class CreateTemplateHandler : IRequestHandler<CreateTemplateComman
     {
         try
         {
+            var validation = _templateFormatValidator.Validate(request.TemplateType, request.FileContent);
+            if (validation.IsFailure)
+            {
+                return Result.Failure<Guid>(validation.Error);
+            }
+
             await using var fileStream = new MemoryStream(request.FileContent, writable: false);
             var storagePath = await _fileStorageService.SaveFileAsync(
                 fileStream,

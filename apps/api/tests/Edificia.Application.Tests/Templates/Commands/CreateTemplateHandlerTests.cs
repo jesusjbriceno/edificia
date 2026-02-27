@@ -1,6 +1,8 @@
 using Edificia.Application.Interfaces;
+using Edificia.Application.Templates;
 using Edificia.Application.Templates.Commands.CreateTemplate;
 using Edificia.Domain.Entities;
+using Edificia.Shared.Result;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -11,6 +13,7 @@ public class CreateTemplateHandlerTests
 {
     private readonly Mock<ITemplateRepository> _templateRepositoryMock;
     private readonly Mock<IFileStorageService> _fileStorageServiceMock;
+    private readonly Mock<ITemplateFormatValidator> _templateFormatValidatorMock;
     private readonly Mock<ILogger<CreateTemplateHandler>> _loggerMock;
     private readonly CreateTemplateHandler _handler;
 
@@ -18,11 +21,17 @@ public class CreateTemplateHandlerTests
     {
         _templateRepositoryMock = new Mock<ITemplateRepository>();
         _fileStorageServiceMock = new Mock<IFileStorageService>();
+        _templateFormatValidatorMock = new Mock<ITemplateFormatValidator>();
         _loggerMock = new Mock<ILogger<CreateTemplateHandler>>();
+
+        _templateFormatValidatorMock
+            .Setup(x => x.Validate(It.IsAny<string>(), It.IsAny<byte[]>()))
+            .Returns(Result.Success());
 
         _handler = new CreateTemplateHandler(
             _templateRepositoryMock.Object,
             _fileStorageServiceMock.Object,
+            _templateFormatValidatorMock.Object,
             _loggerMock.Object);
     }
 
@@ -122,6 +131,28 @@ public class CreateTemplateHandlerTests
         savedTemplate.Should().NotBeNull();
         savedTemplate!.Version.Should().Be(2);
         savedTemplate.IsActive.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnFailure_WhenTemplateFormatIsInvalid()
+    {
+        var command = BuildValidCommand();
+
+        _templateFormatValidatorMock
+            .Setup(x => x.Validate(command.TemplateType, command.FileContent))
+            .Returns(Result.Failure(TemplateErrors.InvalidFormat("faltan tags")));
+
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Contain("Template.InvalidFormat");
+
+        _fileStorageServiceMock.Verify(x => x.SaveFileAsync(
+            It.IsAny<Stream>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+        _templateRepositoryMock.Verify(x => x.AddAsync(It.IsAny<AppTemplate>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     private static CreateTemplateCommand BuildValidCommand()
