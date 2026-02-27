@@ -12,11 +12,42 @@ const TEMPLATE_TYPES = [
   { value: 'MemoriaTecnica', label: 'Memoria Técnica' },
 ] as const;
 
+function getTemplateUploadErrorMessage(error: ApiError): string {
+  const code = error.code ?? '';
+  const detail = error.message ?? '';
+
+  if (code.includes('Template.InvalidFormat')) {
+    return `La plantilla no cumple el formato requerido. ${detail}`;
+  }
+
+  if (code.includes('Validation.')) {
+    if (error.validationErrors && error.validationErrors.length > 0) {
+      const lines = error.validationErrors
+        .map((validationError) => `• ${validationError.message}`)
+        .join('\n');
+      return `Revisa los datos del formulario:\n${lines}`;
+    }
+
+    return detail || 'Hay errores de validación en la subida de la plantilla.';
+  }
+
+  if (error.status === 413) {
+    return 'El archivo supera el tamaño máximo permitido (10 MB).';
+  }
+
+  if (error.status === 415) {
+    return 'El tipo de archivo no es válido. Sube una plantilla .dotx.';
+  }
+
+  return detail || 'Error al subir la plantilla.';
+}
+
 export default function TemplateManagement() {
   const [templates, setTemplates] = useState<TemplateResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const [name, setName] = useState('');
   const [templateType, setTemplateType] = useState('MemoriaTecnica');
@@ -56,9 +87,26 @@ export default function TemplateManagement() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setSubmitError(null);
 
     if (!file) {
-      addToast('Debes seleccionar un archivo .dotx', 'error');
+      const message = 'Debes seleccionar un archivo .dotx';
+      setSubmitError(message);
+      addToast(message, 'error');
+      return;
+    }
+
+    if (!file.name.toLowerCase().endsWith('.dotx')) {
+      const message = 'Formato no válido: selecciona un archivo con extensión .dotx.';
+      setSubmitError(message);
+      addToast(message, 'error');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      const message = 'El archivo supera el tamaño máximo de 10 MB.';
+      setSubmitError(message);
+      addToast(message, 'error');
       return;
     }
 
@@ -75,12 +123,17 @@ export default function TemplateManagement() {
       setName('');
       setDescription('');
       setFile(null);
+      setSubmitError(null);
       await loadTemplates();
     } catch (err) {
       if (err instanceof ApiError) {
-        addToast(err.message, 'error');
+        const message = getTemplateUploadErrorMessage(err);
+        setSubmitError(message);
+        addToast(message, 'error');
       } else {
-        addToast('Error al subir la plantilla', 'error');
+        const message = 'Error al subir la plantilla';
+        setSubmitError(message);
+        addToast(message, 'error');
       }
     } finally {
       setIsSubmitting(false);
@@ -169,6 +222,12 @@ export default function TemplateManagement() {
               Subir plantilla
             </Button>
           </div>
+
+          {submitError && (
+            <div className="md:col-span-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300 whitespace-pre-line">
+              {submitError}
+            </div>
+          )}
         </form>
       </div>
 
