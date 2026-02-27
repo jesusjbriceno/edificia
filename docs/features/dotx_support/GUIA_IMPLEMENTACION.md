@@ -122,6 +122,17 @@ Crear `TemplatesController.cs` con acceso restringido `[Authorize(Roles = AppRol
 * `GET /api/templates` (Paginado).  
 * `PUT /api/templates/{id}/toggle-status`.
 
+### Validación recomendada en `POST /api/templates`
+
+Antes de persistir en storage, validar binario `.dotx` con OpenXML:
+
+- Documento OpenXML legible (`WordprocessingDocument.Open`).
+- Existencia de `MainDocumentPart.Document.Body`.
+- Existencia de controles de contenido con `Tag`.
+- Reglas por tipo de plantilla (ej. `MemoriaTecnica`: `ProjectTitle`, `MD.01`, `MC.01`).
+
+Si falla, devolver error de dominio de validación (`Template.InvalidFormat`) y **no** guardar archivo.
+
 **Integración n8n (recomendada en esta fase):**
 
 En el handler del `POST`, inyectar un cliente HTTP para invocar de forma síncrona el webhook de storage de `n8n`. Persistir metadatos en DB solo cuando la respuesta sea exitosa.
@@ -141,3 +152,5 @@ formData.append('file', selectedFile);
 ```
 
 3. **UI de Exportación:** La vista de exportación (ProjectDetailPage) no cambia. La magia del *fallback* ocurre transparentemente en el backend.
+
+4. **UI Admin de Plantillas:** Mostrar en la misma vista una tarjeta de reglas de subida (formato, tamaño, tags obligatorios y enlace a guía) para reducir errores de usuario antes del submit.

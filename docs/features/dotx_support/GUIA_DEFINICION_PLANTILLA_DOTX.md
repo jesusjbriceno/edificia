@@ -158,6 +158,27 @@ Nombre recomendado:
 
 ---
 
+## 11.1) Validación automática en subida (backend)
+
+Al subir una plantilla en `/admin/templates`, EdificIA valida automáticamente:
+
+- Extensión `.dotx`.
+- Tamaño máximo: **10 MB**.
+- MIME compatible con plantilla Word OpenXML.
+- Que el archivo se pueda abrir como OpenXML válido.
+- Que exista cuerpo principal del documento (`word/document.xml`).
+- Que haya **Content Controls con `Tag`**.
+
+Para `TemplateType = MemoriaTecnica`, además se exigen estos `Tag` mínimos:
+
+- `ProjectTitle`
+- `MD.01`
+- `MC.01`
+
+Si alguno falla, la API devuelve error de validación (`Template.InvalidFormat`) y no guarda la plantilla.
+
+---
+
 ## 12) Errores típicos y cómo resolverlos
 
 ### Problema: “No se rellena un bloque”
@@ -206,3 +227,5 @@ Con eso ya tienes una base funcional y fácil de mantener.
 - Guía técnica de implementación: `docs/features/dotx_support/GUIA_IMPLEMENTACION.md`
 - Implementación técnica (OpenXML): `docs/features/dotx_support/IMPLEMENTACION_TECNICA.md`
 - Requisitos funcionales: `docs/features/dotx_support/REQUISITOS_FUNCIONALES.md`
+- Base Markdown para generar plantilla: `docs/features/dotx_support/TEMPLATE_BASE_MARKDOWN.md`
+- Plantilla base generada: `docs/features/dotx_support/memoria-tecnica-base-v1.dotx`

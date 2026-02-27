@@ -142,6 +142,29 @@ namespace Edificia.Application.Export
 ```
 ---
 
+## Validación técnica de plantillas `.dotx`
+
+Para garantizar consistencia antes de persistir plantillas, la subida debe ejecutar un validador OpenXML en backend.
+
+### Reglas aplicadas en validación
+
+- El binario debe abrirse como `WordprocessingDocument` válido.
+- Debe existir `MainDocumentPart.Document.Body`.
+- Deben existir `Content Controls` con `Tag` (`w:tag`).
+- Para `TemplateType = MemoriaTecnica`, deben existir como mínimo:
+  - `ProjectTitle`
+  - `MD.01`
+  - `MC.01`
+
+Si la validación falla, devolver error de dominio `Template.InvalidFormat` y abortar almacenamiento.
+
+### Ubicación de referencia (implementación actual)
+
+- Validador: `Edificia.Infrastructure.TemplateStorage.DotxTemplateFormatValidator`
+- Integración: `CreateTemplateHandler` (antes de `SaveFileAsync`)
+
+---
+
 ## Configuración recomendada (n8n como storage delegado)
 
 ```yaml
