@@ -55,6 +55,18 @@ public class DotxTemplateFormatValidatorTests
         result.Error.Code.Should().Contain("Template.InvalidFormat");
     }
 
+    [Fact]
+    public void Validate_ShouldFail_WhenFileIsDocxInsteadOfDotx()
+    {
+        var bytes = CreateDocumentDocxWithTags("ProjectTitle", "MD.01", "MC.01");
+
+        var result = _validator.Validate("MemoriaTecnica", bytes);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Contain("Template.InvalidFormat");
+        result.Error.Description.Should().Contain(".dotx");
+    }
+
     private static byte[] CreateTemplateWithTags(params string[] tags)
     {
         using var stream = new MemoryStream();
@@ -84,6 +96,26 @@ public class DotxTemplateFormatValidatorTests
             mainPart.Document = new Document(
                 new Body(
                     new Paragraph(new Run(new Text("Plantilla sin controles")))));
+            mainPart.Document.Save();
+        }
+
+        return stream.ToArray();
+    }
+
+    private static byte[] CreateDocumentDocxWithTags(params string[] tags)
+    {
+        using var stream = new MemoryStream();
+        using (var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document, true))
+        {
+            var mainPart = document.AddMainDocumentPart();
+            var body = new Body();
+
+            foreach (var tag in tags)
+            {
+                body.Append(CreateTaggedBlock(tag));
+            }
+
+            mainPart.Document = new Document(body);
             mainPart.Document.Save();
         }
 

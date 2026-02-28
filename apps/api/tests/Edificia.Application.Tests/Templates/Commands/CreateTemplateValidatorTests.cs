@@ -29,6 +29,17 @@ public class CreateTemplateValidatorTests
     }
 
     [Fact]
+    public void ShouldFail_WhenFileNameContainsPathSegments()
+    {
+        var command = BuildValidCommand() with { OriginalFileName = "../../plantilla.dotx" };
+
+        var result = _validator.Validate(command);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == "OriginalFileName");
+    }
+
+    [Fact]
     public void ShouldFail_WhenMimeTypeIsInvalid()
     {
         var command = BuildValidCommand() with { MimeType = "application/pdf" };
@@ -37,6 +48,18 @@ public class CreateTemplateValidatorTests
 
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(e => e.PropertyName == "MimeType");
+    }
+
+    [Theory]
+    [InlineData("application/zip")]
+    [InlineData("application/x-zip-compressed")]
+    public void ShouldPass_WhenMimeTypeIsZipCompatible(string mimeType)
+    {
+        var command = BuildValidCommand() with { MimeType = mimeType };
+
+        var result = _validator.Validate(command);
+
+        result.IsValid.Should().BeTrue();
     }
 
     [Fact]
