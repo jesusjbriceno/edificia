@@ -46,6 +46,9 @@ try
     // Infrastructure Layer (EF Core + Dapper)
     builder.Services.AddInfrastructure(builder.Configuration);
 
+    // L1 Cache
+    builder.Services.AddMemoryCache();
+
     // CORS
     builder.Services.AddCorsPolicy(builder.Configuration);
 

@@ -4,6 +4,8 @@ import { useEditorStore } from '@/store/useEditorStore';
 import { projectService } from '@/lib/services/projectService.js';
 import { toast } from '@/store/useToastStore';
 import { ProjectStatus } from '@/lib/types';
+import { sanitizeRichHtml } from '@/lib/sanitizeHtml';
+import { normalizeAiContentToHtml } from '@/lib/normalizeAiContent';
 
 /**
  * Encapsula toda la lógica de acción del EditorShell:
@@ -38,11 +40,13 @@ export function useEditorActions(editor: Editor | null) {
     (html: string, mode: 'replace' | 'append') => {
       if (!editor || !activeSectionId) return;
 
+      const safeHtml = sanitizeRichHtml(normalizeAiContentToHtml(html));
+
       if (mode === 'replace') {
-        editor.commands.setContent(html);
+        editor.commands.setContent(safeHtml);
       } else {
         editor.commands.focus('end');
-        editor.commands.insertContent(html);
+        editor.commands.insertContent(safeHtml);
       }
 
       updateContent(activeSectionId, editor.getHTML());

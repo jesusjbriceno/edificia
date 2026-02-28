@@ -107,7 +107,7 @@
 | ID | Feature Branch | Tareas Backend (.NET) | Tareas Frontend (Astro/React) |
 | :---- | :---- | :---- | :---- |
 | **6.1** | feature/export-docx | ✅ Implementado. Servicio OpenXml. Mapeo JSON TipTap → Estilos Word. Endpoint `GET /export`. | ✅ Botón "Exportar" en TopBar. Descarga de Blob. |
-| **6.1.1** | feature/export-dotx-template | • Permitir cargar un archivo `.dotx` (plantilla Word) que aplique estilos corporativos al documento exportado. • El servicio OpenXml abrirá el `.dotx` como base antes de mapear el contenido TipTap. • Almacenar la plantilla en Infrastructure (ruta configurable vía `Export__TemplatePath`). | • Añadir en ajustes de proyecto o configuración global un selector de archivo `.dotx`. |
+| **6.1.1** | ✅ feature/dotx_support | ✅ • Módulo `Templates` implementado (CQRS + Controller + validaciones) con endpoints `POST /api/templates` (multipart), `GET /api/templates`, `PUT /api/templates/{id}/toggle-status`. • Almacenamiento desacoplado por estrategia (n8n/local) con repositorio de plantillas versionadas y activación exclusiva por tipo. • Export híbrido: uso de plantilla activa `MemoriaTecnica` con caché en memoria y fallback automático al exportador estándar si falla la plantilla. | ✅ • Nueva pantalla admin `/admin/templates` con alta de `.dotx`, listado y activación/desactivación. • Integración en navegación desktop/móvil. • Consumo mediante `templateService` y tipos estrictos (`TemplateResponse`). |
 | **6.2** | feature/polish-ui | • Ajuste de validaciones finales. • Logging y métricas. | • Pantallas de carga (Skeletons). • Página 404 y Error Boundaries. |
 
 ## **� Fase 7: Refactor \- Mapeos y Limpieza**

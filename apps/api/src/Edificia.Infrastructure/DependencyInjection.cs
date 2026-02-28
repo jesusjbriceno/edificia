@@ -8,6 +8,7 @@ using Edificia.Infrastructure.Export;
 using Edificia.Infrastructure.Identity;
 using Edificia.Infrastructure.Persistence;
 using Edificia.Infrastructure.Persistence.Repositories;
+using Edificia.Infrastructure.TemplateStorage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -147,6 +148,7 @@ public static class DependencyInjection
 
         // ---------- Repositories ----------
         services.AddScoped<IProjectRepository, ProjectRepository>();
+        services.AddScoped<ITemplateRepository, TemplateRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
@@ -154,6 +156,39 @@ public static class DependencyInjection
         // ---------- Application Services ----------
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IUserQueryService, UserQueryService>();
+
+        // ---------- Template Storage ----------
+        services.Configure<TemplateStorageSettings>(
+            configuration.GetSection(TemplateStorageSettings.SectionName));
+
+        var templateStorageSettings = configuration
+            .GetSection(TemplateStorageSettings.SectionName)
+            .Get<TemplateStorageSettings>() ?? new TemplateStorageSettings();
+
+        services.AddScoped<LocalFileStorageService>();
+        services.AddScoped<ITemplateFormatValidator, DotxTemplateFormatValidator>();
+
+        services.AddHttpClient<N8nTemplateStorageService>(client =>
+        {
+            var timeout = templateStorageSettings.TimeoutSeconds <= 0
+                ? 60
+                : templateStorageSettings.TimeoutSeconds;
+            client.Timeout = TimeSpan.FromSeconds(timeout);
+            client.DefaultRequestHeaders.Add("Accept", "application/json");
+        });
+
+        services.AddScoped<IFileStorageService>(sp =>
+        {
+            var settings = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<TemplateStorageSettings>>().Value;
+            var provider = settings.Provider?.Trim().ToLowerInvariant() ?? "local";
+
+            return provider switch
+            {
+                "n8n" => sp.GetRequiredService<N8nTemplateStorageService>(),
+                "local" => sp.GetRequiredService<LocalFileStorageService>(),
+                _ => throw new InvalidOperationException($"Template storage provider no soportado: '{settings.Provider}'.")
+            };
+        });
 
         // ---------- Document Export ----------
         services.AddScoped<IDocumentExportService, DocxExportService>();

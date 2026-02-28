@@ -1,8 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Sparkles, X, Loader2, Send, RotateCcw, ArrowDownToLine, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { aiService } from '@/lib/services/aiService.js';
 import { useEditorStore } from '@/store/useEditorStore';
+import { sanitizeRichHtml } from '@/lib/sanitizeHtml';
+import { normalizeAiContentToHtml } from '@/lib/normalizeAiContent';
 
 // ── Prompt Suggestions ───────────────────────────────────
 
@@ -37,6 +39,11 @@ export default function AiAssistantPanel({
   const [generatedHtml, setGeneratedHtml] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
+  const sanitizedPreviewHtml = useMemo(
+    () => sanitizeRichHtml(normalizeAiContentToHtml(generatedHtml)),
+    [generatedHtml],
+  );
+
   const projectId = useEditorStore((s) => s.projectId);
   const activeSectionId = useEditorStore((s) => s.activeSectionId);
   const content = useEditorStore((s) => s.content);
@@ -69,14 +76,14 @@ export default function AiAssistantPanel({
   const handleInsert = useCallback(
     (mode: 'replace' | 'append') => {
       if (!generatedHtml) return;
-      onInsertContent(generatedHtml, mode);
+      onInsertContent(sanitizedPreviewHtml, mode);
       // Reset panel state
       setPhase('idle');
       setGeneratedHtml('');
       setPrompt('');
       onClose();
     },
-    [generatedHtml, onInsertContent, onClose],
+    [generatedHtml, onInsertContent, onClose, sanitizedPreviewHtml],
   );
 
   const handleRetry = useCallback(() => {
@@ -198,7 +205,7 @@ export default function AiAssistantPanel({
             </div>
             <div
               className="prose prose-invert prose-sm max-w-none bg-white/5 border border-white/10 rounded-lg p-4 max-h-80 overflow-y-auto"
-              dangerouslySetInnerHTML={{ __html: generatedHtml }}
+              dangerouslySetInnerHTML={{ __html: sanitizedPreviewHtml }}
             />
           </div>
         )}

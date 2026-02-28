@@ -28,6 +28,28 @@ interface ProjectFormProps {
   isLoading?: boolean;
 }
 
+function normalizeInterventionType(value: string | number | undefined): InterventionType {
+  if (typeof value === 'number') {
+    if (value === InterventionType.NewConstruction || value === InterventionType.Reform || value === InterventionType.Extension) {
+      return value;
+    }
+    return InterventionType.NewConstruction;
+  }
+
+  if (typeof value === 'string') {
+    if (value === 'NewConstruction') return InterventionType.NewConstruction;
+    if (value === 'Reform') return InterventionType.Reform;
+    if (value === 'Extension') return InterventionType.Extension;
+
+    const numericValue = Number(value);
+    if (numericValue === InterventionType.NewConstruction || numericValue === InterventionType.Reform || numericValue === InterventionType.Extension) {
+      return numericValue;
+    }
+  }
+
+  return InterventionType.NewConstruction;
+}
+
 export function ProjectForm({ onSubmit, project, isLoading: externalLoading }: Readonly<ProjectFormProps>) {
   const [apiError, setApiError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -42,9 +64,7 @@ export function ProjectForm({ onSubmit, project, isLoading: externalLoading }: R
       title: project?.title || '',
       description: project?.description || '',
       address: project?.address || '',
-      interventionType: project?.interventionType !== undefined 
-        ? Number(project.interventionType) 
-        : InterventionType.NewConstruction,
+      interventionType: normalizeInterventionType(project?.interventionType),
       isLoeRequired: project?.isLoeRequired ?? true,
       cadastralReference: project?.cadastralReference || '',
       localRegulations: project?.localRegulations || '',

@@ -1,6 +1,11 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
+import Link from '@tiptap/extension-link';
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
 import { useEditorStore } from '@/store/useEditorStore';
 import { useEffect } from 'react';
 import { EditorToolbar } from './EditorToolbar.js';
@@ -8,6 +13,7 @@ import AiAssistantPanel from './AiAssistantPanel.js';
 import { EditorContextBar } from './EditorContextBar.js';
 import { EditorEmptyState } from './EditorEmptyState.js';
 import { useEditorActions } from '@/lib/hooks/useEditorActions.js';
+import { sanitizeRichHtml } from '@/lib/sanitizeHtml';
 
 // ── Editor Shell ─────────────────────────────────────────
 
@@ -24,7 +30,19 @@ export default function EditorShell() {
   } = useEditorStore();
 
   const editor = useEditor({
-    extensions: [StarterKit, Underline],
+    extensions: [
+      StarterKit,
+      Underline,
+      Link.configure({
+        openOnClick: true,
+        autolink: true,
+        protocols: ['http', 'https', 'mailto', 'tel'],
+      }),
+      Table.configure({ resizable: true }),
+      TableRow,
+      TableHeader,
+      TableCell,
+    ],
     content: activeSectionId ? content[activeSectionId] || '' : '',
     editorProps: {
       attributes: {
@@ -42,12 +60,12 @@ export default function EditorShell() {
   // Sincronizar contenido del editor cuando cambia la sección activa
   useEffect(() => {
     if (editor && activeSectionId) {
-      const newContent = content[activeSectionId] || '';
+      const newContent = sanitizeRichHtml(content[activeSectionId] || '');
       if (editor.getHTML() !== newContent) {
         editor.commands.setContent(newContent);
       }
     }
-  }, [activeSectionId, editor]);
+  }, [activeSectionId, editor, content]);
 
   const {
     exporting,

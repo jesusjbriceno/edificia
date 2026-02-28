@@ -20,6 +20,8 @@ public class EdificiaDbContext : IdentityDbContext<ApplicationUser, IdentityRole
 
     public DbSet<Project> Projects => Set<Project>();
 
+    public DbSet<AppTemplate> Templates => Set<AppTemplate>();
+
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

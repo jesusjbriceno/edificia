@@ -35,6 +35,7 @@
 | **Redacción IA** | Genera descripciones técnicas y justificaciones normativas vía IA delegada (n8n → Flux Gateway / Google Gemini) |
 | **Modo Túnel** | Persistencia offline en IndexedDB para trabajar sin conexión en obra |
 | **Exportación DOCX** | Genera la memoria técnica completa en formato Word |
+| **Plantillas `.dotx`** | Administración de plantillas con validación de formato/tags en subida, activación/desactivación y fallback automático |
 
 > **Contexto académico:** Este proyecto constituye el Trabajo Fin de Máster (TFM) del Máster en Desarrollo de Aplicaciones con IA. Consulta la [Memoria del TFM](docs/TFM/MEMORIA_TFM_EdificIA.md) para el detalle completo.
 
@@ -237,7 +238,7 @@ Toda la documentación del proyecto se organiza en `docs/`. A continuación el �
 | Documento | Descripción |
 |:----------|:------------|
 | [Guía de Estilo y Estándares](docs/development/GUIDELINES.md) | Stack estricto, convenciones de código, patrones obligatorios |
-| [Diseño de API REST](docs/development/backend/API_DESIGN.md) | 21 endpoints, contratos request/response, autenticación, paginación |
+| [Diseño de API REST](docs/development/backend/API_DESIGN.md) | 24 endpoints, contratos request/response, autenticación, paginación y módulo de plantillas |
 | [Análisis de Vistas](docs/development/frontend/VIEWS_ANALYSIS.md) | Mapa de navegación y análisis de cada vista del frontend |
 | [OpenAPI Spec](docs/openapi.yaml) | Especificación OpenAPI/Swagger de la API |
 
@@ -264,6 +265,17 @@ Toda la documentación del proyecto se organiza en `docs/`. A continuación el �
 | Documento | Descripción |
 |:----------|:------------|
 | [Mejora Email con n8n](docs/features/MEJORA_EMAIL_N8N.md) | Propuesta (backlog) de delegación del envío de emails a n8n |
+| [Guía definición plantilla .dotx](docs/features/dotx_support/GUIA_DEFINICION_PLANTILLA_DOTX.md) | Paso a paso sencillo para crear plantillas Word `.dotx` con Content Controls compatibles con EdificIA |
+| [Plantilla base Markdown](docs/features/dotx_support/TEMPLATE_BASE_MARKDOWN.md) | Base editable para preparar la estructura de plantilla antes de convertir a `.dotx` |
+| [Roadmap de implementación .dotx](docs/features/dotx_support/ROADMAP_IMPLEMENTACION_DOTX_N8N.md) | Plan incremental de evolución de la feature `.dotx` (incluye selector de export y tipos dinámicos) |
+| [Informe de evolución .dotx (2026-02)](docs/features/dotx_support/INFORME_CAMBIOS_EVOLUCION_DOTX_2026-02.md) | Estado real actual, colisiones detectadas y cambios propuestos para la siguiente iteración |
+
+### Validación de plantillas `.dotx` en subida
+
+- Endpoint de gestión: `/api/templates` (rol Admin/Root).
+- Validaciones automáticas: extensión `.dotx`, tamaño máximo 10MB, OpenXML válido, `Content Controls` con `Tag`.
+- Para `MemoriaTecnica`, tags mínimos requeridos: `ProjectTitle`, `MD.01`, `MC.01`.
+- La UI de `/admin/templates` muestra reglas previas y mensajes guiados si faltan tags obligatorios.
 
 ### Despliegue
 

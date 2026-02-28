@@ -22,6 +22,102 @@ namespace Edificia.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Edificia.Domain.Entities.AppTemplate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("description");
+
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("file_size_bytes");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("MimeType")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("mime_type");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("original_file_name");
+
+                    b.Property<string>("StoragePath")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("storage_path");
+
+                    b.Property<string>("TemplateType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("template_type");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int>("Version")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("version");
+
+                    b.HasKey("Id")
+                        .HasName("pk_app_templates");
+
+                    b.HasIndex("CreatedByUserId")
+                        .HasDatabaseName("ix_app_templates_created_by_user_id");
+
+                    b.HasIndex("TemplateType")
+                        .IsUnique()
+                        .HasDatabaseName("ix_app_templates_template_type")
+                        .HasFilter("is_active = true");
+
+                    b.HasIndex("TemplateType", "IsActive")
+                        .HasDatabaseName("ix_app_templates_template_type_is_active");
+
+                    b.HasIndex("TemplateType", "Version")
+                        .IsUnique()
+                        .HasDatabaseName("ix_app_templates_template_type_version");
+
+                    b.ToTable("app_templates", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_AppTemplates_FileSizeBytes_Positive", "file_size_bytes > 0");
+
+                            t.HasCheckConstraint("CK_AppTemplates_Version_Positive", "version > 0");
+                        });
+                });
+
             modelBuilder.Entity("Edificia.Domain.Entities.ApplicationUser", b =>
                 {
                     b.Property<Guid>("Id")
@@ -466,6 +562,16 @@ namespace Edificia.Infrastructure.Persistence.Migrations
                         .HasName("pk_asp_net_user_tokens");
 
                     b.ToTable("asp_net_user_tokens", (string)null);
+                });
+
+            modelBuilder.Entity("Edificia.Domain.Entities.AppTemplate", b =>
+                {
+                    b.HasOne("Edificia.Domain.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_app_templates_asp_net_users_created_by_user_id");
                 });
 
             modelBuilder.Entity("Edificia.Domain.Entities.Project", b =>

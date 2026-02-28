@@ -237,3 +237,19 @@ export interface GeneratedTextResponse {
   sectionId: string;
   generatedText: string;
 }
+
+// ─── Templates ───────────────────────────────────────────
+
+export interface TemplateResponse {
+  id: string;
+  name: string;
+  description: string | null;
+  templateType: string;
+  version: number;
+  isActive: boolean;
+  originalFileName: string;
+  mimeType: string;
+  fileSizeBytes: number;
+  createdAt: string;
+  updatedAt: string | null;
+}

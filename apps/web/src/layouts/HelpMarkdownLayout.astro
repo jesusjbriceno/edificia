@@ -1,0 +1,20 @@
+---
+import DashboardLayout from './DashboardLayout.astro';
+
+interface Frontmatter {
+  title?: string;
+}
+
+interface Props {
+  frontmatter?: Frontmatter;
+}
+
+const { frontmatter } = Astro.props as Props;
+const pageTitle = frontmatter?.title ?? 'Ayuda';
+---
+
+<DashboardLayout title={pageTitle}>
+  <article class="help-markdown w-full rounded-2xl border border-white/10 bg-dark-card/60 p-6 md:p-8">
+    <slot />
+  </article>
+</DashboardLayout>
