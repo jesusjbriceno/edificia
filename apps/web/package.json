@@ -4,8 +4,10 @@
   "version": "1.5.0",
   "private": true,
   "scripts": {
-    "dev": "astro dev",
-    "start": "astro dev",
+    "dev": "astro dev --force",
+    "start": "astro dev --force",
+    "clean:vite": "node -e \"import('node:fs').then(fs=>fs.rmSync('./node_modules/.vite',{recursive:true,force:true}))\"",
+    "dev:stable": "npm run clean:vite && astro dev --force",
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
