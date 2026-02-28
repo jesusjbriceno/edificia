@@ -251,6 +251,8 @@ Toda la documentación del proyecto se organiza en `docs/`. A continuación el �
 | [Mejora Email con n8n](docs/features/MEJORA_EMAIL_N8N.md) | Propuesta (backlog) de delegación del envío de emails a n8n |
 | [Guía definición plantilla .dotx](docs/features/dotx_support/GUIA_DEFINICION_PLANTILLA_DOTX.md) | Paso a paso sencillo para crear plantillas Word `.dotx` con Content Controls compatibles con EdificIA |
 | [Plantilla base Markdown](docs/features/dotx_support/TEMPLATE_BASE_MARKDOWN.md) | Base editable para preparar la estructura de plantilla antes de convertir a `.dotx` |
+| [Roadmap de implementación .dotx](docs/features/dotx_support/ROADMAP_IMPLEMENTACION_DOTX_N8N.md) | Plan incremental de evolución de la feature `.dotx` (incluye selector de export y tipos dinámicos) |
+| [Informe de evolución .dotx (2026-02)](docs/features/dotx_support/INFORME_CAMBIOS_EVOLUCION_DOTX_2026-02.md) | Estado real actual, colisiones detectadas y cambios propuestos para la siguiente iteración |
 
 ### Validación de plantillas `.dotx` en subida
 

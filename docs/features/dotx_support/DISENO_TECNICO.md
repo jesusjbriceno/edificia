@@ -1,5 +1,21 @@
 # Diseño Técnico y Arquitectura de Software
 
+## 0. Estado real y colisiones detectadas (2026-02)
+
+### Estado actual implementado
+
+- Existe flujo de gestión `.dotx` en admin (alta/listado/activar-desactivar).
+- Exportación usa plantilla activa de `MemoriaTecnica` con fallback automático al motor estándar.
+
+### Colisiones con evolución funcional
+
+1. No existe selector de plantilla en exportación para usuario.
+2. Solo hay estado `IsActive` (no diferencia entre disponible y predeterminada).
+3. No existe catálogo dinámico de tipos de plantilla gestionable por admin.
+4. El exportador resuelve tipo por defecto fijo (`MemoriaTecnica`).
+
+---
+
 ## 1. Diseño de Base de Datos (Entity Framework Core)
 
 Se requiere una nueva entidad en el dominio: `AppTemplate`.
@@ -18,6 +34,16 @@ public class AppTemplate : AuditableEntity // Hereda Id, CreatedAt, etc.
     public int Version { get; set; }
 }
 ```
+
+### 1.1. Evolución objetivo de modelo
+
+Para escalar sin romper compatibilidad:
+
+- Fase 1: mantener `IsActive` y añadir selector de plantilla en exportación.
+- Fase 2: migrar a modelo dual:
+    - `IsAvailable` (visible/seleccionable)
+    - `IsDefault` (predeterminada por tipo)
+- Fase 3: introducir catálogo `TemplateType` persistido (`template_types`).
 
 ## 2. Patrón de Almacenamiento (Storage Provider Strategy)
 
@@ -83,6 +109,27 @@ sequenceDiagram
 
     Engine-->>API: Result Document (byte[])
 ```
+
+### 3.1. Evolución del contrato de exportación
+
+Contrato recomendado para siguiente iteración:
+
+- `templateId` opcional.
+- `outputFileName` opcional.
+
+Resolución:
+
+1. Si llega `templateId` y está disponible para el tipo documental del proyecto → usarla.
+2. Si no llega `templateId` → usar plantilla predeterminada del tipo.
+3. Si no existe plantilla usable → fallback a exportador estándar.
+
+### 3.2. Resultado observable de exportación
+
+La respuesta de exportación debe incluir metadatos de trazabilidad (cabeceras o payload auxiliar):
+
+- `template-used-id`
+- `template-used-name`
+- `export-mode: template|fallback`
 
 ## 4. Integración con n8n (Webhooks)
 

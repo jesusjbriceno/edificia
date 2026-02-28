@@ -6,6 +6,14 @@ Backlog técnico clasificado para ejecutar la feature `.dotx` con storage delega
 
 Referencia obligatoria: `AGENTS.md`.
 
+## 1.1 Estado actual del backlog (2026-02)
+
+- MVP de gestión `.dotx` implementado (upload/listado/activar-desactivar/validación/fallback export).
+- Pendiente de evolución funcional para escalabilidad:
+   - selector de plantilla en exportación,
+   - modelo `Disponible` + `Predeterminada`,
+   - catálogo dinámico de tipos.
+
 ---
 
 ## 2. Clasificación por bloque
@@ -87,6 +95,43 @@ Referencia obligatoria: `AGENTS.md`.
 5. Añadir troubleshooting y guía operativa mínima en docs de feature.
 
 **Salida esperada:** Documentación sincronizada con implementación real.
+
+## I. Evolución UX export + selector de plantilla (P1)
+
+1. Separar vistas de templates: índice/listado y formulario de alta/edición.
+2. Añadir panel/modal de export con:
+   - selector de plantilla activa/disponible por tipo,
+   - nombre de archivo editable con sugerencia por defecto.
+3. Mantener fallback transparente si no hay plantilla seleccionable.
+
+**Salida esperada:** Flujo de exportación guiado y comprensible para usuario final.
+
+## J. Evolución de modelo de negocio de plantillas (P0)
+
+1. Sustituir estado único `IsActive` por modelo dual:
+   - `IsAvailable`
+   - `IsDefault`
+2. Garantizar unicidad de `IsDefault` por tipo documental.
+3. Adaptar endpoints y reglas de activación/desactivación.
+
+**Salida esperada:** Varias plantillas por tipo disponibles y una predeterminada controlada.
+
+## K. Catálogo dinámico de tipos de plantilla (P1)
+
+1. Añadir catálogo persistido de tipos (`template_types`).
+2. Exponer administración para Admin/SuperAdmin (alta/baja/edición).
+3. Acoplar validaciones de tags por tipo y versión de contrato.
+
+**Salida esperada:** Escalabilidad a nuevos tipos documentales sin despliegues de código.
+
+## L. Tarea final obligatoria: sincronización documental global (P0)
+
+1. Actualizar documentación exclusiva de la feature.
+2. Actualizar documentación general (`README.md`, `AGENTS.md`, `openapi`, `API_DESIGN`, roadmap global).
+3. Actualizar guías de ayuda en aplicación y guías técnicas internas.
+4. Ejecutar revisión de consistencia final documentación ↔ código.
+
+**Salida esperada:** Cierre de feature con documentación completa y no obsoleta.
 
 ---
 

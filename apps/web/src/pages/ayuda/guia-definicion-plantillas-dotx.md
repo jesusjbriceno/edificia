@@ -151,6 +151,18 @@ Nombre recomendado:
 4. Asigna tipo `MemoriaTecnica`.
 5. Activa la plantilla.
 
+### 10.1) ¿Cómo se aplica la plantilla en exportación?
+
+Estado actual:
+
+- La exportación usa automáticamente la plantilla **activa** para `MemoriaTecnica`.
+- Si no hay plantilla activa o falla el render con plantilla, se aplica fallback al exportador estándar.
+
+Evolución prevista:
+
+- Se incorporará selector de plantilla en el flujo de exportación cuando existan varias plantillas disponibles para el mismo tipo documental.
+- Si solo hay una disponible, se seleccionará por defecto.
+
 ---
 
 ## 11) Prueba rápida (checklist)

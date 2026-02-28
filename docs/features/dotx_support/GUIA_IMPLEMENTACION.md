@@ -5,6 +5,16 @@ Esta guía detalla el orden lógico de ejecución (Least-To-Most) para implement
 > Contrato del webhook de storage: ver `docs/features/dotx_support/ESPECIFICACION_TEMPLATE_STORAGE_N8N.md`.
 > Roadmap de ejecución de la feature: ver `docs/features/dotx_support/ROADMAP_IMPLEMENTACION_DOTX_N8N.md`.
 
+## Baseline real (2026-02)
+
+Antes de continuar con nuevas fases, considerar ya implementado:
+
+- Upload/listado/activar-desactivar de plantillas `.dotx`.
+- Validación OpenXML + tags obligatorios para `MemoriaTecnica`.
+- Exportación híbrida con fallback automático.
+
+Esta guía documenta los pasos de evolución a partir de ese baseline.
+
 ## Fase 1: Infraestructura y Configuraciones Core
 
 ### 1. Variables de Entorno (appsettings.json y Coolify)
@@ -158,3 +168,29 @@ formData.append('file', selectedFile);
 5. **Subida de archivo (UX):** Soportar selección tradicional de fichero y zona **Drag & Drop** para `.dotx`, manteniendo las mismas validaciones de extensión/tamaño.
 
 6. **UX de errores de validación:** Mapear `Template.InvalidFormat` en frontend para mostrar mensajes accionables. Si el detalle del backend incluye "faltan Tag(s) obligatorios", extraer y listar los `Tag` faltantes en la alerta inline del formulario.
+
+## Fase 5: Evolución de exportación guiada (selector)
+
+1. Añadir panel/modal de exportación en editor y/o detalle de proyecto.
+2. Mostrar plantillas disponibles para el tipo documental.
+3. Permitir selección de plantilla y nombre de archivo de salida.
+4. Si solo hay una plantilla disponible, preselección automática.
+5. Mantener fallback backend para garantizar continuidad.
+
+## Fase 6: Evolución de dominio (`IsAvailable` + `IsDefault`)
+
+1. Migrar de estado único `IsActive` a estados separados.
+2. Garantizar una sola plantilla predeterminada por tipo documental.
+3. Adaptar endpoints y UI de administración.
+
+## Fase 7: Catálogo dinámico de tipos
+
+1. Añadir entidad y APIs de gestión de tipos de plantilla.
+2. Exponer administración a Admin/SuperAdmin.
+3. Versionar reglas de validación por tipo (`tags` mínimos).
+
+## Fase 8 (final): Cierre documental integral
+
+1. Actualizar documentación de feature y guías de ayuda.
+2. Actualizar documentación general (`README`, `AGENTS`, `openapi`, diseño API, roadmap global).
+3. Ejecutar revisión de consistencia documentación ↔ código antes de cierre de feature.

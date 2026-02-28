@@ -1,5 +1,18 @@
 # 📦 IMPLEMENTACIÓN TÉCNICA
 
+## Estado actual y siguiente evolución
+
+### Estado actual implementado
+
+- Gestión de plantillas `.dotx` en admin (`/admin/templates`) con validación robusta.
+- Exportación con plantilla activa de `MemoriaTecnica` + fallback estándar.
+
+### Evolución objetivo
+
+1. Selector de plantilla en exportación por usuario.
+2. Modelo de estado dual (`IsAvailable` + `IsDefault`).
+3. Catálogo dinámico de tipos de plantilla.
+
 ## Flujo de arquitectura
 
 ```mermaid
@@ -140,6 +153,23 @@ namespace Edificia.Application.Export
     }
 }
 ```
+
+## Evolución del contrato de exportación (propuesta)
+
+Request de exportación enriquecido:
+
+```json
+{
+  "templateId": "opcional-guid",
+  "outputFileName": "opcional-nombre-personalizado"
+}
+```
+
+Resolución recomendada:
+
+1. Si `templateId` llega y es válida/usable para el tipo documental, usar esa plantilla.
+2. Si no llega, usar la plantilla predeterminada del tipo.
+3. Si no hay plantilla usable, fallback al exportador estándar.
 ---
 
 ## Validación técnica de plantillas `.dotx`

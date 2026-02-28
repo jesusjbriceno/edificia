@@ -11,6 +11,7 @@
 1. **Administrador:** Usuario con rol Admin que sube, clasifica y gestiona el ciclo de vida de las plantillas `.dotx`.  
 2. **Usuario Técnico (Arquitecto/Ingeniero):** Solicita la exportación de un proyecto. No elige la plantilla directamente; el sistema resuelve cuál aplicar según los metadatos del proyecto.  
 3. **Sistema Orquestador (n8n):** Recibe eventos (Webhooks) desde la API para flujos de trabajo paralelos.
+4. **SuperAdministrador (evolución):** Gestiona catálogo de tipos de plantilla para nuevos documentos.
 
 ## 3. Catálogo de Casos de Uso
 
@@ -30,16 +31,28 @@
 
 * **Actor:** Usuario Técnico  
 * **Flujo Principal:**  
-  1. Usuario solicita descargar la "Memoria" del Proyecto X.  
-  2. La API consulta en base de datos: ¿Existe una plantilla activa con Tipo = `MemoriaTécnica`?  
-  3. **Alternativa A (Existe):**  
-      * La API recupera el `.dotx` por proveedor configurado (`n8n` recomendado; `local` como fallback de entorno).  
-     * Se instancia OpenXML, se inyectan los datos (Content Controls).  
-     * Se devuelve el binario.  
-  4. **Alternativa B (No Existe):**  
-     * Interviene el *Fallback* (Motor Legado).  
-     * Se genera el documento desde cero programáticamente.  
-  5. Se entrega el `.docx` al navegador del usuario.
+  1. Usuario pulsa exportar en el proyecto/memoria.  
+  2. El sistema muestra panel de exportación con plantillas disponibles para el tipo documental.  
+  3. Usuario selecciona plantilla (si hay más de una) y ajusta nombre de archivo (opcional).  
+  4. La API exporta usando la plantilla seleccionada o predeterminada.  
+  5. **Alternativa fallback:** si no hay plantilla usable, se exporta con motor estándar.  
+  6. Se entrega el `.docx` al navegador.
+
+### CU-04: Gestionar disponibilidad/predeterminación de plantillas
+
+* **Actor:** Administrador
+* **Flujo principal:**
+  1. Admin marca plantillas como disponibles o no disponibles.
+  2. Admin define plantilla predeterminada para un tipo documental.
+  3. El sistema garantiza unicidad de predeterminada por tipo.
+
+### CU-05: Gestionar tipos de plantilla (evolución)
+
+* **Actor:** SuperAdministrador
+* **Flujo principal:**
+  1. Crea/edita/desactiva tipos documentales de plantilla.
+  2. El sistema aplica reglas de validación por tipo (tags mínimos).
+  3. Las plantillas se clasifican por tipos dinámicos sin despliegue de código.
 
 ### CU-03: Automatización de Entrega vía n8n (Post-Generación)
 

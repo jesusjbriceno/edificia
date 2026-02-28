@@ -6,6 +6,23 @@ Ejecutar la feature de soporte de plantillas `.dotx` con almacenamiento delegado
 
 Documento rector obligatorio durante toda la ejecución: `AGENTS.md`.
 
+## 1.1 Estado real a 2026-02 (baseline)
+
+- Upload de plantillas `.dotx` implementado con validación avanzada (extensión/MIME/tamaño/OpenXML/tags).
+- Gestión admin implementada en `/admin/templates` (alta, listado, activar/desactivar).
+- Exportación híbrida implementada con fallback al motor estándar.
+- Selección de plantilla actual: automática por plantilla activa de `MemoriaTecnica` (sin selector por usuario).
+
+---
+
+## 1.2 Objetivo de evolución (siguiente iteración)
+
+Evolucionar desde el modelo actual (activa única por tipo) a un modelo escalable con:
+
+1. Plantillas disponibles + plantilla predeterminada por tipo documental.
+2. Selector de plantilla en el flujo de exportación.
+3. Catálogo dinámico de tipos de plantilla administrable por Admin/SuperAdmin.
+
 ---
 
 ## 2. Estrategia de entrega
@@ -239,6 +256,63 @@ Documento rector obligatorio durante toda la ejecución: `AGENTS.md`.
 ### Salida
 
 - Documentación funcional/técnica sincronizada con el código implementado.
+
+---
+
+## FASE 8 — UX de plantillas por vistas y exportación guiada
+
+### Tareas
+
+1. Separar en frontend la vista de listado de plantillas y la vista/formulario de alta/edición.
+2. Añadir estado rápido de disponibilidad y plantilla predeterminada por tipo.
+3. Añadir panel/modal de exportación en editor con selector de plantilla y nombre sugerido de archivo.
+
+### Salida
+
+- Gestión de plantillas y exportación con UX escalable para crecimiento funcional.
+
+---
+
+## FASE 9 — Modelo de dominio escalable (`Disponible` + `Predeterminada`)
+
+### Tareas
+
+1. Extender modelo de plantilla para separar disponibilidad y predeterminación.
+2. Garantizar unicidad de plantilla predeterminada por tipo documental.
+3. Actualizar APIs y reglas de negocio de activación/desactivación.
+
+### Salida
+
+- Múltiples plantillas por tipo disponibles para selección y una predeterminada controlada.
+
+---
+
+## FASE 10 — Catálogo dinámico de tipos de plantilla
+
+### Tareas
+
+1. Introducir catálogo persistido de tipos de plantilla (`template_types`).
+2. Exponer APIs y UI admin/superadmin para alta/baja/edición de tipos.
+3. Versionar reglas de validación de `tags` por tipo documental.
+
+### Salida
+
+- Alta escalabilidad sin cambios de código para introducir nuevos tipos documentales.
+
+---
+
+## FASE 11 — Cierre documental integral (obligatoria y final)
+
+### Tareas
+
+1. Actualizar toda la documentación de la feature (`dotx_support`) al estado final.
+2. Actualizar documentación general (`README.md`, `AGENTS.md`, `docs/openapi.yaml`, `API_DESIGN.md`, `ROADMAP_DETALLADO.md`).
+3. Actualizar guía de ayuda en aplicación (`/ayuda/*`) alineada a comportamiento real.
+4. Ejecutar revisión cruzada de consistencia (funcional, técnica y UX) antes de cerrar la feature.
+
+### Criterio de cierre
+
+- No se cierra la feature `.dotx` si existe desalineación entre código y documentación.
 
 ---
 

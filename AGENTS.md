@@ -132,6 +132,11 @@
 * **Validación de subida (obligatoria):** El backend debe validar OpenXML legible + `Content Controls` con `Tag`. Para `MemoriaTecnica` exigir como mínimo `ProjectTitle`, `MD.01`, `MC.01`.
 * **Resiliencia:** Si la plantilla activa no puede cargarse o procesarse, el sistema debe hacer fallback al exportador DOCX estándar sin romper la descarga.
 * **Frontend Admin:** La gestión de plantillas debe vivir en `/admin/templates`, reutilizar servicios tipados en `src/lib/services` y mostrar reglas de subida + errores guiados de validación al usuario.
+* **Evolución planificada (feature `.dotx`):**
+  * Separar estados de plantilla en `Disponible` y `Predeterminada` (una predeterminada por tipo).
+  * Incorporar selector de plantilla en el flujo de exportación con nombre de archivo editable.
+  * Migrar de tipo fijo a catálogo dinámico de tipos de plantilla gestionable por Admin/SuperAdmin.
+  * Mantener fallback al exportador estándar en toda la transición.
 
 ## **7. Git Flow y Pull Requests (Obligatorio)**
 

@@ -33,3 +33,13 @@ El sistema debe permitir la administración, almacenamiento y aplicación dinám
 
 * **RF-10 | Gestión de Storage vía n8n (recomendado):** Al subir/recuperar una plantilla, la API puede delegar la operación al webhook de n8n y persistir metadatos en DB solo tras confirmación `OK` del flujo.
 * **RF-11 | Hook de Validación/Auditoría (n8n):** Tras operaciones de plantilla, el sistema puede disparar un Webhook adicional para tareas asíncronas (notificación técnica, auditoría, extracción de metadatos/etiquetas XML).
+
+### Escalabilidad de tipos y flujo de exportación (evolución)
+
+* **RF-12 | Plantillas disponibles por tipo:** El sistema debe permitir múltiples plantillas disponibles para un mismo tipo documental.
+* **RF-13 | Plantilla predeterminada por tipo:** Debe existir, como máximo, una plantilla predeterminada por tipo documental.
+* **RF-14 | Selector en exportación:** Al exportar, el usuario debe poder elegir plantilla entre las disponibles para el tipo del documento.
+* **RF-15 | Selección automática:** Si solo existe una plantilla disponible para el tipo, el sistema debe preseleccionarla automáticamente.
+* **RF-16 | Nombre del documento de salida:** El usuario debe poder editar el nombre final del archivo exportado antes de generar el documento.
+* **RF-17 | Catálogo dinámico de tipos:** Admin/SuperAdmin deben poder crear/editar/desactivar tipos de plantilla sin cambios de código.
+* **RF-18 | Compatibilidad por tipo:** El sistema debe validar la compatibilidad de `Tag` mínimos según el tipo de plantilla configurado.
