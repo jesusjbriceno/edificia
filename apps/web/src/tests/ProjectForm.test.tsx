@@ -62,4 +62,28 @@ describe('ProjectForm component', () => {
 
     expect(screen.getByTestId('project-form')).toBeInTheDocument();
   });
+
+  it('should map API string interventionType correctly in edit mode', () => {
+    render(
+      <ProjectForm
+        onSubmit={mockOnSubmit}
+        project={{
+          id: 'aed07b5e-e3e9-4cf6-9d24-ce7e0d8f6e29',
+          title: 'PRD 05',
+          description: 'ddd',
+          address: 'dd',
+          interventionType: 'NewConstruction',
+          isLoeRequired: true,
+          cadastralReference: '2134',
+          localRegulations: null,
+          status: 'Draft',
+          createdAt: '2026-02-28T08:45:02.477368Z',
+          updatedAt: '2026-02-28T08:48:00.684699Z',
+        }}
+      />,
+    );
+
+    const interventionSelect = screen.getByLabelText(/tipo de intervención/i) as HTMLSelectElement;
+    expect(interventionSelect.value).toBe('0');
+  });
 });
