@@ -27,6 +27,80 @@
   .btn-premium {
     @apply relative inline-flex items-center justify-center px-6 py-3 font-semibold text-white transition-all duration-300 rounded-lg bg-gradient-to-r from-brand-primary to-blue-500 hover:scale-[1.02] active:scale-95 shadow-lg shadow-brand-primary/20;
   }
+
+  .help-markdown {
+    @apply text-gray-200 leading-7;
+  }
+
+  .help-markdown h1 {
+    @apply text-3xl md:text-4xl font-bold text-gray-100 tracking-tight mb-6 leading-tight;
+  }
+
+  .help-markdown h2 {
+    @apply text-2xl font-semibold text-gray-100 mt-10 mb-4 border-t border-white/10 pt-6;
+  }
+
+  .help-markdown h3 {
+    @apply text-xl font-semibold text-gray-100 mt-8 mb-3;
+  }
+
+  .help-markdown p {
+    @apply my-4 text-gray-200;
+  }
+
+  .help-markdown ul,
+  .help-markdown ol {
+    @apply my-4 pl-6 space-y-2 text-gray-200;
+  }
+
+  .help-markdown ul {
+    @apply list-disc;
+  }
+
+  .help-markdown ol {
+    @apply list-decimal;
+  }
+
+  .help-markdown li {
+    @apply leading-7;
+  }
+
+  .help-markdown strong {
+    @apply text-gray-100 font-semibold;
+  }
+
+  .help-markdown code {
+    @apply rounded bg-white/10 px-1.5 py-0.5 text-gray-100 text-sm;
+  }
+
+  .help-markdown pre {
+    @apply my-5 rounded-xl border border-white/10 bg-dark-bg/70 p-4 overflow-x-auto;
+  }
+
+  .help-markdown blockquote {
+    @apply my-5 border-l-4 border-brand-primary/60 pl-4 italic text-gray-300;
+  }
+
+  .help-markdown hr {
+    @apply my-8 border-white/10;
+  }
+
+  .help-markdown table {
+    @apply my-5 w-full border-collapse overflow-hidden rounded-xl;
+  }
+
+  .help-markdown thead tr {
+    @apply bg-white/10;
+  }
+
+  .help-markdown th,
+  .help-markdown td {
+    @apply border border-white/10 px-3 py-2 text-left align-top;
+  }
+
+  .help-markdown a {
+    @apply text-brand-primary underline underline-offset-2 hover:text-blue-300;
+  }
 }
 
 /* Toast slide-in animation */

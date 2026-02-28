@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertCircle, FileText, Loader2, Upload } from 'lucide-react';
+import { AlertCircle, FileText, Loader2, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -11,6 +11,14 @@ import { useToastStore } from '@/store/useToastStore';
 const TEMPLATE_TYPES = [
   { value: 'MemoriaTecnica', label: 'Memoria Técnica' },
 ] as const;
+
+const ALLOWED_TEMPLATE_MIME_TYPES = new Set([
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.template',
+  'application/octet-stream',
+  'application/zip',
+  'application/x-zip-compressed',
+  '',
+]);
 
 function extractMissingTags(detail: string): string[] {
   const regex = /faltan Tag\(s\) obligatorios[^:]*:\s*([^.]+).?/i;
@@ -132,6 +140,13 @@ export default function TemplateManagement() {
       return;
     }
 
+    if (!ALLOWED_TEMPLATE_MIME_TYPES.has(file.type)) {
+      const message = `Tipo MIME no permitido (${file.type || 'vacío'}). Sube una plantilla .dotx válida.`;
+      setSubmitError(message);
+      addToast(message, 'error');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await templateService.create({
@@ -165,6 +180,14 @@ export default function TemplateManagement() {
   function handleFileSelect(selectedFile: File | null) {
     setSubmitError(null);
     setFile(selectedFile);
+  }
+
+  function handleClearFile() {
+    setFile(null);
+    setSubmitError(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   }
 
   function handleDragOver(event: React.DragEvent<HTMLButtonElement>) {
@@ -229,7 +252,13 @@ export default function TemplateManagement() {
           <li>Si falla la validación, la subida se rechaza y no se guarda la plantilla.</li>
         </ul>
         <p className="mt-3 text-xs text-gray-400">
-          Guía recomendada: <code>docs/features/dotx_support/GUIA_DEFINICION_PLANTILLA_DOTX.md</code>
+          Guía recomendada:{' '}
+          <a
+            href="/ayuda/guia-definicion-plantillas-dotx"
+            className="text-brand-primary hover:text-brand-primary/80 underline underline-offset-2"
+          >
+            Ayuda · Guía de definición de plantillas .dotx
+          </a>
         </p>
       </div>
 
@@ -270,13 +299,16 @@ export default function TemplateManagement() {
               onClick={() => fileInputRef.current?.click()}
               aria-label="Arrastrar archivo de plantilla o pulsar para seleccionar"
               className={[
-                'rounded-lg border-2 border-dashed px-4 py-6 text-center text-sm transition-colors',
+                'w-full rounded-xl border-2 border-dashed px-6 py-8 text-center text-sm transition-colors',
+                'flex min-h-[140px] flex-col items-center justify-center gap-2',
                 isDragOver
                   ? 'border-brand-primary bg-brand-primary/10 text-brand-primary'
-                  : 'border-white/15 bg-white/5 text-gray-300',
+                  : 'border-white/15 bg-dark-bg/30 text-gray-300 hover:border-white/25 hover:bg-white/5',
               ].join(' ')}
             >
-              Arrastra y suelta aquí tu plantilla `.dotx`
+              <Upload size={24} className={isDragOver ? 'text-brand-primary' : 'text-gray-400'} />
+              <span className="text-base font-medium text-white">Arrastra y suelta tu plantilla aquí</span>
+              <span className="text-xs text-gray-400">Formato permitido: `.dotx` · tamaño máximo: 10 MB</span>
             </button>
             <input
               ref={fileInputRef}
@@ -284,11 +316,38 @@ export default function TemplateManagement() {
               type="file"
               accept=".dotx,application/vnd.openxmlformats-officedocument.wordprocessingml.template"
               onChange={(e) => handleFileSelect(e.target.files?.[0] ?? null)}
-              className="flex h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white file:mr-3 file:border-0 file:bg-brand-primary/20 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-brand-primary"
-              required
+              aria-label="Archivo .dotx"
+              className="sr-only"
             />
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+              <p className="text-xs text-gray-400">
+                También puedes seleccionar manualmente el archivo desde tu equipo.
+              </p>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                Seleccionar archivo
+              </Button>
+            </div>
             {file && (
-              <p className="text-xs text-gray-400">Archivo seleccionado: {file.name}</p>
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-brand-primary/30 bg-brand-primary/10 px-3 py-2">
+                <div className="flex items-center gap-2 text-sm text-white min-w-0">
+                  <FileText size={16} className="text-brand-primary shrink-0" />
+                  <span className="truncate">{file.name}</span>
+                  <span className="text-xs text-gray-400 shrink-0">({(file.size / 1024).toFixed(1)} KB)</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleClearFile}
+                  className="text-gray-400 hover:text-white transition-colors"
+                  aria-label="Quitar archivo seleccionado"
+                >
+                  <X size={16} />
+                </button>
+              </div>
             )}
           </div>
 

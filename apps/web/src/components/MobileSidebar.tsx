@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { LayoutDashboard, FolderKanban, Users, FileText, Settings, X, Menu } from 'lucide-react';
+import { LayoutDashboard, FolderKanban, Users, FileText, CircleHelp, Settings, X, Menu } from 'lucide-react';
 import SidebarLogout from '@/components/SidebarLogout';
 
 const NAV_ITEMS = [
@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { href: '/admin/projects', label: 'Proyectos', Icon: FolderKanban },
   { href: '/admin/users', label: 'Usuarios', Icon: Users },
   { href: '/admin/templates', label: 'Plantillas', Icon: FileText },
+  { href: '/ayuda', label: 'Ayuda', Icon: CircleHelp },
 ] as const;
 
 export function MobileSidebarTrigger({ onClick }: { onClick: () => void }) {

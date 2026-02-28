@@ -120,6 +120,33 @@ describe('TemplateManagement', () => {
     expect(templateService.create).not.toHaveBeenCalled();
   });
 
+  it('bloquea subida si el MIME no está permitido', async () => {
+    render(<TemplateManagement />);
+
+    await waitFor(() => {
+      expect(templateService.list).toHaveBeenCalled();
+    });
+
+    fireEvent.change(screen.getByPlaceholderText(/plantilla memoria v1/i), {
+      target: { value: 'Plantilla mime inválido' },
+    });
+
+    const fileInput = screen.getByLabelText(/archivo \.dotx/i);
+    const wrongMimeFile = new File(['dummy'], 'plantilla.dotx', {
+      type: 'application/pdf',
+    });
+
+    fireEvent.change(fileInput, {
+      target: { files: [wrongMimeFile] },
+    });
+
+    const submitButton = screen.getByRole('button', { name: /subir plantilla/i });
+    fireEvent.submit(submitButton.closest('form') as HTMLFormElement);
+
+    expect(await screen.findByText(/tipo MIME no permitido/i)).toBeInTheDocument();
+    expect(templateService.create).not.toHaveBeenCalled();
+  });
+
   it('muestra el nombre del archivo cuando se suelta por drag & drop', async () => {
     render(<TemplateManagement />);
 
@@ -127,7 +154,7 @@ describe('TemplateManagement', () => {
       expect(templateService.list).toHaveBeenCalled();
     });
 
-    const dropZone = screen.getByText(/arrastra y suelta aquí tu plantilla/i);
+    const dropZone = screen.getByRole('button', { name: /arrastrar archivo de plantilla o pulsar para seleccionar/i });
     const droppedFile = new File(['dummy'], 'drag-template.dotx', {
       type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.template',
     });
@@ -138,7 +165,7 @@ describe('TemplateManagement', () => {
       },
     });
 
-    expect(await screen.findByText(/archivo seleccionado: drag-template\.dotx/i)).toBeInTheDocument();
+    expect(await screen.findByText(/drag-template\.dotx/i)).toBeInTheDocument();
   });
 
   it('envía plantilla seleccionada por drag & drop', async () => {
@@ -154,7 +181,7 @@ describe('TemplateManagement', () => {
       target: { value: 'Plantilla drag' },
     });
 
-    const dropZone = screen.getByText(/arrastra y suelta aquí tu plantilla/i);
+    const dropZone = screen.getByRole('button', { name: /arrastrar archivo de plantilla o pulsar para seleccionar/i });
     const droppedFile = new File(['dummy'], 'drag-template.dotx', {
       type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.template',
     });
