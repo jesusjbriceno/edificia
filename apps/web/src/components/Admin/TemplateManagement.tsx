@@ -94,6 +94,16 @@ export default function TemplateManagement() {
     );
   }, [templates]);
 
+  const activeTemplateByType = useMemo(() => {
+    return new Map(
+      templates
+        .filter((template) => template.isActive)
+        .map((template) => [template.templateType, template]),
+    );
+  }, [templates]);
+
+  const activeMemoriaTemplate = activeTemplateByType.get('MemoriaTecnica');
+
   useEffect(() => {
     loadTemplates();
   }, []);
@@ -243,6 +253,34 @@ export default function TemplateManagement() {
       </div>
 
       <div className="bg-dark-card border border-white/5 rounded-2xl p-6">
+        <h2 className="text-base font-semibold text-white">Estado rápido</h2>
+        <div className="mt-3 grid gap-3 md:grid-cols-3">
+          <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+            <p className="text-xs uppercase tracking-wider text-gray-400">Plantillas cargadas</p>
+            <p className="mt-1 text-2xl font-semibold text-white">{isLoading ? '…' : templates.length}</p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 md:col-span-2">
+            <p className="text-xs uppercase tracking-wider text-gray-400">Activa para exportación (`MemoriaTecnica`)</p>
+            <p className="mt-1 text-sm text-white">
+              {isLoading
+                ? 'Cargando…'
+                : activeMemoriaTemplate
+                  ? `${activeMemoriaTemplate.name} · v${activeMemoriaTemplate.version}`
+                  : 'No hay plantilla activa (se usará el exportador estándar).'}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-xl border border-brand-primary/25 bg-brand-primary/10 px-4 py-3 text-sm text-gray-200">
+          <p className="font-medium text-white">Cómo se asignan las plantillas</p>
+          <p className="mt-1">
+            La asignación es <strong>global por tipo</strong>: al exportar, el backend usa automáticamente la plantilla <strong>activa</strong> de
+            <strong> MemoriaTecnica</strong>. No se asigna plantilla por proyecto de forma manual.
+          </p>
+        </div>
+      </div>
+
+      <div className="bg-dark-card border border-white/5 rounded-2xl p-6">
         <h2 className="text-base font-semibold text-white">Pautas y reglas de subida</h2>
         <ul className="mt-3 space-y-1.5 text-sm text-gray-300 list-disc pl-5">
           <li>Formato permitido: <strong>.dotx</strong> (plantilla Word OpenXML).</li>
@@ -367,6 +405,7 @@ export default function TemplateManagement() {
       </div>
 
       <div className="bg-dark-card border border-white/5 rounded-2xl p-6">
+        <h2 className="text-base font-semibold text-white mb-4">Plantillas cargadas</h2>
         {isLoading && (
           <div className="flex items-center justify-center py-10">
             <Loader2 className="w-6 h-6 text-brand-primary animate-spin" />
