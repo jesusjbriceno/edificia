@@ -25,7 +25,7 @@ export interface EditorContextBarProps {
   projectId: string | null;
   onSubmitForReview: () => void;
   onToggleAi: () => void;
-  onExport: () => void;
+  onOpenExport: () => void;
 }
 
 /**
@@ -48,8 +48,20 @@ export function EditorContextBar({
   projectId,
   onSubmitForReview,
   onToggleAi,
-  onExport,
+  onOpenExport,
 }: Readonly<EditorContextBarProps>) {
+  const hasProjectId = projectId !== null;
+  let exportAriaLabel = 'Exportar memoria a DOCX';
+  if (!hasProjectId) {
+    exportAriaLabel = 'Exportar a DOCX (no disponible: proyecto no guardado)';
+  } else if (exporting) {
+    exportAriaLabel = 'Exportando documento…';
+  }
+
+  const exportTitle = hasProjectId
+    ? undefined
+    : 'El proyecto debe estar guardado para poder exportar';
+
   return (
     <div className="px-6 py-4 flex flex-col gap-4 border-b border-white/5 bg-dark-card/30 backdrop-blur-md">
       {/* Línea 1: migas de pan */}
@@ -80,13 +92,12 @@ export function EditorContextBar({
         <div className="flex items-center gap-3">
           <SyncBadge status={syncStatus} pendingCount={pendingCount} />
           {isReadonly && (
-            <span
-              role="status"
+            <output
               aria-label="El proyecto está en modo de solo lectura"
               className="text-[10px] font-bold uppercase tracking-[0.15em] px-4 py-2 rounded-lg border text-amber-400 bg-amber-400/5 border-amber-400/10"
             >
               Solo lectura
-            </span>
+            </output>
           )}
         </div>
 
@@ -138,18 +149,12 @@ export function EditorContextBar({
           {/* ── Exportar DOCX ── */}
           <Button
             size="sm"
-            aria-label={
-              !projectId
-                ? 'Exportar a DOCX (no disponible: proyecto no guardado)'
-                : exporting
-                  ? 'Exportando documento…'
-                  : 'Exportar memoria a DOCX'
-            }
+            aria-label={exportAriaLabel}
             aria-busy={exporting}
-            title={!projectId ? 'El proyecto debe estar guardado para poder exportar' : undefined}
+            title={exportTitle}
             className="h-9 px-6 bg-brand-primary hover:bg-brand-primary-hover text-white shadow-lg shadow-brand-primary/20 transition-all font-bold cursor-pointer"
-            onClick={onExport}
-            disabled={exporting || !projectId}
+            onClick={onOpenExport}
+            disabled={exporting || !hasProjectId}
           >
             {exporting ? (
               <>

@@ -7,6 +7,11 @@ import { ProjectStatus } from '@/lib/types';
 import { sanitizeRichHtml } from '@/lib/sanitizeHtml';
 import { normalizeAiContentToHtml } from '@/lib/normalizeAiContent';
 
+export interface ExportDocxOptions {
+  preferredTemplateId?: string;
+  fileName?: string;
+}
+
 /**
  * Encapsula toda la lógica de acción del EditorShell:
  * - Inserción de contenido IA en el editor TipTap
@@ -55,23 +60,24 @@ export function useEditorActions(editor: Editor | null) {
   );
 
   /** Solicita la exportación DOCX y dispara la descarga en el navegador. */
-  const handleExport = useCallback(async () => {
+  const handleExport = useCallback(async (options?: ExportDocxOptions) => {
     if (!projectId || exportingRef.current) return;
 
     exportingRef.current = true;
     setExporting(true);
     try {
       const { blob, fileName } = await projectService.exportDocx(projectId);
+      const downloadFileName = options?.fileName?.trim() || fileName;
 
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
       anchor.href = url;
-      anchor.download = fileName;
+      anchor.download = downloadFileName;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
       URL.revokeObjectURL(url);
-      toast.success(`Documento "${fileName}" descargado correctamente.`);
+      toast.success(`Documento "${downloadFileName}" descargado correctamente.`);
     } catch {
       toast.error('No se pudo exportar el documento. Inténtalo de nuevo.');
     } finally {
