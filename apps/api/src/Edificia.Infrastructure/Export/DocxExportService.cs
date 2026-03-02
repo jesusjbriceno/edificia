@@ -57,7 +57,9 @@ public sealed partial class DocxExportService : IDocumentExportService
         byte[] templateContent,
         CancellationToken cancellationToken = default)
     {
-        using var stream = new MemoryStream(templateContent.ToArray());
+        using var stream = new MemoryStream();
+        stream.Write(templateContent, 0, templateContent.Length);
+        stream.Position = 0;
 
         using (var wordDoc = WordprocessingDocument.Open(stream, true))
         {
@@ -73,9 +75,14 @@ public sealed partial class DocxExportService : IDocumentExportService
             var body = mainPart.Document.Body ?? mainPart.Document.AppendChild(new Body());
             EnsureNumberingDefinitions(mainPart);
 
-            body.AppendChild(new Paragraph(new Run(new Break { Type = BreakValues.Page })));
-            AddTitlePage(body, data);
-            ProcessContentTree(body, mainPart, data.ContentTreeJson);
+            var replacements = BuildTemplateTagReplacements(data);
+            var replacedControls = ApplyTemplateTagReplacements(mainPart, replacements);
+
+            if (replacedControls == 0)
+            {
+                throw new InvalidOperationException("No se encontraron Content Controls con Tag para aplicar la plantilla .dotx.");
+            }
+
             ForceUpdateFieldsOnOpen(mainPart);
 
             mainPart.Document.Save();
@@ -777,6 +784,205 @@ public sealed partial class DocxExportService : IDocumentExportService
 
         uri = parsed;
         return true;
+    }
+
+    private static Dictionary<string, string> BuildTemplateTagReplacements(ExportDocumentData data)
+    {
+        var replacements = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["ProjectTitle"] = data.Title,
+            ["InterventionType"] = data.InterventionType,
+            ["Address"] = data.Address ?? string.Empty,
+            ["IsLoeRequired"] = data.IsLoeRequired ? "Sí" : "No"
+        };
+
+        try
+        {
+            using var doc = JsonDocument.Parse(data.ContentTreeJson);
+            if (doc.RootElement.TryGetProperty("chapters", out var chapters)
+                && chapters.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var chapter in chapters.EnumerateArray())
+                {
+                    CollectSectionTagReplacements(chapter, replacements);
+                }
+            }
+        }
+        catch
+        {
+            // No interrumpir exportación por errores de parsing del árbol; otros tags siguen aplicándose.
+        }
+
+        return replacements;
+    }
+
+    private static void CollectSectionTagReplacements(JsonElement node, IDictionary<string, string> replacements)
+    {
+        if (node.TryGetProperty("id", out var idElement)
+            && idElement.ValueKind == JsonValueKind.String)
+        {
+            var sectionId = idElement.GetString();
+            var sectionTag = ConvertSectionIdToTag(sectionId);
+
+            if (!string.IsNullOrWhiteSpace(sectionTag)
+                && node.TryGetProperty("content", out var contentElement)
+                && contentElement.ValueKind == JsonValueKind.String)
+            {
+                var content = contentElement.GetString();
+                replacements[sectionTag] = string.IsNullOrWhiteSpace(content)
+                    ? string.Empty
+                    : StripHtmlTags(content);
+            }
+        }
+
+        if (node.TryGetProperty("sections", out var sections)
+            && sections.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var child in sections.EnumerateArray())
+            {
+                CollectSectionTagReplacements(child, replacements);
+            }
+        }
+    }
+
+    private static string ConvertSectionIdToTag(string? sectionId)
+    {
+        if (string.IsNullOrWhiteSpace(sectionId))
+        {
+            return string.Empty;
+        }
+
+        var parts = sectionId
+            .Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToArray();
+
+        if (parts.Length < 2)
+        {
+            return string.Empty;
+        }
+
+        var prefix = parts[0].ToUpperInvariant();
+        var numericParts = parts.Skip(1).Select(NormalizeTagPart).ToArray();
+
+        return $"{prefix}.{string.Join('.', numericParts)}";
+    }
+
+    private static string NormalizeTagPart(string value)
+    {
+        if (int.TryParse(value, out var number))
+        {
+            return number.ToString("00");
+        }
+
+        return value.ToUpperInvariant();
+    }
+
+    private static int ApplyTemplateTagReplacements(MainDocumentPart mainPart, IReadOnlyDictionary<string, string> replacements)
+    {
+        var replacedCount = 0;
+
+        foreach (var sdt in EnumerateTaggedContentControls(mainPart))
+        {
+            if (TryGetTagValue(sdt, out var tagValue)
+                && replacements.TryGetValue(tagValue, out var replacementValue))
+            {
+                ReplaceSdtContentWithText(sdt, replacementValue);
+                replacedCount++;
+            }
+        }
+
+        return replacedCount;
+    }
+
+    private static IEnumerable<SdtElement> EnumerateTaggedContentControls(MainDocumentPart mainPart)
+    {
+        if (mainPart.Document is not null)
+        {
+            foreach (var element in mainPart.Document.Descendants<OpenXmlElement>())
+            {
+                if (element is SdtElement sdt)
+                {
+                    yield return sdt;
+                }
+            }
+        }
+
+        foreach (var headerPart in mainPart.HeaderParts)
+        {
+            if (headerPart.Header is null) continue;
+            foreach (var element in headerPart.Header.Descendants<OpenXmlElement>())
+            {
+                if (element is SdtElement sdt)
+                {
+                    yield return sdt;
+                }
+            }
+        }
+
+        foreach (var footerPart in mainPart.FooterParts)
+        {
+            if (footerPart.Footer is null) continue;
+            foreach (var element in footerPart.Footer.Descendants<OpenXmlElement>())
+            {
+                if (element is SdtElement sdt)
+                {
+                    yield return sdt;
+                }
+            }
+        }
+    }
+
+    private static bool TryGetTagValue(SdtElement sdt, out string tagValue)
+    {
+        tagValue = string.Empty;
+
+        var tag = sdt.SdtProperties?.GetFirstChild<Tag>()?.Val?.Value;
+        if (string.IsNullOrWhiteSpace(tag))
+        {
+            return false;
+        }
+
+        tagValue = tag.Trim();
+        return true;
+    }
+
+    private static void ReplaceSdtContentWithText(SdtElement sdt, string replacementValue)
+    {
+        switch (sdt)
+        {
+            case SdtBlock sdtBlock when sdtBlock.SdtContentBlock is not null:
+                ReplaceCompositeContent(sdtBlock.SdtContentBlock, replacementValue);
+                break;
+
+            case SdtRun sdtRun when sdtRun.SdtContentRun is not null:
+                ReplaceCompositeContent(sdtRun.SdtContentRun, replacementValue);
+                break;
+
+            case SdtCell sdtCell when sdtCell.SdtContentCell is not null:
+                ReplaceCompositeContent(sdtCell.SdtContentCell, replacementValue);
+                break;
+        }
+    }
+
+    private static void ReplaceCompositeContent(OpenXmlCompositeElement contentElement, string replacementValue)
+    {
+        contentElement.RemoveAllChildren();
+
+        if (contentElement is SdtContentRun)
+        {
+            contentElement.AppendChild(new Run(new Text(replacementValue ?? string.Empty)
+            {
+                Space = SpaceProcessingModeValues.Preserve
+            }));
+            return;
+        }
+
+        var paragraph = new Paragraph();
+        paragraph.AppendChild(new Run(new Text(replacementValue ?? string.Empty)
+        {
+            Space = SpaceProcessingModeValues.Preserve
+        }));
+        contentElement.AppendChild(paragraph);
     }
 
     private static IEnumerable<string> SplitHtmlPreservingTables(string html)

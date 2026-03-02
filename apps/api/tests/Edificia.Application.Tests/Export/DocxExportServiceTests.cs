@@ -1,5 +1,6 @@
 using System.IO;
 using DocMath = DocumentFormat.OpenXml.Math;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Edificia.Application.Interfaces;
@@ -10,6 +11,41 @@ namespace Edificia.Application.Tests.Export;
 
 public class DocxExportServiceTests
 {
+  [Fact]
+  public async Task ExportToDocxWithTemplateAsync_ShouldReplaceTaggedContentControls()
+  {
+    var service = new DocxExportService();
+    var data = CreateData("<p>Contenido para MD.01</p>");
+    var templateBytes = CreateDotxTemplateWithTags("ProjectTitle", "MD.01", "MC.01");
+
+    var bytes = await service.ExportToDocxWithTemplateAsync(data, templateBytes, CancellationToken.None);
+
+    using var stream = new MemoryStream(bytes);
+    using var doc = WordprocessingDocument.Open(stream, false);
+
+    var bodyText = doc.MainDocumentPart!.Document!.Body!.InnerText;
+    bodyText.Should().Contain("Proyecto de prueba");
+    bodyText.Should().Contain("Contenido para MD.01");
+    bodyText.Should().NotContain("{{ProjectTitle}}");
+    bodyText.Should().NotContain("{{MD.01}}");
+  }
+
+  [Fact]
+  public async Task ExportToDocxWithTemplateAsync_ShouldNotAppendLegacyTitlePage()
+  {
+    var service = new DocxExportService();
+    var data = CreateData("<p>Texto de memoria</p>");
+    var templateBytes = CreateDotxTemplateWithTags("ProjectTitle", "MD.01", "MC.01");
+
+    var bytes = await service.ExportToDocxWithTemplateAsync(data, templateBytes, CancellationToken.None);
+
+    using var stream = new MemoryStream(bytes);
+    using var doc = WordprocessingDocument.Open(stream, false);
+
+    var bodyText = doc.MainDocumentPart!.Document!.Body!.InnerText;
+    bodyText.Should().NotContain("MEMORIA DE PROYECTO");
+  }
+
     [Fact]
     public async Task ExportToDocxAsync_ShouldCreateNativeTable_WhenHtmlContainsTable()
     {
@@ -166,6 +202,7 @@ public class DocxExportServiceTests
         {
           "chapters": [
             {
+              "id": "md-01",
               "title": "Cumplimiento Normativo",
               "content": {{System.Text.Json.JsonSerializer.Serialize(htmlContent)}},
               "sections": []
@@ -180,5 +217,32 @@ public class DocxExportServiceTests
             IsLoeRequired: false,
             ContentTreeJson: contentTreeJson,
             Address: "Calle Test 123");
+    }
+
+    private static byte[] CreateDotxTemplateWithTags(params string[] tags)
+    {
+      using var stream = new MemoryStream();
+
+      using (var template = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Template, true))
+      {
+        var mainPart = template.AddMainDocumentPart();
+        var body = new Body();
+
+        foreach (var tag in tags)
+        {
+          var sdt = new SdtBlock(
+            new SdtProperties(new Tag { Val = tag }),
+            new SdtContentBlock(
+              new Paragraph(
+                new Run(new Text($"{{{{{tag}}}}}")))));
+
+          body.AppendChild(sdt);
+        }
+
+        mainPart.Document = new Document(body);
+        mainPart.Document.Save();
+      }
+
+      return stream.ToArray();
     }
 }
