@@ -246,6 +246,8 @@ export interface TemplateResponse {
   description: string | null;
   templateType: string;
   version: number;
+  isAvailable: boolean;
+  isDefault: boolean;
   isActive: boolean;
   originalFileName: string;
   mimeType: string;

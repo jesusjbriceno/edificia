@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import TemplateManagement from '@/components/Admin/TemplateManagement';
+import type { TemplateResponse } from '@/lib/types';
 
 const addToastMock = vi.fn();
 
@@ -15,14 +16,38 @@ vi.mock('@/lib/services/templateService', () => ({
     list: vi.fn(),
     create: vi.fn(),
     toggleStatus: vi.fn(),
+    updateMetadata: vi.fn(),
+    setAvailability: vi.fn(),
+    setDefault: vi.fn(),
+    delete: vi.fn(),
   },
 }));
 
 import { templateService } from '@/lib/services/templateService';
 
+function buildTemplate(overrides: Partial<TemplateResponse> = {}): TemplateResponse {
+  return {
+    id: 'tpl-1',
+    name: 'Plantilla Base',
+    description: null,
+    templateType: 'MemoriaTecnica',
+    version: 1,
+    isAvailable: true,
+    isDefault: false,
+    isActive: false,
+    originalFileName: 'plantilla.dotx',
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.template',
+    fileSizeBytes: 100,
+    createdAt: new Date().toISOString(),
+    updatedAt: null,
+    ...overrides,
+  };
+}
+
 describe('TemplateManagement', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(globalThis, 'confirm').mockReturnValue(true);
     vi.mocked(templateService.list).mockResolvedValue([]);
   });
 
@@ -39,19 +64,12 @@ describe('TemplateManagement', () => {
 
   it('renderiza el estado de plantilla activa cuando hay una activa', async () => {
     vi.mocked(templateService.list).mockResolvedValueOnce([
-      {
-        id: 'tpl-1',
+      buildTemplate({
         name: 'Plantilla Oficial',
-        description: null,
-        templateType: 'MemoriaTecnica',
         version: 2,
+        isDefault: true,
         isActive: true,
-        originalFileName: 'plantilla.dotx',
-        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.template',
-        fileSizeBytes: 100,
-        createdAt: new Date().toISOString(),
-        updatedAt: null,
-      },
+      }),
     ]);
 
     render(<TemplateManagement />);
@@ -59,30 +77,90 @@ describe('TemplateManagement', () => {
     expect(await screen.findByText(/Plantilla Oficial · v2/i)).toBeInTheDocument();
   });
 
-  it('permite activar/desactivar plantillas desde el listado', async () => {
+  it('permite actualizar disponibilidad desde el listado', async () => {
     vi.mocked(templateService.list).mockResolvedValueOnce([
-      {
-        id: 'tpl-1',
+      buildTemplate({
         name: 'Plantilla A',
-        description: null,
-        templateType: 'MemoriaTecnica',
-        version: 1,
-        isActive: false,
-        originalFileName: 'a.dotx',
-        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.template',
-        fileSizeBytes: 100,
-        createdAt: new Date().toISOString(),
-        updatedAt: null,
-      },
+        isAvailable: false,
+      }),
     ]);
 
     render(<TemplateManagement />);
 
-    const activateButton = await screen.findByRole('button', { name: /activar/i });
-    fireEvent.click(activateButton);
+    const button = await screen.findByRole('button', { name: /marcar disponible/i });
+    fireEvent.click(button);
 
     await waitFor(() => {
-      expect(templateService.toggleStatus).toHaveBeenCalledWith('tpl-1', true);
+      expect(templateService.setAvailability).toHaveBeenCalledWith('tpl-1', true);
+    });
+  });
+
+  it('permite marcar plantilla predeterminada', async () => {
+    vi.mocked(templateService.list).mockResolvedValueOnce([
+      buildTemplate({
+        id: 'tpl-2',
+        name: 'Plantilla B',
+      }),
+    ]);
+
+    render(<TemplateManagement />);
+
+    const button = await screen.findByRole('button', { name: /marcar predeterminada/i });
+    fireEvent.click(button);
+
+    await waitFor(() => {
+      expect(templateService.setDefault).toHaveBeenCalledWith('tpl-2', true);
+    });
+  });
+
+  it('permite editar metadatos de plantilla', async () => {
+    vi.mocked(templateService.list)
+      .mockResolvedValueOnce([
+        buildTemplate({
+          id: 'tpl-3',
+          name: 'Plantilla Original',
+          description: 'Descripción inicial',
+        }),
+      ])
+      .mockResolvedValueOnce([
+        buildTemplate({
+          id: 'tpl-3',
+          name: 'Plantilla Editada',
+          description: 'Nueva descripción',
+        }),
+      ]);
+
+    render(<TemplateManagement />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /editar/i }));
+    fireEvent.change(screen.getByLabelText(/nombre de plantilla/i), {
+      target: { value: 'Plantilla Editada' },
+    });
+    fireEvent.change(screen.getByLabelText(/descripción de plantilla/i), {
+      target: { value: 'Nueva descripción' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /guardar/i }));
+
+    await waitFor(() => {
+      expect(templateService.updateMetadata).toHaveBeenCalledWith('tpl-3', {
+        name: 'Plantilla Editada',
+        description: 'Nueva descripción',
+      });
+    });
+  });
+
+  it('permite eliminar plantilla', async () => {
+    vi.mocked(templateService.list)
+      .mockResolvedValueOnce([buildTemplate({ id: 'tpl-4', name: 'Plantilla Borrar' })])
+      .mockResolvedValueOnce([]);
+
+    render(<TemplateManagement />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /eliminar/i }));
+
+    await waitFor(() => {
+      expect(templateService.delete).toHaveBeenCalledWith('tpl-4');
+      expect(globalThis.confirm).toHaveBeenCalled();
     });
   });
 });
