@@ -1,5 +1,5 @@
 using Edificia.Application.Interfaces;
-using Edificia.Application.Templates.Commands.ToggleTemplateStatus;
+using Edificia.Application.Templates.Commands.UpdateTemplateMetadata;
 using Edificia.Domain.Entities;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
@@ -7,24 +7,24 @@ using Moq;
 
 namespace Edificia.Application.Tests.Templates.Commands;
 
-public class ToggleTemplateStatusHandlerTests
+public class UpdateTemplateMetadataHandlerTests
 {
     private readonly Mock<ITemplateRepository> _templateRepositoryMock;
-    private readonly Mock<ILogger<ToggleTemplateStatusHandler>> _loggerMock;
-    private readonly ToggleTemplateStatusHandler _handler;
+    private readonly UpdateTemplateMetadataHandler _handler;
 
-    public ToggleTemplateStatusHandlerTests()
+    public UpdateTemplateMetadataHandlerTests()
     {
         _templateRepositoryMock = new Mock<ITemplateRepository>();
-        _loggerMock = new Mock<ILogger<ToggleTemplateStatusHandler>>();
 
-        _handler = new ToggleTemplateStatusHandler(_templateRepositoryMock.Object, _loggerMock.Object);
+        _handler = new UpdateTemplateMetadataHandler(
+            _templateRepositoryMock.Object,
+            Mock.Of<ILogger<UpdateTemplateMetadataHandler>>());
     }
 
     [Fact]
-    public async Task Handle_ShouldReturnFailure_WhenTemplateDoesNotExist()
+    public async Task Handle_ShouldReturnNotFound_WhenTemplateDoesNotExist()
     {
-        var command = new ToggleTemplateStatusCommand(Guid.NewGuid(), true);
+        var command = new UpdateTemplateMetadataCommand(Guid.NewGuid(), "Nombre", "Descripción");
 
         _templateRepositoryMock
             .Setup(x => x.GetByIdAsync(command.TemplateId, It.IsAny<CancellationToken>()))
@@ -37,34 +37,32 @@ public class ToggleTemplateStatusHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ShouldSetAvailabilityWithoutAffectingOtherTemplates()
+    public async Task Handle_ShouldUpdateTemplateMetadata_WhenTemplateExists()
     {
-        var templateId = Guid.NewGuid();
-
-        var targetTemplate = AppTemplate.Create(
-            "Nueva plantilla",
-            null,
+        var template = AppTemplate.Create(
+            "Plantilla original",
+            "Descripción original",
             "MemoriaTecnica",
-            "templates/memoria/v2.dotx",
-            "v2.dotx",
+            "templates/memoria/v1.dotx",
+            "v1.dotx",
             "application/vnd.openxmlformats-officedocument.wordprocessingml.template",
             123,
             Guid.NewGuid());
 
-        SetEntityId(targetTemplate, templateId);
+        var command = new UpdateTemplateMetadataCommand(Guid.NewGuid(), "Plantilla nueva", "Descripción nueva");
 
-        var command = new ToggleTemplateStatusCommand(templateId, true);
+        SetEntityId(template, command.TemplateId);
 
         _templateRepositoryMock
-            .Setup(x => x.GetByIdAsync(templateId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(targetTemplate);
+            .Setup(x => x.GetByIdAsync(command.TemplateId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(template);
 
         var result = await _handler.Handle(command, CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        targetTemplate.IsAvailable.Should().BeTrue();
-
-        _templateRepositoryMock.Verify(x => x.Update(targetTemplate), Times.Once);
+        template.Name.Should().Be("Plantilla nueva");
+        template.Description.Should().Be("Descripción nueva");
+        _templateRepositoryMock.Verify(x => x.Update(template), Times.Once);
         _templateRepositoryMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 

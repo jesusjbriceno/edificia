@@ -30,6 +30,8 @@ public class AppTemplateTests
         template.MimeType.Should().Be("application/vnd.openxmlformats-officedocument.wordprocessingml.template");
         template.FileSizeBytes.Should().Be(245_781);
         template.CreatedByUserId.Should().Be(createdByUserId);
+        template.IsAvailable.Should().BeFalse();
+        template.IsDefault.Should().BeFalse();
         template.IsActive.Should().BeFalse();
         template.Version.Should().Be(1);
     }
@@ -41,6 +43,7 @@ public class AppTemplateTests
 
         template.Activate();
 
+        template.IsAvailable.Should().BeTrue();
         template.IsActive.Should().BeTrue();
     }
 
@@ -61,9 +64,12 @@ public class AppTemplateTests
     {
         var template = CreateTemplate();
         template.Activate();
+        template.MarkAsDefault();
 
         template.Deactivate();
 
+        template.IsAvailable.Should().BeFalse();
+        template.IsDefault.Should().BeFalse();
         template.IsActive.Should().BeFalse();
     }
 
@@ -82,7 +88,43 @@ public class AppTemplateTests
         template.OriginalFileName.Should().Be("Memoria_v2.dotx");
         template.FileSizeBytes.Should().Be(267_102);
         template.Version.Should().Be(2);
+        template.IsAvailable.Should().BeTrue();
         template.IsActive.Should().BeTrue();
+    }
+
+    [Fact]
+    public void MarkAsDefault_WhenTemplateIsNotAvailable_ShouldThrowBusinessRuleException()
+    {
+        var template = CreateTemplate();
+
+        var act = template.MarkAsDefault;
+
+        act.Should().Throw<BusinessRuleException>()
+            .WithMessage("*predeterminada*");
+    }
+
+    [Fact]
+    public void MarkAsDefault_WhenTemplateIsAvailable_ShouldSetDefaultFlag()
+    {
+        var template = CreateTemplate();
+        template.Activate();
+
+        template.MarkAsDefault();
+
+        template.IsDefault.Should().BeTrue();
+    }
+
+    [Fact]
+    public void SetAvailable_False_ShouldClearDefaultFlag()
+    {
+        var template = CreateTemplate();
+        template.Activate();
+        template.MarkAsDefault();
+
+        template.SetAvailable(false);
+
+        template.IsAvailable.Should().BeFalse();
+        template.IsDefault.Should().BeFalse();
     }
 
     [Fact]

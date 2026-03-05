@@ -18,9 +18,29 @@ public sealed class TemplateRepository : BaseRepository<AppTemplate>, ITemplateR
         CancellationToken cancellationToken = default)
     {
         return await DbSet
-            .Where(t => t.TemplateType == templateType && t.IsActive)
+            .Where(t => t.TemplateType == templateType && t.IsAvailable)
             .OrderByDescending(t => t.Version)
             .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<AppTemplate?> GetDefaultByTypeAsync(
+        string templateType,
+        CancellationToken cancellationToken = default)
+    {
+        return await DbSet
+            .Where(t => t.TemplateType == templateType && t.IsDefault)
+            .OrderByDescending(t => t.Version)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<AppTemplate>> GetAvailableByTypeAsync(
+        string templateType,
+        CancellationToken cancellationToken = default)
+    {
+        return await DbSet
+            .Where(t => t.TemplateType == templateType && t.IsAvailable)
+            .OrderByDescending(t => t.Version)
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<int> CountByTypeAsync(

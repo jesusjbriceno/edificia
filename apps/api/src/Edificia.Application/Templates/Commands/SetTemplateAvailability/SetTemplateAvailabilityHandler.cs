@@ -3,22 +3,22 @@ using Edificia.Shared.Result;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
-namespace Edificia.Application.Templates.Commands.ToggleTemplateStatus;
+namespace Edificia.Application.Templates.Commands.SetTemplateAvailability;
 
-public sealed class ToggleTemplateStatusHandler : IRequestHandler<ToggleTemplateStatusCommand, Result>
+public sealed class SetTemplateAvailabilityHandler : IRequestHandler<SetTemplateAvailabilityCommand, Result>
 {
     private readonly ITemplateRepository _templateRepository;
-    private readonly ILogger<ToggleTemplateStatusHandler> _logger;
+    private readonly ILogger<SetTemplateAvailabilityHandler> _logger;
 
-    public ToggleTemplateStatusHandler(
+    public SetTemplateAvailabilityHandler(
         ITemplateRepository templateRepository,
-        ILogger<ToggleTemplateStatusHandler> logger)
+        ILogger<SetTemplateAvailabilityHandler> logger)
     {
         _templateRepository = templateRepository;
         _logger = logger;
     }
 
-    public async Task<Result> Handle(ToggleTemplateStatusCommand request, CancellationToken cancellationToken)
+    public async Task<Result> Handle(SetTemplateAvailabilityCommand request, CancellationToken cancellationToken)
     {
         try
         {
@@ -28,7 +28,7 @@ public sealed class ToggleTemplateStatusHandler : IRequestHandler<ToggleTemplate
                 return Result.Failure(TemplateErrors.TemplateNotFound);
             }
 
-            template.SetAvailable(request.IsActive);
+            template.SetAvailable(request.IsAvailable);
 
             _templateRepository.Update(template);
             await _templateRepository.SaveChangesAsync(cancellationToken);
@@ -37,8 +37,10 @@ public sealed class ToggleTemplateStatusHandler : IRequestHandler<ToggleTemplate
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error toggling template status for template {TemplateId}", request.TemplateId);
-            return Result.Failure(TemplateErrors.ActivationFailed);
+            _logger.LogError(ex,
+                "Error updating availability for template {TemplateId}",
+                request.TemplateId);
+            return Result.Failure(TemplateErrors.AvailabilityFailed);
         }
     }
 }

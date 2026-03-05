@@ -1,6 +1,10 @@
 using System.Security.Claims;
 using Edificia.Application.Templates.Commands.CreateTemplate;
+using Edificia.Application.Templates.Commands.DeleteTemplate;
+using Edificia.Application.Templates.Commands.SetTemplateAvailability;
+using Edificia.Application.Templates.Commands.SetTemplateDefault;
 using Edificia.Application.Templates.Commands.ToggleTemplateStatus;
+using Edificia.Application.Templates.Commands.UpdateTemplateMetadata;
 using Edificia.Application.Templates.DTOs;
 using Edificia.Application.Templates.Queries.GetTemplates;
 using Edificia.Domain.Constants;
@@ -81,6 +85,64 @@ public sealed class TemplatesController : BaseApiController
         CancellationToken cancellationToken)
     {
         var command = ToggleTemplateStatusCommand.Create(id, request);
+        var result = await _sender.Send(command, cancellationToken);
+
+        return HandleNoContent(result);
+    }
+
+    [HttpPut("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateMetadata(
+        Guid id,
+        [FromBody] UpdateTemplateMetadataRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = UpdateTemplateMetadataCommand.Create(id, request);
+        var result = await _sender.Send(command, cancellationToken);
+
+        return HandleNoContent(result);
+    }
+
+    [HttpPut("{id:guid}/availability")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> SetAvailability(
+        Guid id,
+        [FromBody] SetTemplateAvailabilityRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = SetTemplateAvailabilityCommand.Create(id, request);
+        var result = await _sender.Send(command, cancellationToken);
+
+        return HandleNoContent(result);
+    }
+
+    [HttpPut("{id:guid}/default")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> SetDefault(
+        Guid id,
+        [FromBody] SetTemplateDefaultRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = SetTemplateDefaultCommand.Create(id, request);
+        var result = await _sender.Send(command, cancellationToken);
+
+        return HandleNoContent(result);
+    }
+
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        var command = new DeleteTemplateCommand(id);
         var result = await _sender.Send(command, cancellationToken);
 
         return HandleNoContent(result);

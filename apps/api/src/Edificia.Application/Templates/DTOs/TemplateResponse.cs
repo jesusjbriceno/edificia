@@ -6,6 +6,8 @@ public sealed record TemplateResponse(
     string? Description,
     string TemplateType,
     int Version,
+    bool IsAvailable,
+    bool IsDefault,
     bool IsActive,
     string OriginalFileName,
     string MimeType,

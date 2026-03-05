@@ -38,7 +38,11 @@ public sealed class AppTemplateConfiguration : IEntityTypeConfiguration<AppTempl
         builder.Property(t => t.FileSizeBytes)
             .IsRequired();
 
-        builder.Property(t => t.IsActive)
+        builder.Property(t => t.IsAvailable)
+            .IsRequired()
+            .HasDefaultValue(false);
+
+        builder.Property(t => t.IsDefault)
             .IsRequired()
             .HasDefaultValue(false);
 
@@ -52,11 +56,11 @@ public sealed class AppTemplateConfiguration : IEntityTypeConfiguration<AppTempl
         builder.Property(t => t.CreatedAt)
             .IsRequired();
 
-        builder.HasIndex(t => new { t.TemplateType, t.IsActive });
+        builder.HasIndex(t => new { t.TemplateType, t.IsAvailable });
         builder.HasIndex(t => new { t.TemplateType, t.Version })
             .IsUnique();
         builder.HasIndex(t => t.TemplateType)
-            .HasFilter("is_active = true")
+            .HasFilter("is_default = true")
             .IsUnique();
         builder.HasIndex(t => t.CreatedByUserId);
 
