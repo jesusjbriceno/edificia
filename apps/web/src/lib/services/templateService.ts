@@ -13,9 +13,20 @@ export interface UpdateTemplateMetadataPayload {
   description?: string;
 }
 
+export interface ListTemplatesParams {
+  templateType?: string;
+  isAvailable?: boolean;
+  isActive?: boolean;
+}
+
 export const templateService = {
-  async list(params?: { templateType?: string; isActive?: boolean }): Promise<TemplateResponse[]> {
-    const { data } = await apiClient.get<TemplateResponse[]>('/templates', { params });
+  async list(params?: ListTemplatesParams): Promise<TemplateResponse[]> {
+    const queryParams = {
+      templateType: params?.templateType,
+      isActive: params?.isAvailable ?? params?.isActive,
+    };
+
+    const { data } = await apiClient.get<TemplateResponse[]>('/templates', { params: queryParams });
     return data;
   },
 

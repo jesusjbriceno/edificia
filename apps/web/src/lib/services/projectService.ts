@@ -8,6 +8,11 @@ import type {
   PagedResponse,
 } from '@/lib/types';
 
+export interface ExportDocxRequest {
+  templateId?: string;
+  outputFileName?: string;
+}
+
 /**
  * Project service – thin wrappers around the /projects endpoints.
  * Every function returns the typed DTO directly or throws `ApiError`.
@@ -92,9 +97,18 @@ export const projectService = {
   },
 
   /** GET /projects/:id/export — downloads a .docx binary blob */
-  async exportDocx(projectId: string): Promise<{ blob: Blob; fileName: string }> {
+  async exportDocx(
+    projectId: string,
+    options?: ExportDocxRequest,
+  ): Promise<{ blob: Blob; fileName: string }> {
+    const params = {
+      templateId: options?.templateId,
+      outputFileName: options?.outputFileName,
+    };
+
     const response = await apiClient.get(`/projects/${projectId}/export`, {
       responseType: 'blob',
+      params,
     });
 
     // Extract filename from Content-Disposition header, fallback to default

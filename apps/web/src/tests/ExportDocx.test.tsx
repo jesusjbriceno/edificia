@@ -177,4 +177,43 @@ describe('Export DOCX button', () => {
     expect(await screen.findByText(/exportar memoria a DOCX/i)).toBeInTheDocument();
     expect(projectService.exportDocx).not.toHaveBeenCalled();
   });
+
+  it('should send selected template and custom filename from export modal', async () => {
+    vi.mocked(templateService.list).mockResolvedValueOnce([
+      {
+        id: 'tpl-10',
+        name: 'Plantilla Técnica',
+        description: null,
+        templateType: 'MemoriaTecnica',
+        version: 3,
+        isAvailable: true,
+        isDefault: true,
+        isActive: true,
+        originalFileName: 'tecnica.dotx',
+        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.template',
+        fileSizeBytes: 123,
+        createdAt: new Date().toISOString(),
+        updatedAt: null,
+      },
+    ]);
+
+    (projectService.exportDocx as ReturnType<typeof vi.fn>).mockResolvedValue({
+      blob: new Blob(['docx content']),
+      fileName: 'memoria-server.docx',
+    });
+
+    render(<EditorShell />);
+    fireEvent.click(screen.getByText('Exportar'));
+
+    const fileNameInput = await screen.findByPlaceholderText(/memoria-proyecto\.docx/i);
+    fireEvent.change(fileNameInput, { target: { value: 'memoria-personalizada' } });
+    fireEvent.click(screen.getByRole('button', { name: /exportar docx/i }));
+
+    await waitFor(() => {
+      expect(projectService.exportDocx).toHaveBeenCalledWith('proj-export-1', {
+        templateId: 'tpl-10',
+        outputFileName: 'memoria-personalizada.docx',
+      });
+    });
+  });
 });
