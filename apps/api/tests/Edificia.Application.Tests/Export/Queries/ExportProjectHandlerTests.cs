@@ -160,6 +160,114 @@ public class ExportProjectHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ShouldUsePreferredTemplate_WhenTemplateIdIsProvidedAndAvailable()
+    {
+        var project = CreateProjectWithContent();
+        var template = CreateTemplate("templates/memoria/v4.dotx", "MemoriaTecnica", isAvailable: true);
+        var templateId = Guid.NewGuid();
+        SetEntityId(template, templateId);
+
+        var query = new ExportProjectQuery(project.Id, templateId);
+        var templateBytes = new byte[] { 1, 2, 3 };
+
+        SetupProjectFound(project);
+
+        _templateRepositoryMock
+            .Setup(r => r.GetByIdAsync(templateId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(template);
+
+        _fileStorageServiceMock
+            .Setup(s => s.GetFileAsync(template.StoragePath, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(templateBytes);
+
+        _exportServiceMock
+            .Setup(s => s.ExportToDocxWithTemplateAsync(
+                It.IsAny<ExportDocumentData>(),
+                templateBytes,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new byte[] { 0x50, 0x4B });
+
+        var result = await _handler.Handle(query, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        _exportServiceMock.Verify(
+            s => s.ExportToDocxWithTemplateAsync(
+                It.IsAny<ExportDocumentData>(),
+                templateBytes,
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnFailure_WhenPreferredTemplateTypeDoesNotMatch()
+    {
+        var project = CreateProjectWithContent();
+        var template = CreateTemplate("templates/reporte/v1.dotx", "ReporteInspeccion", isAvailable: true);
+        var templateId = Guid.NewGuid();
+        SetEntityId(template, templateId);
+
+        var query = new ExportProjectQuery(project.Id, templateId);
+
+        SetupProjectFound(project);
+
+        _templateRepositoryMock
+            .Setup(r => r.GetByIdAsync(templateId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(template);
+
+        var result = await _handler.Handle(query, CancellationToken.None);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Contain("Export.TemplateTypeMismatch");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldFallbackToDefaultTemplate_WhenPreferredTemplateIsNotAvailable()
+    {
+        var project = CreateProjectWithContent();
+        var preferredTemplateId = Guid.NewGuid();
+
+        var preferredTemplate = CreateTemplate("templates/memoria/v5.dotx", "MemoriaTecnica", isAvailable: false);
+        SetEntityId(preferredTemplate, preferredTemplateId);
+
+        var defaultTemplate = CreateTemplate("templates/memoria/default.dotx", "MemoriaTecnica", isAvailable: true);
+        defaultTemplate.MarkAsDefault();
+
+        var templateBytes = new byte[] { 3, 2, 1 };
+        var query = new ExportProjectQuery(project.Id, preferredTemplateId);
+
+        SetupProjectFound(project);
+
+        _templateRepositoryMock
+            .Setup(r => r.GetByIdAsync(preferredTemplateId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(preferredTemplate);
+
+        _templateRepositoryMock
+            .Setup(r => r.GetDefaultByTypeAsync("MemoriaTecnica", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(defaultTemplate);
+
+        _fileStorageServiceMock
+            .Setup(s => s.GetFileAsync(defaultTemplate.StoragePath, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(templateBytes);
+
+        _exportServiceMock
+            .Setup(s => s.ExportToDocxWithTemplateAsync(
+                It.IsAny<ExportDocumentData>(),
+                templateBytes,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new byte[] { 0x50, 0x4B });
+
+        var result = await _handler.Handle(query, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        _exportServiceMock.Verify(
+            s => s.ExportToDocxWithTemplateAsync(
+                It.IsAny<ExportDocumentData>(),
+                templateBytes,
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task Handle_ShouldFallbackToLegacy_WhenTemplateExportThrows()
     {
         var project = CreateProjectWithContent();
@@ -252,6 +360,21 @@ public class ExportProjectHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ShouldUseRequestedOutputFileName_WhenProvided()
+    {
+        var project = CreateProjectWithContent();
+        var query = new ExportProjectQuery(project.Id, null, "  memoria:final?.docx ");
+
+        SetupProjectFound(project);
+        SetupExportService(new byte[] { 0x50, 0x4B });
+
+        var result = await _handler.Handle(query, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.FileName.Should().Be("memoria_final.docx");
+    }
+
+    [Fact]
     public async Task Handle_ShouldLoadProject_FromRepository()
     {
         var project = CreateProjectWithContent();
@@ -272,7 +395,7 @@ public class ExportProjectHandlerTests
     {
         var project = CreateProjectWithContent();
         var query = new ExportProjectQuery(project.Id);
-        var cts = new CancellationTokenSource();
+        using var cts = new CancellationTokenSource();
 
         SetupProjectFound(project);
 
@@ -358,18 +481,30 @@ public class ExportProjectHandlerTests
 
     private static AppTemplate CreateActiveTemplate(string storagePath)
     {
+        return CreateTemplate(storagePath, "MemoriaTecnica", isAvailable: true);
+    }
+
+    private static AppTemplate CreateTemplate(string storagePath, string templateType, bool isAvailable)
+    {
         var template = AppTemplate.Create(
             name: "Plantilla Memoria",
-            description: "Plantilla activa",
-            templateType: "MemoriaTecnica",
+            description: "Plantilla de exportación",
+            templateType: templateType,
             storagePath: storagePath,
             originalFileName: "plantilla.dotx",
             mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.template",
             fileSizeBytes: 100,
             createdByUserId: Guid.NewGuid());
 
-        template.Activate();
+        template.SetAvailable(isAvailable);
         return template;
+    }
+
+    private static void SetEntityId(AppTemplate template, Guid id)
+    {
+        var property = typeof(Edificia.Domain.Primitives.Entity)
+            .GetProperty("Id")!;
+        property.SetValue(template, id);
     }
 
     private void SetupProjectFound(Project project)

@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Edificia.Application.Interfaces;
+using Edificia.Domain.Entities;
 using Edificia.Shared.Result;
 using MediatR;
 using Microsoft.Extensions.Caching.Memory;
@@ -62,7 +63,13 @@ public sealed partial class ExportProjectHandler : IRequestHandler<ExportProject
         }
 
         var exportData = ExportDocumentData.FromProject(project);
-        var templateBytes = await TryGetActiveTemplateBytesAsync(cancellationToken);
+        var templateResolution = await ResolveTemplateAsync(request.TemplateId, cancellationToken);
+        if (templateResolution.IsFailure)
+        {
+            return Result.Failure<ExportDocumentResponse>(templateResolution.Error);
+        }
+
+        var templateBytes = await TryGetTemplateBytesAsync(templateResolution.Value, cancellationToken);
 
         try
         {
@@ -97,7 +104,7 @@ public sealed partial class ExportProjectHandler : IRequestHandler<ExportProject
                         "No se pudo exportar el documento. El servicio de exportación no generó contenido."));
             }
 
-            var fileName = SanitizeFileName(project.Title) + ".docx";
+            var fileName = ResolveOutputFileName(request.OutputFileName, project.Title);
 
             _logger.LogInformation("Successfully exported project {ProjectId} ({FileName}, {Size} bytes)",
                 request.ProjectId, fileName, fileContent.Length);
@@ -113,15 +120,52 @@ public sealed partial class ExportProjectHandler : IRequestHandler<ExportProject
         }
     }
 
-    private async Task<byte[]?> TryGetActiveTemplateBytesAsync(CancellationToken cancellationToken)
+    private async Task<Result<AppTemplate?>> ResolveTemplateAsync(Guid? preferredTemplateId, CancellationToken cancellationToken)
     {
-        var activeTemplate = await _templateRepository.GetActiveByTypeAsync(DefaultTemplateType, cancellationToken);
-        if (activeTemplate is null)
+        if (preferredTemplateId.HasValue)
+        {
+            var preferredTemplate = await _templateRepository.GetByIdAsync(preferredTemplateId.Value, cancellationToken);
+            if (preferredTemplate is not null)
+            {
+                if (!string.Equals(preferredTemplate.TemplateType, DefaultTemplateType, StringComparison.OrdinalIgnoreCase))
+                {
+                    return Result.Failure<AppTemplate?>(
+                        Error.Validation(
+                            "Export.TemplateTypeMismatch",
+                            "La plantilla seleccionada no corresponde al tipo documental de exportación."));
+                }
+
+                if (preferredTemplate.IsAvailable)
+                {
+                    return Result.Success<AppTemplate?>(preferredTemplate);
+                }
+
+                _logger.LogInformation(
+                    "Preferred template {TemplateId} is not available. Falling back to default template resolution.",
+                    preferredTemplate.Id);
+            }
+            else
+            {
+                _logger.LogInformation(
+                    "Preferred template {TemplateId} was not found. Falling back to default template resolution.",
+                    preferredTemplateId.Value);
+            }
+        }
+
+        var defaultTemplate = await _templateRepository.GetDefaultByTypeAsync(DefaultTemplateType, cancellationToken)
+            ?? await _templateRepository.GetActiveByTypeAsync(DefaultTemplateType, cancellationToken);
+
+        return Result.Success<AppTemplate?>(defaultTemplate);
+    }
+
+    private async Task<byte[]?> TryGetTemplateBytesAsync(AppTemplate? selectedTemplate, CancellationToken cancellationToken)
+    {
+        if (selectedTemplate is null)
         {
             return null;
         }
 
-        var cacheKey = $"template-export:{activeTemplate.TemplateType}:{activeTemplate.Id}:{activeTemplate.Version}";
+        var cacheKey = $"template-export:{selectedTemplate.TemplateType}:{selectedTemplate.Id}:{selectedTemplate.Version}";
         if (_memoryCache.TryGetValue<byte[]>(cacheKey, out var cachedBytes) && cachedBytes is { Length: > 0 })
         {
             return cachedBytes;
@@ -129,7 +173,7 @@ public sealed partial class ExportProjectHandler : IRequestHandler<ExportProject
 
         try
         {
-            var templateBytes = await _fileStorageService.GetFileAsync(activeTemplate.StoragePath, cancellationToken);
+            var templateBytes = await _fileStorageService.GetFileAsync(selectedTemplate.StoragePath, cancellationToken);
             if (templateBytes.Length == 0)
             {
                 return null;
@@ -141,10 +185,45 @@ public sealed partial class ExportProjectHandler : IRequestHandler<ExportProject
         catch (Exception ex)
         {
             _logger.LogWarning(ex,
-                "Unable to load active template from storage for template {TemplateId}. Falling back to legacy export.",
-                activeTemplate.Id);
+                "Unable to load selected template from storage for template {TemplateId}. Falling back to legacy export.",
+                selectedTemplate.Id);
             return null;
         }
+    }
+
+    private static string ResolveOutputFileName(string? requestedOutputFileName, string projectTitle)
+    {
+        if (!string.IsNullOrWhiteSpace(requestedOutputFileName))
+        {
+            var normalized = NormalizeRequestedFileName(requestedOutputFileName);
+            if (!string.IsNullOrWhiteSpace(normalized))
+            {
+                return normalized;
+            }
+        }
+
+        return SanitizeFileName(projectTitle) + ".docx";
+    }
+
+    private static string? NormalizeRequestedFileName(string requestedOutputFileName)
+    {
+        var trimmed = requestedOutputFileName.Trim();
+        if (string.IsNullOrWhiteSpace(trimmed))
+        {
+            return null;
+        }
+
+        var withoutExtension = trimmed.EndsWith(".docx", StringComparison.OrdinalIgnoreCase)
+            ? trimmed[..^5]
+            : trimmed;
+
+        var sanitizedBaseName = SanitizeFileName(withoutExtension);
+        if (string.IsNullOrWhiteSpace(sanitizedBaseName))
+        {
+            return null;
+        }
+
+        return sanitizedBaseName + ".docx";
     }
 
     private static string SanitizeFileName(string title)
