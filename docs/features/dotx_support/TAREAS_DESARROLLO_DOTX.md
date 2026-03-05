@@ -14,6 +14,12 @@ Referencia obligatoria: `AGENTS.md`.
    - modelo `Disponible` + `Predeterminada`,
    - catálogo dinámico de tipos.
 
+## 1.2 Plan operativo por Casos de Uso (2026-03)
+
+- Para la ejecución de la iteración actual, usar como documento rector:
+   - `docs/features/dotx_support/PLAN_CU_IMPLEMENTACION_2026-03.md`
+- Este plan desglosa tareas por CU, secuencia por PR, criterios de cierre, checklist de revisión final, actualización documental y ejecución de tests.
+
 ---
 
 ## 2. Clasificación por bloque
