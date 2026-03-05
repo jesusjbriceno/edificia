@@ -69,32 +69,35 @@ public sealed partial class ExportProjectHandler : IRequestHandler<ExportProject
             return Result.Failure<ExportDocumentResponse>(templateResolution.Error);
         }
 
-        var templateBytes = await TryGetTemplateBytesAsync(templateResolution.Value, cancellationToken);
+        var selectedTemplate = templateResolution.Value;
+        var templateBytesResult = await TryGetTemplateBytesAsync(selectedTemplate, cancellationToken);
+        if (templateBytesResult.IsFailure)
+        {
+            return Result.Failure<ExportDocumentResponse>(templateBytesResult.Error);
+        }
+
+        var templateBytes = templateBytesResult.Value;
+
+        var resolvedTemplateId = selectedTemplate?.Id;
 
         try
         {
-            byte[] fileContent;
-            if (templateBytes is { Length: > 0 })
+            var exportExecution = await ExecuteExportAsync(
+                exportData,
+                templateBytes,
+                selectedTemplate,
+                request.ProjectId,
+                cancellationToken);
+
+            if (exportExecution.IsFailure)
             {
-                try
-                {
-                    fileContent = await _exportService.ExportToDocxWithTemplateAsync(
-                        exportData,
-                        templateBytes,
-                        cancellationToken);
-                }
-                catch (Exception templateEx)
-                {
-                    _logger.LogWarning(templateEx,
-                        "Template export failed for project {ProjectId}. Falling back to legacy export.",
-                        request.ProjectId);
-                    fileContent = await _exportService.ExportToDocxAsync(exportData, cancellationToken);
-                }
+                return Result.Failure<ExportDocumentResponse>(exportExecution.Error);
             }
-            else
-            {
-                fileContent = await _exportService.ExportToDocxAsync(exportData, cancellationToken);
-            }
+
+            var (fileContent, exportMode) = exportExecution.Value;
+            var appliedTemplateId = string.Equals(exportMode, "template", StringComparison.OrdinalIgnoreCase)
+                ? resolvedTemplateId
+                : null;
 
             if (fileContent is null || fileContent.Length == 0)
             {
@@ -109,7 +112,13 @@ public sealed partial class ExportProjectHandler : IRequestHandler<ExportProject
             _logger.LogInformation("Successfully exported project {ProjectId} ({FileName}, {Size} bytes)",
                 request.ProjectId, fileName, fileContent.Length);
 
-            return Result.Success(new ExportDocumentResponse(fileContent, fileName, DocxContentType));
+            return Result.Success(new ExportDocumentResponse(
+                fileContent,
+                fileName,
+                DocxContentType,
+                resolvedTemplateId,
+                appliedTemplateId,
+                exportMode));
         }
         catch (Exception ex)
         {
@@ -125,50 +134,59 @@ public sealed partial class ExportProjectHandler : IRequestHandler<ExportProject
         if (preferredTemplateId.HasValue)
         {
             var preferredTemplate = await _templateRepository.GetByIdAsync(preferredTemplateId.Value, cancellationToken);
-            if (preferredTemplate is not null)
-            {
-                if (!string.Equals(preferredTemplate.TemplateType, DefaultTemplateType, StringComparison.OrdinalIgnoreCase))
-                {
-                    return Result.Failure<AppTemplate?>(
-                        Error.Validation(
-                            "Export.TemplateTypeMismatch",
-                            "La plantilla seleccionada no corresponde al tipo documental de exportación."));
-                }
-
-                if (preferredTemplate.IsAvailable)
-                {
-                    return Result.Success<AppTemplate?>(preferredTemplate);
-                }
-
-                _logger.LogInformation(
-                    "Preferred template {TemplateId} is not available. Falling back to default template resolution.",
-                    preferredTemplate.Id);
-            }
-            else
+            if (preferredTemplate is null)
             {
                 _logger.LogInformation(
                     "Preferred template {TemplateId} was not found. Falling back to default template resolution.",
                     preferredTemplateId.Value);
+
+                return await ResolveDefaultTemplateAsync(cancellationToken);
             }
+
+            if (!string.Equals(preferredTemplate.TemplateType, DefaultTemplateType, StringComparison.OrdinalIgnoreCase))
+            {
+                return Result.Failure<AppTemplate?>(
+                    Error.Validation(
+                        "Export.TemplateTypeMismatch",
+                        "La plantilla seleccionada no corresponde al tipo documental de exportación."));
+            }
+
+            if (!preferredTemplate.IsAvailable)
+            {
+                _logger.LogInformation(
+                    "Preferred template {TemplateId} is not available. Falling back to default template resolution.",
+                    preferredTemplate.Id);
+
+                return await ResolveDefaultTemplateAsync(cancellationToken);
+            }
+
+            return Result.Success<AppTemplate?>(preferredTemplate);
         }
 
+        return await ResolveDefaultTemplateAsync(cancellationToken);
+    }
+
+    private async Task<Result<AppTemplate?>> ResolveDefaultTemplateAsync(CancellationToken cancellationToken)
+    {
         var defaultTemplate = await _templateRepository.GetDefaultByTypeAsync(DefaultTemplateType, cancellationToken)
             ?? await _templateRepository.GetActiveByTypeAsync(DefaultTemplateType, cancellationToken);
 
         return Result.Success<AppTemplate?>(defaultTemplate);
     }
 
-    private async Task<byte[]?> TryGetTemplateBytesAsync(AppTemplate? selectedTemplate, CancellationToken cancellationToken)
+    private async Task<Result<byte[]?>> TryGetTemplateBytesAsync(
+        AppTemplate? selectedTemplate,
+        CancellationToken cancellationToken)
     {
         if (selectedTemplate is null)
         {
-            return null;
+            return Result.Success<byte[]?>(null);
         }
 
         var cacheKey = $"template-export:{selectedTemplate.TemplateType}:{selectedTemplate.Id}:{selectedTemplate.Version}";
         if (_memoryCache.TryGetValue<byte[]>(cacheKey, out var cachedBytes) && cachedBytes is { Length: > 0 })
         {
-            return cachedBytes;
+            return Result.Success<byte[]?>(cachedBytes);
         }
 
         try
@@ -176,18 +194,52 @@ public sealed partial class ExportProjectHandler : IRequestHandler<ExportProject
             var templateBytes = await _fileStorageService.GetFileAsync(selectedTemplate.StoragePath, cancellationToken);
             if (templateBytes.Length == 0)
             {
-                return null;
+                return Result.Success<byte[]?>(null);
             }
 
             _memoryCache.Set(cacheKey, templateBytes, TemplateCacheDuration);
-            return templateBytes;
+            return Result.Success<byte[]?>(templateBytes);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex,
                 "Unable to load selected template from storage for template {TemplateId}. Falling back to legacy export.",
                 selectedTemplate.Id);
-            return null;
+            return Result.Success<byte[]?>(null);
+        }
+    }
+
+    private async Task<Result<(byte[] FileContent, string ExportMode)>> ExecuteExportAsync(
+        ExportDocumentData exportData,
+        byte[]? templateBytes,
+        AppTemplate? selectedTemplate,
+        Guid projectId,
+        CancellationToken cancellationToken)
+    {
+        if (templateBytes is not { Length: > 0 })
+        {
+            var legacyContent = await _exportService.ExportToDocxAsync(exportData, cancellationToken);
+            var legacyMode = selectedTemplate is null ? "legacy" : "fallback";
+            return Result.Success((legacyContent, legacyMode));
+        }
+
+        try
+        {
+            var templateContent = await _exportService.ExportToDocxWithTemplateAsync(
+                exportData,
+                templateBytes,
+                cancellationToken);
+
+            return Result.Success((templateContent, "template"));
+        }
+        catch (Exception templateEx)
+        {
+            _logger.LogWarning(templateEx,
+                "Template export failed for project {ProjectId}. Falling back to legacy export.",
+                projectId);
+
+            var fallbackContent = await _exportService.ExportToDocxAsync(exportData, cancellationToken);
+            return Result.Success((fallbackContent, "fallback"));
         }
     }
 

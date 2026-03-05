@@ -248,9 +248,21 @@ static void MapEnvironmentVariables()
                 .Select(p =>
                 {
                     var kv = p.Split('=', 2);
-                    return kv.Length == 2
-                        ? $"{Uri.UnescapeDataString(kv[0])}={Uri.UnescapeDataString(kv[1])}"
-                        : null;
+                    if (kv.Length != 2)
+                        return null;
+
+                    var key = Uri.UnescapeDataString(kv[0]);
+                    var value = Uri.UnescapeDataString(kv[1]);
+
+                    // DATABASE_URL from providers often exposes "schema=public".
+                    // Npgsql expects "Search Path" instead of "schema".
+                    if (key.Equals("schema", StringComparison.OrdinalIgnoreCase)
+                        || key.Equals("search_path", StringComparison.OrdinalIgnoreCase))
+                    {
+                        key = "Search Path";
+                    }
+
+                    return $"{key}={value}";
                 })
                 .Where(p => p is not null);
             extra = ";" + string.Join(";", queryParams);

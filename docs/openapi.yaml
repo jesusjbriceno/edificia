@@ -820,9 +820,10 @@ paths:
       description: |
         Exporta el proyecto completo como documento Word (.docx).
         Resolución de plantilla:
-        1) `templateId` (si corresponde al tipo y está disponible),
-        2) plantilla predeterminada de `MemoriaTecnica`,
-        3) fallback automático al exportador estándar.
+        1) Si llega `templateId` y es compatible con el tipo documental, se intenta usar esa plantilla.
+        2) Si `templateId` no existe o no está disponible, se usa la plantilla predeterminada de `MemoriaTecnica`.
+        3) Si no hay plantilla utilizable o falla el render con plantilla, aplica fallback automático al exportador estándar.
+        4) Si `templateId` es de un tipo no compatible, se devuelve error 400.
       operationId: exportToDocx
       parameters:
         - $ref: '#/components/parameters/ProjectId'
@@ -849,7 +850,7 @@ paths:
                 type: string
                 format: binary
         '400':
-          description: El proyecto no tiene contenido para exportar
+          description: Solicitud inválida (proyecto sin contenido o templateId de tipo incompatible)
           content:
             application/json:
               schema:

@@ -49,6 +49,24 @@ public sealed class ExportController : BaseApiController
             return HandleResult(result);
 
         var response = result.Value;
+
+        if (templateId.HasValue)
+        {
+            Response.Headers["X-Edificia-Requested-Template-Id"] = templateId.Value.ToString();
+        }
+
+        if (response.ResolvedTemplateId.HasValue)
+        {
+            Response.Headers["X-Edificia-Resolved-Template-Id"] = response.ResolvedTemplateId.Value.ToString();
+        }
+
+        if (response.AppliedTemplateId.HasValue)
+        {
+            Response.Headers["X-Edificia-Applied-Template-Id"] = response.AppliedTemplateId.Value.ToString();
+        }
+
+        Response.Headers["X-Edificia-Export-Mode"] = response.ExportMode;
+
         return File(response.FileContent, response.ContentType, response.FileName);
     }
 }

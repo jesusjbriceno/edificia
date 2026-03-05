@@ -9,6 +9,7 @@ using Edificia.Application.Templates.DTOs;
 using Edificia.Application.Templates.Queries.GetTemplates;
 using Edificia.Domain.Constants;
 using MediatR;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -30,10 +31,7 @@ public sealed class TemplatesController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Create(
-        [FromForm] string name,
-        [FromForm] string templateType,
-        [FromForm] string? description,
-        [FromForm] IFormFile templateFile,
+        [FromForm] CreateTemplateFormRequest form,
         CancellationToken cancellationToken)
     {
         var currentUserId = GetCurrentUserId();
@@ -42,19 +40,19 @@ public sealed class TemplatesController : BaseApiController
         byte[] fileBytes;
         await using (var stream = new MemoryStream())
         {
-            await templateFile.CopyToAsync(stream, cancellationToken);
+            await form.TemplateFile.CopyToAsync(stream, cancellationToken);
             fileBytes = stream.ToArray();
         }
 
-        var request = new CreateTemplateRequest(name, templateType, description);
+        var request = new CreateTemplateRequest(form.Name, form.TemplateType, form.Description);
         var command = CreateTemplateCommand.Create(
             currentUserId.Value,
             request,
-            templateFile.FileName,
-            string.IsNullOrWhiteSpace(templateFile.ContentType)
+            form.TemplateFile.FileName,
+            string.IsNullOrWhiteSpace(form.TemplateFile.ContentType)
                 ? "application/octet-stream"
-                : templateFile.ContentType,
-            templateFile.Length,
+                : form.TemplateFile.ContentType,
+            form.TemplateFile.Length,
             fileBytes);
 
         var result = await _sender.Send(command, cancellationToken);
@@ -157,4 +155,12 @@ public sealed class TemplatesController : BaseApiController
 
         return Guid.TryParse(sub, out var id) ? id : null;
     }
+}
+
+public sealed class CreateTemplateFormRequest
+{
+    public string Name { get; set; } = string.Empty;
+    public string TemplateType { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public IFormFile TemplateFile { get; set; } = default!;
 }

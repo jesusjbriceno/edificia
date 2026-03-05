@@ -9,4 +9,7 @@ namespace Edificia.Application.Export.Queries.ExportProject;
 public sealed record ExportDocumentResponse(
     byte[] FileContent,
     string FileName,
-    string ContentType);
+    string ContentType,
+    Guid? ResolvedTemplateId = null,
+    Guid? AppliedTemplateId = null,
+    string ExportMode = "legacy");

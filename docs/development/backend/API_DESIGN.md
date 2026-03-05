@@ -989,8 +989,9 @@ Exporta el proyecto completo como documento Word (.docx).
 
 **Comportamiento de plantillas:**
 
-- Si llega `templateId`, se intenta usar la plantilla seleccionada (si corresponde al tipo y está disponible).
-- Si no hay `templateId` válido, se usa la plantilla predeterminada de `MemoriaTecnica`.
+- Si llega `templateId` y es compatible con el tipo documental, se intenta usar la plantilla seleccionada.
+- Si `templateId` no existe o no está disponible, se resuelve la plantilla predeterminada de `MemoriaTecnica`.
+- Si `templateId` corresponde a un tipo documental incompatible, se devuelve `400`.
 - Si la carga de plantilla o el renderizado falla, se aplica fallback automático al exportador estándar.
 - El endpoint siempre prioriza disponibilidad del documento frente a fallo puntual de plantilla.
 
