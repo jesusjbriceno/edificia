@@ -66,10 +66,12 @@ public sealed class TemplatesController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetAll(
         [FromQuery] string? templateType = null,
+        [FromQuery] bool? isAvailable = null,
         [FromQuery] bool? isActive = null,
         CancellationToken cancellationToken = default)
     {
-        var query = new GetTemplatesQuery(templateType, isActive);
+        var effectiveAvailability = isAvailable ?? isActive;
+        var query = new GetTemplatesQuery(templateType, effectiveAvailability);
         var result = await _sender.Send(query, cancellationToken);
 
         return HandleResult(result);

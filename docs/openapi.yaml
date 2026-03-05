@@ -595,7 +595,13 @@ paths:
           required: false
           schema:
             type: boolean
-          description: Filtro por estado de activación
+          description: Alias legado de disponibilidad (`isAvailable`) para compatibilidad.
+        - name: isAvailable
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: Filtro por disponibilidad
       responses:
         '200':
           description: Listado de plantillas
@@ -615,9 +621,10 @@ paths:
   /api/templates/{id}/toggle-status:
     put:
       tags: [Templates]
-      summary: Toggle Template Status
-      description: Activa o desactiva una plantilla (solo Admin).
+      summary: Toggle Template Status (Legacy)
+      description: Endpoint legado para compatibilidad. Internamente gestiona la disponibilidad de la plantilla.
       operationId: toggleTemplateStatus
+      deprecated: true
       parameters:
         - name: id
           in: path
@@ -643,6 +650,137 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+
+  /api/templates/{id}:
+    put:
+      tags: [Templates]
+      summary: Update Template Metadata
+      description: Actualiza nombre y descripción de una plantilla (solo Admin).
+      operationId: updateTemplateMetadata
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID de la plantilla
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTemplateMetadataRequest'
+      responses:
+        '204':
+          description: Metadatos actualizados
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Templates]
+      summary: Delete Template
+      description: Elimina una plantilla (solo Admin).
+      operationId: deleteTemplate
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID de la plantilla
+      responses:
+        '204':
+          description: Plantilla eliminada
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflicto de negocio (por ejemplo, plantilla predeterminada)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+  /api/templates/{id}/availability:
+    put:
+      tags: [Templates]
+      summary: Set Template Availability
+      description: Marca una plantilla como disponible/no disponible (solo Admin).
+      operationId: setTemplateAvailability
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID de la plantilla
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetTemplateAvailabilityRequest'
+      responses:
+        '204':
+          description: Disponibilidad actualizada
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/templates/{id}/default:
+    put:
+      tags: [Templates]
+      summary: Set Template Default
+      description: Marca una plantilla como predeterminada/no predeterminada por tipo (solo Admin).
+      operationId: setTemplateDefault
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID de la plantilla
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetTemplateDefaultRequest'
+      responses:
+        '204':
+          description: Predeterminación actualizada
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflicto de negocio (por ejemplo, plantilla no disponible)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
 
   # ─── AI ─────────────────────────────────────────────────
   /api/projects/{id}/ai/generate:
@@ -681,12 +819,27 @@ paths:
       summary: Export to DOCX
       description: |
         Exporta el proyecto completo como documento Word (.docx).
-        Si existe una plantilla activa de tipo `MemoriaTecnica`, se usa como base (.dotx).
-        Si falla la carga o el renderizado de la plantilla, el sistema aplica fallback automático
-        al exportador estándar para no bloquear la descarga.
+        Resolución de plantilla:
+        1) `templateId` (si corresponde al tipo y está disponible),
+        2) plantilla predeterminada de `MemoriaTecnica`,
+        3) fallback automático al exportador estándar.
       operationId: exportToDocx
       parameters:
         - $ref: '#/components/parameters/ProjectId'
+        - name: templateId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: ID opcional de la plantilla preferida para exportación
+        - name: outputFileName
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 255
+          description: Nombre opcional del archivo de salida (.docx)
       responses:
         '200':
           description: Archivo DOCX
@@ -1261,6 +1414,35 @@ components:
           type: boolean
           example: true
 
+    UpdateTemplateMetadataRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 200
+          example: Plantilla corporativa 2026 (actualizada)
+        description:
+          type: string
+          nullable: true
+          maxLength: 1000
+
+    SetTemplateAvailabilityRequest:
+      type: object
+      required: [isAvailable]
+      properties:
+        isAvailable:
+          type: boolean
+          example: true
+
+    SetTemplateDefaultRequest:
+      type: object
+      required: [isDefault]
+      properties:
+        isDefault:
+          type: boolean
+          example: true
+
     TemplateResponse:
       type: object
       properties:
@@ -1279,8 +1461,15 @@ components:
         version:
           type: integer
           example: 3
+        isAvailable:
+          type: boolean
+          example: true
+        isDefault:
+          type: boolean
+          example: false
         isActive:
           type: boolean
+          description: Alias legado equivalente a `isAvailable`.
           example: true
         originalFileName:
           type: string

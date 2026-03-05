@@ -228,3 +228,16 @@ Dejar preparado el terreno para tipos dinámicos sin cerrar completamente la ges
 - Mantener cambios pequeños por PR, con trazabilidad CU -> tarea -> test.
 - Evitar introducir nuevas capacidades fuera de alcance sin RFC previa.
 - Priorizar compatibilidad y fallback para no interrumpir exportaciones en producción.
+
+---
+
+## 10. Estado de ejecución (2026-03)
+
+- **PR-1 (P0) completada:** migración de modelo a `IsAvailable` + `IsDefault`.
+- **PR-2 (P0) completada:** endpoints de gestión (`update`, `availability`, `default`, `delete`) y compatibilidad legado `toggle-status`.
+- **PR-3 (P0) completada:** export con `templateId` y `outputFileName` + resolución por prioridad y fallback.
+- **PR-4 (P1) completada:** UI admin para editar/eliminar/disponibilidad/predeterminada.
+- **PR-5 (P1) completada:** modal de export conectado a API real con selector y nombre de archivo.
+- **PR-6 (P0) en cierre:** sincronización documental global + hardening final + regresión de tests.
+
+Pendiente fuera de alcance de esta iteración: **CU-05 catálogo dinámico de tipos de plantilla**.

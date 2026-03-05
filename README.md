@@ -35,7 +35,7 @@
 | **Redacción IA** | Genera descripciones técnicas y justificaciones normativas vía IA delegada (n8n → Flux Gateway / Google Gemini) |
 | **Modo Túnel** | Persistencia offline en IndexedDB para trabajar sin conexión en obra |
 | **Exportación DOCX** | Genera la memoria técnica completa en formato Word |
-| **Plantillas `.dotx`** | Administración de plantillas con validación de formato/tags en subida, activación/desactivación y fallback automático |
+| **Plantillas `.dotx`** | Administración con disponibilidad/predeterminada por tipo, selector en exportación, validación de formato/tags y fallback automático |
 
 > **Contexto académico:** Este proyecto constituye el Trabajo Fin de Máster (TFM) del Máster en Desarrollo de Aplicaciones con IA. Consulta la [Memoria del TFM](docs/TFM/MEMORIA_TFM_EdificIA.md) para el detalle completo.
 
