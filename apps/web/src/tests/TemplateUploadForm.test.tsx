@@ -26,14 +26,14 @@ describe('TemplateUploadForm', () => {
     vi.clearAllMocks();
   });
 
-  it('bloquea subida si la extensión no es .dotx/.docx', async () => {
+  it('bloquea subida si el formato no es Word compatible', async () => {
     render(<TemplateUploadForm />);
 
     fireEvent.change(screen.getByPlaceholderText(/plantilla memoria v1/i), {
       target: { value: 'Plantilla invalida' },
     });
 
-    const fileInput = screen.getByLabelText(/archivo \.dotx\/.docx/i);
+    const fileInput = screen.getByLabelText(/archivo word/i);
     const invalidFile = new File(['dummy'], 'plantilla.pdf', {
       type: 'application/pdf',
     });
@@ -64,7 +64,7 @@ describe('TemplateUploadForm', () => {
       target: { value: 'Plantilla test' },
     });
 
-    const fileInput = screen.getByLabelText(/archivo \.dotx\/.docx/i);
+    const fileInput = screen.getByLabelText(/archivo word/i);
     const validFile = new File(['dummy'], 'plantilla.dotx', {
       type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.template',
     });

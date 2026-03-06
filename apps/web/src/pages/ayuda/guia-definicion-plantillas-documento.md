@@ -1,9 +1,9 @@
 ---
 layout: ../../layouts/HelpMarkdownLayout.astro
-title: Guía de definición de plantillas .dotx
+title: Guía de definición de plantillas
 ---
 
-# 📘 Guía de definición de plantilla `.dotx` para EdificIA
+# 📘 Guía de definición de plantillas para EdificIA
 
 **Objetivo:** crear una plantilla de Word que EdificIA pueda usar para exportar memorias con estilo corporativo.
 
@@ -83,7 +83,7 @@ Los **Content Controls** son “cajas inteligentes” donde EdificIA inyecta con
 
 ### 6.1 Estado actual del proyecto
 
-- El flujo de exportación con plantilla `.dotx` está activo para `TemplateType = MemoriaTecnica`.
+- El flujo de exportación con plantilla Word está activo para `TemplateType = MemoriaTecnica`.
 - El sistema mantiene fallback al exportador estándar si hay incidencias.
 - Aunque el contrato de `tags` no está bloqueado de forma rígida en esta guía, **se recomienda versionarlo** para evitar desalineaciones entre plantilla y backend.
 
@@ -130,16 +130,16 @@ En EdificIA se fuerza la actualización de campos al abrir, así que Word recalc
 
 ---
 
-## 9) Guardar como plantilla `.dotx`
+## 9) Guardar como plantilla de Word
 
 1. Ve a **Archivo > Guardar como**.
 2. Elige ubicación.
-3. En **Tipo**, selecciona **Plantilla de Word (*.dotx)**.
+3. En **Tipo**, selecciona **Plantilla de Word**.
 4. Guarda el archivo.
 
 Nombre recomendado:
 
-- `memoria-tecnica-corporativa-v1.dotx`
+- `memoria-tecnica-corporativa-v1`
 
 ---
 
@@ -147,7 +147,7 @@ Nombre recomendado:
 
 1. Entra como **Admin**.
 2. Ve a **/admin/templates**.
-3. Sube el archivo `.dotx` (selección de archivo o arrastrar y soltar en la zona **Drag & Drop**).
+3. Sube el archivo Word compatible (selección de archivo o arrastrar y soltar en la zona **Drag & Drop**).
 4. Asigna tipo `MemoriaTecnica`.
 5. Activa la plantilla.
 
@@ -179,7 +179,7 @@ Evolución prevista:
 
 Al subir una plantilla en `/admin/templates`, EdificIA valida automáticamente:
 
-- Extensión `.dotx`.
+- Formato Word OpenXML compatible.
 - Tamaño máximo: **10 MB**.
 - MIME compatible con plantilla Word OpenXML.
 - Que el archivo se pueda abrir como OpenXML válido.
@@ -219,7 +219,7 @@ Si alguno falla, la API devuelve error de validación (`Template.InvalidFormat`)
 - En la vista de `/admin/templates`, el mensaje de error indica los `Tag` faltantes (por ejemplo: `ProjectTitle`, `MD.01`, `MC.01`).
 - Abre la plantilla en Word y añade un **Content Control de texto enriquecido** por cada `Tag` faltante.
 - En **Propiedades** del control, configura la **Etiqueta (Tag)** exactamente con el valor esperado.
-- Guarda de nuevo como `.dotx` y vuelve a subir.
+- Guarda de nuevo como plantilla de Word y vuelve a subir.
 
 ---
 
@@ -248,6 +248,6 @@ Con eso ya tienes una base funcional y fácil de mantener.
 
 ## Recursos
 
-- [Descargar plantilla base .dotx](/resources/memoria-tecnica-base-v1.dotx)
+- [Descargar plantilla base](/resources/memoria-tecnica-base-v1)
 - [Centro de ayuda](/ayuda)
-- [Guía de definición de plantillas .dotx](/ayuda/guia-definicion-plantillas-dotx)
+- [Guía de definición de plantillas](/ayuda/guia-definicion-plantillas-documento)

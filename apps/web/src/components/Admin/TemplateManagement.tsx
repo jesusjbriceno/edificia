@@ -219,7 +219,7 @@ export default function TemplateManagement() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-white tracking-tight">Plantillas .dotx</h1>
+        <h1 className="text-3xl font-bold text-white tracking-tight">Plantillas de documento</h1>
         <p className="text-gray-400 mt-1">Sube y gestiona plantillas para la exportación de documentos.</p>
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <a href="/admin/templates/new" className="inline-flex">
@@ -229,10 +229,10 @@ export default function TemplateManagement() {
             </Button>
           </a>
           <a
-            href="/ayuda/guia-definicion-plantillas-dotx"
+            href="/ayuda/guia-definicion-plantillas-documento"
             className="text-sm text-brand-primary hover:text-brand-primary/80 underline underline-offset-2"
           >
-            Guía de definición .dotx
+            Guía de definición de plantillas
           </a>
         </div>
       </div>
