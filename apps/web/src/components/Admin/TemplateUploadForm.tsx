@@ -13,6 +13,7 @@ const TEMPLATE_TYPES = [
 
 const ALLOWED_TEMPLATE_MIME_TYPES = new Set([
   'application/vnd.openxmlformats-officedocument.wordprocessingml.template',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'application/octet-stream',
   'application/zip',
   'application/x-zip-compressed',
@@ -63,7 +64,7 @@ function getTemplateUploadErrorMessage(error: ApiError): string {
   }
 
   if (error.status === 415) {
-    return 'El tipo de archivo no es válido. Sube una plantilla .dotx.';
+    return 'El tipo de archivo no es válido. Sube un documento .dotx o .docx.';
   }
 
   return detail || 'Error al subir la plantilla.';
@@ -87,14 +88,15 @@ export default function TemplateUploadForm() {
     setSubmitError(null);
 
     if (!file) {
-      const message = 'Debes seleccionar un archivo .dotx';
+      const message = 'Debes seleccionar un archivo .dotx o .docx';
       setSubmitError(message);
       addToast(message, 'error');
       return;
     }
 
-    if (!file.name.toLowerCase().endsWith('.dotx')) {
-      const message = 'Formato no válido: selecciona un archivo con extensión .dotx.';
+    const normalizedName = file.name.toLowerCase();
+    if (!normalizedName.endsWith('.dotx') && !normalizedName.endsWith('.docx')) {
+      const message = 'Formato no válido: selecciona un archivo con extensión .dotx o .docx.';
       setSubmitError(message);
       addToast(message, 'error');
       return;
@@ -108,7 +110,7 @@ export default function TemplateUploadForm() {
     }
 
     if (!ALLOWED_TEMPLATE_MIME_TYPES.has(file.type)) {
-      const message = `Tipo MIME no permitido (${file.type || 'vacío'}). Sube una plantilla .dotx válida.`;
+      const message = `Tipo MIME no permitido (${file.type || 'vacío'}). Sube un documento Word OpenXML válido (.dotx/.docx).`;
       setSubmitError(message);
       addToast(message, 'error');
       return;
@@ -184,17 +186,16 @@ export default function TemplateUploadForm() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-white tracking-tight">Nueva plantilla .dotx</h1>
+        <h1 className="text-3xl font-bold text-white tracking-tight">Nueva plantilla Word (.dotx/.docx)</h1>
         <p className="text-gray-400 mt-1">Sube una plantilla para la exportación de documentos.</p>
       </div>
 
       <div className="bg-dark-card border border-white/5 rounded-2xl p-6">
         <h2 className="text-base font-semibold text-white">Pautas y reglas de subida</h2>
         <ul className="mt-3 space-y-1.5 text-sm text-gray-300 list-disc pl-5">
-          <li>Formato permitido: <strong>.dotx</strong> (plantilla Word OpenXML).</li>
+          <li>Formato permitido: <strong>.dotx</strong> o <strong>.docx</strong> (Word OpenXML).</li>
           <li>Tamaño máximo: <strong>10 MB</strong>.</li>
-          <li>La plantilla debe contener <strong>Content Controls</strong> con <strong>Tag</strong>.</li>
-          <li>Para <strong>MemoriaTecnica</strong> son obligatorios: <strong>ProjectTitle</strong>, <strong>MD.01</strong>, <strong>MC.01</strong>.</li>
+          <li>Debe ser un archivo Word OpenXML válido (estructura interna legible por el backend).</li>
           <li>Si falla la validación, la subida se rechaza y no se guarda la plantilla.</li>
         </ul>
         <p className="mt-3 text-xs text-gray-400">
@@ -235,7 +236,7 @@ export default function TemplateUploadForm() {
           </div>
 
           <div className="md:col-span-2 space-y-1.5">
-            <label htmlFor="template-file" className="text-xs font-medium text-gray-400 uppercase tracking-wider ml-1">Archivo .dotx</label>
+            <label htmlFor="template-file" className="text-xs font-medium text-gray-400 uppercase tracking-wider ml-1">Archivo .dotx/.docx</label>
             <button
               type="button"
               onDragOver={handleDragOver}
@@ -254,15 +255,15 @@ export default function TemplateUploadForm() {
             >
               <Upload size={24} className={isDragOver ? 'text-brand-primary' : 'text-gray-400'} />
               <span className="text-base font-medium text-white">Arrastra y suelta tu plantilla aquí</span>
-              <span className="text-xs text-gray-400">Formato permitido: .dotx · tamaño máximo: 10 MB</span>
+              <span className="text-xs text-gray-400">Formato permitido: .dotx/.docx · tamaño máximo: 10 MB</span>
             </button>
             <input
               ref={fileInputRef}
               id="template-file"
               type="file"
-              accept=".dotx,application/vnd.openxmlformats-officedocument.wordprocessingml.template"
+              accept=".dotx,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.template,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
               onChange={(e) => handleFileSelect(e.target.files?.[0] ?? null)}
-              aria-label="Archivo .dotx"
+              aria-label="Archivo .dotx/.docx"
               className="sr-only"
             />
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2">

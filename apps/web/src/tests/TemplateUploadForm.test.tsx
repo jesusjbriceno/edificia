@@ -26,16 +26,16 @@ describe('TemplateUploadForm', () => {
     vi.clearAllMocks();
   });
 
-  it('bloquea subida si la extensión no es .dotx', async () => {
+  it('bloquea subida si la extensión no es .dotx/.docx', async () => {
     render(<TemplateUploadForm />);
 
     fireEvent.change(screen.getByPlaceholderText(/plantilla memoria v1/i), {
       target: { value: 'Plantilla invalida' },
     });
 
-    const fileInput = screen.getByLabelText(/archivo \.dotx/i);
-    const invalidFile = new File(['dummy'], 'plantilla.docx', {
-      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    const fileInput = screen.getByLabelText(/archivo \.dotx\/.docx/i);
+    const invalidFile = new File(['dummy'], 'plantilla.pdf', {
+      type: 'application/pdf',
     });
 
     fireEvent.change(fileInput, {
@@ -49,11 +49,11 @@ describe('TemplateUploadForm', () => {
     expect(templateService.create).not.toHaveBeenCalled();
   });
 
-  it('muestra tags faltantes cuando backend devuelve Template.InvalidFormat', async () => {
+  it('muestra mensaje de validación cuando backend devuelve Template.InvalidFormat', async () => {
     vi.mocked(templateService.create).mockRejectedValueOnce(
       new ApiError(
         400,
-        'Formato de plantilla inválido: faltan Tag(s) obligatorios para MemoriaTecnica: ProjectTitle, MD.01, MC.01.',
+        'Formato de plantilla inválido: no se pudo procesar el documento Word OpenXML.',
         'Validation.Template.InvalidFormat',
       ),
     );
@@ -64,7 +64,7 @@ describe('TemplateUploadForm', () => {
       target: { value: 'Plantilla test' },
     });
 
-    const fileInput = screen.getByLabelText(/archivo \.dotx/i);
+    const fileInput = screen.getByLabelText(/archivo \.dotx\/.docx/i);
     const validFile = new File(['dummy'], 'plantilla.dotx', {
       type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.template',
     });
@@ -76,9 +76,9 @@ describe('TemplateUploadForm', () => {
     const submitButton = screen.getByRole('button', { name: /subir plantilla/i });
     fireEvent.submit(submitButton.closest('form') as HTMLFormElement);
 
-    const errorBox = await screen.findByText(/la plantilla no cumple el contrato de tags/i);
+    const errorBox = await screen.findByText(/la plantilla no cumple el formato requerido/i);
     expect(errorBox).toBeInTheDocument();
-    expect(addToastMock).toHaveBeenCalledWith(expect.stringMatching(/faltan estos tags obligatorios/i), 'error');
+    expect(addToastMock).toHaveBeenCalledWith(expect.stringMatching(/no se pudo procesar el documento word openxml/i), 'error');
   });
 
   it('envía plantilla con drag & drop', async () => {
@@ -91,8 +91,8 @@ describe('TemplateUploadForm', () => {
     });
 
     const dropZone = screen.getByRole('button', { name: /arrastrar archivo de plantilla o pulsar para seleccionar/i });
-    const droppedFile = new File(['dummy'], 'drag-template.dotx', {
-      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.template',
+    const droppedFile = new File(['dummy'], 'drag-template.docx', {
+      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     });
 
     fireEvent.drop(dropZone, {

@@ -21,15 +21,13 @@ public class DotxTemplateFormatValidatorTests
     }
 
     [Fact]
-    public void Validate_ShouldFail_WhenMemoriaTecnicaMissingRequiredTags()
+    public void Validate_ShouldSucceed_WhenMemoriaTecnicaHasNoRequiredTags()
     {
         var bytes = CreateTemplateWithTags("ProjectTitle", "MD.02");
 
         var result = _validator.Validate("MemoriaTecnica", bytes);
 
-        result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Contain("Template.InvalidFormat");
-        result.Error.Description.Should().Contain("MC.01");
+        result.IsSuccess.Should().BeTrue();
     }
 
     [Fact]
@@ -39,9 +37,7 @@ public class DotxTemplateFormatValidatorTests
 
         var result = _validator.Validate("MemoriaTecnica", bytes);
 
-        result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Contain("Template.InvalidFormat");
-        result.Error.Description.Should().Contain("Tag");
+        result.IsSuccess.Should().BeTrue();
     }
 
     [Fact]
@@ -56,15 +52,13 @@ public class DotxTemplateFormatValidatorTests
     }
 
     [Fact]
-    public void Validate_ShouldFail_WhenFileIsDocxInsteadOfDotx()
+    public void Validate_ShouldSucceed_WhenFileIsDocx()
     {
         var bytes = CreateDocumentDocxWithTags("ProjectTitle", "MD.01", "MC.01");
 
         var result = _validator.Validate("MemoriaTecnica", bytes);
 
-        result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Contain("Template.InvalidFormat");
-        result.Error.Description.Should().Contain(".dotx");
+        result.IsSuccess.Should().BeTrue();
     }
 
     private static byte[] CreateTemplateWithTags(params string[] tags)

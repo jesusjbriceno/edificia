@@ -9,6 +9,7 @@ public sealed class CreateTemplateValidator : AbstractValidator<CreateTemplateCo
     private static readonly string[] AllowedMimeTypes =
     [
         "application/vnd.openxmlformats-officedocument.wordprocessingml.template",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "application/octet-stream",
         "application/zip",
         "application/x-zip-compressed"
@@ -38,14 +39,16 @@ public sealed class CreateTemplateValidator : AbstractValidator<CreateTemplateCo
             .WithMessage("El nombre del archivo es obligatorio.")
             .Must(fileName => Path.GetFileName(fileName) == fileName)
             .WithMessage("El nombre del archivo no es válido.")
-            .Must(fileName => fileName.EndsWith(".dotx", StringComparison.OrdinalIgnoreCase))
-            .WithMessage("El archivo debe tener extensión .dotx.");
+            .Must(fileName =>
+                fileName.EndsWith(".dotx", StringComparison.OrdinalIgnoreCase)
+                || fileName.EndsWith(".docx", StringComparison.OrdinalIgnoreCase))
+            .WithMessage("El archivo debe tener extensión .dotx o .docx.");
 
         RuleFor(x => x.MimeType)
             .NotEmpty()
             .WithMessage("El tipo MIME es obligatorio.")
             .Must(mimeType => AllowedMimeTypes.Contains(mimeType, StringComparer.OrdinalIgnoreCase))
-            .WithMessage("El tipo MIME del archivo no es válido para plantillas .dotx.");
+            .WithMessage("El tipo MIME del archivo no es válido para documentos Word OpenXML (.dotx/.docx).");
 
         RuleFor(x => x.FileSizeBytes)
             .GreaterThan(0)

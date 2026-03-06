@@ -18,14 +18,28 @@ public class CreateTemplateValidatorTests
     }
 
     [Fact]
-    public void ShouldFail_WhenFileExtensionIsNotDotx()
+    public void ShouldFail_WhenFileExtensionIsNotWordOpenXml()
     {
-        var command = BuildValidCommand() with { OriginalFileName = "plantilla.docx" };
+        var command = BuildValidCommand() with { OriginalFileName = "plantilla.pdf" };
 
         var result = _validator.Validate(command);
 
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(e => e.PropertyName == "OriginalFileName");
+    }
+
+    [Fact]
+    public void ShouldPass_WhenFileExtensionIsDocx()
+    {
+        var command = BuildValidCommand() with
+        {
+            OriginalFileName = "plantilla.docx",
+            MimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        };
+
+        var result = _validator.Validate(command);
+
+        result.IsValid.Should().BeTrue();
     }
 
     [Fact]
