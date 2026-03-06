@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import TemplateManagement from '@/components/Admin/TemplateManagement';
-import type { TemplateResponse } from '@/lib/types';
+import type { TemplateParamResponse, TemplateResponse } from '@/lib/types';
 
 const addToastMock = vi.fn();
 
@@ -23,7 +23,15 @@ vi.mock('@/lib/services/templateService', () => ({
   },
 }));
 
+vi.mock('@/lib/services/templateParamService', () => ({
+  templateParamService: {
+    list: vi.fn(),
+    setActivation: vi.fn(),
+  },
+}));
+
 import { templateService } from '@/lib/services/templateService';
+import { templateParamService } from '@/lib/services/templateParamService';
 
 function buildTemplate(overrides: Partial<TemplateResponse> = {}): TemplateResponse {
   return {
@@ -44,11 +52,26 @@ function buildTemplate(overrides: Partial<TemplateResponse> = {}): TemplateRespo
   };
 }
 
+function buildTemplateParam(overrides: Partial<TemplateParamResponse> = {}): TemplateParamResponse {
+  return {
+    id: 'param-1',
+    key: 'PROJECT_TITLE',
+    displayName: 'Titulo del proyecto',
+    sourceCode: 'PROJECT_TITLE',
+    formatter: null,
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: null,
+    ...overrides,
+  };
+}
+
 describe('TemplateManagement', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(globalThis, 'confirm').mockReturnValue(true);
     vi.mocked(templateService.list).mockResolvedValue([]);
+    vi.mocked(templateParamService.list).mockResolvedValue([]);
   });
 
   it('muestra CTA para ir al formulario de nueva plantilla', async () => {
@@ -161,6 +184,37 @@ describe('TemplateManagement', () => {
     await waitFor(() => {
       expect(templateService.delete).toHaveBeenCalledWith('tpl-4');
       expect(globalThis.confirm).toHaveBeenCalled();
+    });
+  });
+
+  it('permite activar o desactivar un parámetro global', async () => {
+    vi.mocked(templateParamService.list)
+      .mockResolvedValueOnce([
+        buildTemplateParam({
+          id: 'param-2',
+          displayName: 'Tipo de intervencion',
+          key: 'INTERVENTION_TYPE',
+          sourceCode: 'INTERVENTION_TYPE',
+          isActive: false,
+        }),
+      ])
+      .mockResolvedValueOnce([
+        buildTemplateParam({
+          id: 'param-2',
+          displayName: 'Tipo de intervencion',
+          key: 'INTERVENTION_TYPE',
+          sourceCode: 'INTERVENTION_TYPE',
+          isActive: true,
+        }),
+      ]);
+
+    render(<TemplateManagement />);
+
+    const button = await screen.findByRole('button', { name: /activar/i });
+    fireEvent.click(button);
+
+    await waitFor(() => {
+      expect(templateParamService.setActivation).toHaveBeenCalledWith('param-2', true);
     });
   });
 });

@@ -4,3 +4,4 @@ export { userService } from './userService.js';
 export { aiService } from './aiService.js';
 export { notificationService } from './notificationService.js';
 export { templateService } from './templateService.js';
+export { templateParamService } from './templateParamService.js';

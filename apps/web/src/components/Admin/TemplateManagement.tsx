@@ -2,19 +2,24 @@ import { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, FilePlus2, FileText, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { templateService } from '@/lib/services/templateService';
-import type { TemplateResponse } from '@/lib/types';
+import { templateParamService } from '@/lib/services/templateParamService';
+import type { TemplateParamResponse, TemplateResponse } from '@/lib/types';
 import { ApiError } from '@/lib/api';
 import { useToastStore } from '@/store/useToastStore';
 
 export default function TemplateManagement() {
   const [templates, setTemplates] = useState<TemplateResponse[]>([]);
+  const [templateParams, setTemplateParams] = useState<TemplateParamResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingParams, setIsLoadingParams] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [paramsError, setParamsError] = useState<string | null>(null);
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [isSavingMetadata, setIsSavingMetadata] = useState(false);
   const [busyTemplateId, setBusyTemplateId] = useState<string | null>(null);
+  const [busyTemplateParamId, setBusyTemplateParamId] = useState<string | null>(null);
 
   const { addToast } = useToastStore();
 
@@ -31,6 +36,11 @@ export default function TemplateManagement() {
     [templates],
   );
 
+  const activeTemplateParams = useMemo(
+    () => templateParams.filter((templateParam) => templateParam.isActive),
+    [templateParams],
+  );
+
   const defaultMemoriaTemplate = defaultTemplateByType.get('MemoriaTecnica');
   let defaultMemoriaTemplateSummary = 'No hay plantilla predeterminada (se usará el exportador estándar).';
   if (isLoading) {
@@ -41,6 +51,7 @@ export default function TemplateManagement() {
 
   useEffect(() => {
     loadTemplates();
+    loadTemplateParams();
   }, []);
 
   async function loadTemplates() {
@@ -57,6 +68,23 @@ export default function TemplateManagement() {
       }
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function loadTemplateParams() {
+    setIsLoadingParams(true);
+    setParamsError(null);
+    try {
+      const data = await templateParamService.list();
+      setTemplateParams(data);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setParamsError(err.message);
+      } else {
+        setParamsError('No se pudieron cargar los parámetros globales.');
+      }
+    } finally {
+      setIsLoadingParams(false);
     }
   }
 
@@ -166,6 +194,28 @@ export default function TemplateManagement() {
     }
   }
 
+  async function handleToggleTemplateParam(templateParam: TemplateParamResponse) {
+    setBusyTemplateParamId(templateParam.id);
+    try {
+      await templateParamService.setActivation(templateParam.id, !templateParam.isActive);
+      addToast(
+        templateParam.isActive
+          ? 'Parámetro desactivado'
+          : 'Parámetro activado',
+        'success',
+      );
+      await loadTemplateParams();
+    } catch (err) {
+      if (err instanceof ApiError) {
+        addToast(err.message, 'error');
+      } else {
+        addToast('No se pudo actualizar el estado del parámetro', 'error');
+      }
+    } finally {
+      setBusyTemplateParamId(null);
+    }
+  }
+
   return (
     <div className="space-y-8">
       <div>
@@ -211,6 +261,86 @@ export default function TemplateManagement() {
             <strong>predeterminada</strong> por tipo para cubrir los casos en los que no se indica una selección explícita.
           </p>
         </div>
+      </div>
+
+      <div className="bg-dark-card border border-white/5 rounded-2xl p-6">
+        <h2 className="text-base font-semibold text-white mb-4">Parámetros globales de plantilla</h2>
+
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+            <p className="text-xs uppercase tracking-wider text-gray-400">Parámetros configurados</p>
+            <p className="mt-1 text-2xl font-semibold text-white">{isLoadingParams ? '…' : templateParams.length}</p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+            <p className="text-xs uppercase tracking-wider text-gray-400">Parámetros activos</p>
+            <p className="mt-1 text-2xl font-semibold text-white">{isLoadingParams ? '…' : activeTemplateParams.length}</p>
+          </div>
+        </div>
+
+        {isLoadingParams && (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 text-brand-primary animate-spin" />
+            <span className="ml-3 text-gray-400">Cargando parámetros…</span>
+          </div>
+        )}
+
+        {!isLoadingParams && paramsError && (
+          <div className="flex items-center gap-2 text-red-400 py-4">
+            <AlertCircle size={18} />
+            <span>{paramsError}</span>
+          </div>
+        )}
+
+        {!isLoadingParams && !paramsError && templateParams.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-8 text-gray-400">
+            <FileText size={28} className="mb-2" />
+            <span>No hay parámetros configurados.</span>
+          </div>
+        )}
+
+        {!isLoadingParams && !paramsError && templateParams.length > 0 && (
+          <div className="mt-4 space-y-3">
+            {templateParams.map((templateParam) => {
+              const isBusy = busyTemplateParamId === templateParam.id;
+
+              return (
+                <div
+                  key={templateParam.id}
+                  className="rounded-xl border border-white/5 bg-white/5 px-4 py-3"
+                >
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="text-white font-medium">{templateParam.displayName}</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Clave: <code>{templateParam.key}</code> · Source: <code>{templateParam.sourceCode}</code>
+                        {templateParam.formatter ? <> · Formatter: <code>{templateParam.formatter}</code></> : null}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={templateParam.isActive
+                          ? 'text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-300'
+                          : 'text-xs px-2 py-1 rounded-full bg-gray-500/20 text-gray-300'}
+                      >
+                        {templateParam.isActive ? 'Activo' : 'Inactivo'}
+                      </span>
+
+                      <Button
+                        size="sm"
+                        variant={templateParam.isActive ? 'outline' : 'primary'}
+                        onClick={() => handleToggleTemplateParam(templateParam)}
+                        disabled={isBusy}
+                      >
+                        {templateParam.isActive ? 'Desactivar' : 'Activar'}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div className="bg-dark-card border border-white/5 rounded-2xl p-6">
