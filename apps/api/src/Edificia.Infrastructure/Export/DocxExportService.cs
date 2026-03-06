@@ -72,15 +72,18 @@ public sealed partial class DocxExportService : IDocumentExportService
                 mainPart.Document = new Document(new Body());
             }
 
-            var body = mainPart.Document.Body ?? mainPart.Document.AppendChild(new Body());
+            _ = mainPart.Document.Body ?? mainPart.Document.AppendChild(new Body());
             EnsureNumberingDefinitions(mainPart);
 
-            var replacements = BuildTemplateTagReplacements(data);
-            var replacedControls = ApplyTemplateTagReplacements(mainPart, replacements);
+            var tagReplacements = BuildTemplateTagReplacements(data);
+            var replacedControls = ApplyTemplateTagReplacements(mainPart, tagReplacements);
 
-            if (replacedControls == 0)
+            var placeholderReplacements = BuildBracePlaceholderReplacements(data, tagReplacements);
+            var replacedPlaceholders = ApplyBracePlaceholderReplacements(mainPart, placeholderReplacements);
+
+            if (replacedControls == 0 && replacedPlaceholders == 0)
             {
-                throw new InvalidOperationException("No se encontraron Content Controls con Tag para aplicar la plantilla .dotx.");
+                _logger?.LogDebug("Template export completed without matching tags or placeholders.");
             }
 
             ForceUpdateFieldsOnOpen(mainPart);
@@ -796,6 +799,17 @@ public sealed partial class DocxExportService : IDocumentExportService
             ["IsLoeRequired"] = data.IsLoeRequired ? "Sí" : "No"
         };
 
+        if (data.PlaceholderReplacements is not null)
+        {
+            foreach (var (key, value) in data.PlaceholderReplacements)
+            {
+                if (!string.IsNullOrWhiteSpace(key))
+                {
+                    replacements[key.Trim()] = value ?? string.Empty;
+                }
+            }
+        }
+
         try
         {
             using var doc = JsonDocument.Parse(data.ContentTreeJson);
@@ -814,6 +828,190 @@ public sealed partial class DocxExportService : IDocumentExportService
         }
 
         return replacements;
+    }
+
+    private static Dictionary<string, string> BuildBracePlaceholderReplacements(
+        ExportDocumentData data,
+        IReadOnlyDictionary<string, string> tagReplacements)
+    {
+        var replacements = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var (key, value) in tagReplacements)
+        {
+            var normalizedKey = NormalizePlaceholderKey(key);
+            if (!string.IsNullOrWhiteSpace(normalizedKey))
+            {
+                replacements[normalizedKey] = value ?? string.Empty;
+            }
+        }
+
+        if (data.PlaceholderReplacements is not null)
+        {
+            foreach (var (key, value) in data.PlaceholderReplacements)
+            {
+                var normalizedKey = NormalizePlaceholderKey(key);
+                if (!string.IsNullOrWhiteSpace(normalizedKey))
+                {
+                    // Global placeholder mappings should win over legacy-derived defaults.
+                    replacements[normalizedKey] = value ?? string.Empty;
+                }
+            }
+        }
+
+        return replacements;
+    }
+
+    private static int ApplyBracePlaceholderReplacements(
+        MainDocumentPart mainPart,
+        IReadOnlyDictionary<string, string> replacements)
+    {
+        if (replacements.Count == 0)
+        {
+            return 0;
+        }
+
+        var replacedCount = 0;
+
+        if (mainPart.Document is not null)
+        {
+            replacedCount += ApplyBracePlaceholderReplacementsToElement(mainPart.Document, replacements);
+        }
+
+        foreach (var headerPart in mainPart.HeaderParts)
+        {
+            if (headerPart.Header is not null)
+            {
+                replacedCount += ApplyBracePlaceholderReplacementsToElement(headerPart.Header, replacements);
+            }
+        }
+
+        foreach (var footerPart in mainPart.FooterParts)
+        {
+            if (footerPart.Footer is not null)
+            {
+                replacedCount += ApplyBracePlaceholderReplacementsToElement(footerPart.Footer, replacements);
+            }
+        }
+
+        return replacedCount;
+    }
+
+    private static int ApplyBracePlaceholderReplacementsToElement(
+        OpenXmlElement root,
+        IReadOnlyDictionary<string, string> replacements)
+    {
+        var replacedCount = 0;
+        var processedTextNodes = new HashSet<Text>();
+
+        foreach (var paragraph in root.Descendants<Paragraph>())
+        {
+            var paragraphTextNodes = paragraph.Descendants<Text>().ToList();
+            if (paragraphTextNodes.Count == 0)
+            {
+                continue;
+            }
+
+            replacedCount += ReplacePlaceholdersAcrossTextNodes(paragraphTextNodes, replacements);
+
+            foreach (var textNode in paragraphTextNodes)
+            {
+                processedTextNodes.Add(textNode);
+            }
+        }
+
+        var remainingTextNodes = root
+            .Descendants<Text>()
+            .Where(textNode => !processedTextNodes.Contains(textNode))
+            .ToList();
+
+        if (remainingTextNodes.Count > 0)
+        {
+            replacedCount += ReplacePlaceholdersAcrossTextNodes(remainingTextNodes, replacements);
+        }
+
+        return replacedCount;
+    }
+
+    private static int ReplacePlaceholdersAcrossTextNodes(
+        IReadOnlyList<Text> textNodes,
+        IReadOnlyDictionary<string, string> replacements)
+    {
+        if (textNodes.Count == 0)
+        {
+            return 0;
+        }
+
+        var originalSegments = textNodes.Select(node => node.Text ?? string.Empty).ToList();
+        var combinedOriginalText = string.Concat(originalSegments);
+
+        if (combinedOriginalText.Length == 0 || !combinedOriginalText.Contains("{{", StringComparison.Ordinal))
+        {
+            return 0;
+        }
+
+        var replacementCount = 0;
+        var combinedUpdatedText = BracePlaceholderRegex().Replace(combinedOriginalText, match =>
+        {
+            var key = NormalizePlaceholderKey(match.Groups["key"].Value);
+            if (!replacements.TryGetValue(key, out var replacementValue))
+            {
+                return match.Value;
+            }
+
+            replacementCount++;
+            return replacementValue ?? string.Empty;
+        });
+
+        if (replacementCount == 0 || string.Equals(combinedOriginalText, combinedUpdatedText, StringComparison.Ordinal))
+        {
+            return 0;
+        }
+
+        var cursor = 0;
+
+        for (var index = 0; index < textNodes.Count; index++)
+        {
+            var textNode = textNodes[index];
+            var isLastNode = index == textNodes.Count - 1;
+            var available = combinedUpdatedText.Length - cursor;
+            var targetLength = originalSegments[index].Length;
+
+            if (available <= 0)
+            {
+                textNode.Text = string.Empty;
+                textNode.Space = SpaceProcessingModeValues.Preserve;
+                continue;
+            }
+
+            var chunkLength = isLastNode
+                ? available
+                : Math.Min(targetLength, available);
+
+            textNode.Text = combinedUpdatedText.Substring(cursor, chunkLength);
+            textNode.Space = SpaceProcessingModeValues.Preserve;
+            cursor += chunkLength;
+        }
+
+        return replacementCount;
+    }
+
+    private static string NormalizePlaceholderKey(string? key)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            return string.Empty;
+        }
+
+        var trimmed = key.Trim();
+
+        if (trimmed.StartsWith("{{", StringComparison.Ordinal)
+            && trimmed.EndsWith("}}", StringComparison.Ordinal)
+            && trimmed.Length >= 4)
+        {
+            trimmed = trimmed[2..^2].Trim();
+        }
+
+        return trimmed.ToUpperInvariant();
     }
 
     private static void CollectSectionTagReplacements(JsonElement node, IDictionary<string, string> replacements)
@@ -1111,6 +1309,9 @@ public sealed partial class DocxExportService : IDocumentExportService
 
     [GeneratedRegex(@"<[^>]+>")]
     private static partial Regex HtmlTagRegex();
+
+    [GeneratedRegex(@"\{\{\s*(?<key>[A-Za-z0-9_.-]+)\s*\}\}")]
+    private static partial Regex BracePlaceholderRegex();
 
     private static void ForceUpdateFieldsOnOpen(MainDocumentPart mainPart)
     {

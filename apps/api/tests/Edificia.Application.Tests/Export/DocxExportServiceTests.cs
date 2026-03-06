@@ -46,6 +46,59 @@ public class DocxExportServiceTests
     bodyText.Should().NotContain("MEMORIA DE PROYECTO");
   }
 
+  [Fact]
+  public async Task ExportToDocxWithTemplateAsync_ShouldReplaceBracePlaceholders_WithoutContentControls()
+  {
+    var service = new DocxExportService();
+    var data = CreateData("<p>Contenido base</p>") with
+    {
+      PlaceholderReplacements = new Dictionary<string, string>
+      {
+        ["PROJECT_TITLE"] = "Proyecto Placeholder",
+        ["PROJECT_ADDRESS"] = "Calle Placeholder 99"
+      }
+    };
+
+    var templateBytes = CreateDotxTemplateWithPlainText(
+      "Título: {{PROJECT_TITLE}}",
+      "Dirección: {{PROJECT_ADDRESS}}");
+
+    var bytes = await service.ExportToDocxWithTemplateAsync(data, templateBytes, CancellationToken.None);
+
+    using var stream = new MemoryStream(bytes);
+    using var doc = WordprocessingDocument.Open(stream, false);
+
+    var bodyText = doc.MainDocumentPart!.Document!.Body!.InnerText;
+    bodyText.Should().Contain("Título: Proyecto Placeholder");
+    bodyText.Should().Contain("Dirección: Calle Placeholder 99");
+    bodyText.Should().NotContain("{{PROJECT_TITLE}}");
+    bodyText.Should().NotContain("{{PROJECT_ADDRESS}}");
+  }
+
+  [Fact]
+  public async Task ExportToDocxWithTemplateAsync_ShouldReplaceBracePlaceholders_WhenTokenIsSplitAcrossRuns()
+  {
+    var service = new DocxExportService();
+    var data = CreateData("<p>Contenido base</p>") with
+    {
+      PlaceholderReplacements = new Dictionary<string, string>
+      {
+        ["PROJECT_TITLE"] = "Proyecto Split"
+      }
+    };
+
+    var templateBytes = CreateDotxTemplateWithSplitPlaceholderRuns();
+
+    var bytes = await service.ExportToDocxWithTemplateAsync(data, templateBytes, CancellationToken.None);
+
+    using var stream = new MemoryStream(bytes);
+    using var doc = WordprocessingDocument.Open(stream, false);
+
+    var bodyText = doc.MainDocumentPart!.Document!.Body!.InnerText;
+    bodyText.Should().Contain("Proyecto Split");
+    bodyText.Should().NotContain("{{PROJECT_TITLE}}");
+  }
+
     [Fact]
     public async Task ExportToDocxAsync_ShouldCreateNativeTable_WhenHtmlContainsTable()
     {
@@ -239,6 +292,48 @@ public class DocxExportServiceTests
           body.AppendChild(sdt);
         }
 
+        mainPart.Document = new Document(body);
+        mainPart.Document.Save();
+      }
+
+      return stream.ToArray();
+    }
+
+    private static byte[] CreateDotxTemplateWithPlainText(params string[] lines)
+    {
+      using var stream = new MemoryStream();
+
+      using (var template = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Template, true))
+      {
+        var mainPart = template.AddMainDocumentPart();
+        var body = new Body();
+
+        foreach (var line in lines)
+        {
+          body.AppendChild(new Paragraph(new Run(new Text(line))));
+        }
+
+        mainPart.Document = new Document(body);
+        mainPart.Document.Save();
+      }
+
+      return stream.ToArray();
+    }
+
+    private static byte[] CreateDotxTemplateWithSplitPlaceholderRuns()
+    {
+      using var stream = new MemoryStream();
+
+      using (var template = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Template, true))
+      {
+        var mainPart = template.AddMainDocumentPart();
+
+        var paragraph = new Paragraph(
+          new Run(new Text("{{PRO")),
+          new Run(new Text("JECT_")),
+          new Run(new Text("TITLE}}")));
+
+        var body = new Body(paragraph);
         mainPart.Document = new Document(body);
         mainPart.Document.Save();
       }

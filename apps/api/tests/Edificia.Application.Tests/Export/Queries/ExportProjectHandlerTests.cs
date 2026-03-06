@@ -13,6 +13,7 @@ public class ExportProjectHandlerTests
 {
     private readonly Mock<IProjectRepository> _repositoryMock;
     private readonly Mock<ITemplateRepository> _templateRepositoryMock;
+    private readonly Mock<ITemplatePlaceholderService> _templatePlaceholderServiceMock;
     private readonly Mock<IFileStorageService> _fileStorageServiceMock;
     private readonly Mock<IDocumentExportService> _exportServiceMock;
     private readonly IMemoryCache _memoryCache;
@@ -22,6 +23,7 @@ public class ExportProjectHandlerTests
     {
         _repositoryMock = new Mock<IProjectRepository>();
         _templateRepositoryMock = new Mock<ITemplateRepository>();
+        _templatePlaceholderServiceMock = new Mock<ITemplatePlaceholderService>();
         _fileStorageServiceMock = new Mock<IFileStorageService>();
         _exportServiceMock = new Mock<IDocumentExportService>();
         _memoryCache = new MemoryCache(new MemoryCacheOptions());
@@ -30,9 +32,14 @@ public class ExportProjectHandlerTests
             .Setup(r => r.GetActiveByTypeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((AppTemplate?)null);
 
+        _templatePlaceholderServiceMock
+            .Setup(s => s.ResolveAsync(It.IsAny<Project>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
+
         _handler = new ExportProjectHandler(
             _repositoryMock.Object,
             _templateRepositoryMock.Object,
+            _templatePlaceholderServiceMock.Object,
             _fileStorageServiceMock.Object,
             _exportServiceMock.Object,
             _memoryCache,

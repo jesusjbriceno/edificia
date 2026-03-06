@@ -20,6 +20,7 @@ public sealed partial class ExportProjectHandler : IRequestHandler<ExportProject
 
     private readonly IProjectRepository _repository;
     private readonly ITemplateRepository _templateRepository;
+    private readonly ITemplatePlaceholderService _templatePlaceholderService;
     private readonly IFileStorageService _fileStorageService;
     private readonly IDocumentExportService _exportService;
     private readonly IMemoryCache _memoryCache;
@@ -28,6 +29,7 @@ public sealed partial class ExportProjectHandler : IRequestHandler<ExportProject
     public ExportProjectHandler(
         IProjectRepository repository,
         ITemplateRepository templateRepository,
+        ITemplatePlaceholderService templatePlaceholderService,
         IFileStorageService fileStorageService,
         IDocumentExportService exportService,
         IMemoryCache memoryCache,
@@ -35,6 +37,7 @@ public sealed partial class ExportProjectHandler : IRequestHandler<ExportProject
     {
         _repository = repository;
         _templateRepository = templateRepository;
+        _templatePlaceholderService = templatePlaceholderService;
         _fileStorageService = fileStorageService;
         _exportService = exportService;
         _memoryCache = memoryCache;
@@ -62,7 +65,7 @@ public sealed partial class ExportProjectHandler : IRequestHandler<ExportProject
                     "El proyecto no tiene contenido para exportar. Añada contenido antes de exportar."));
         }
 
-        var exportData = ExportDocumentData.FromProject(project);
+        var exportData = await BuildExportDataAsync(project, cancellationToken);
         var templateResolution = await ResolveTemplateAsync(request.TemplateId, cancellationToken);
         if (templateResolution.IsFailure)
         {
@@ -241,6 +244,19 @@ public sealed partial class ExportProjectHandler : IRequestHandler<ExportProject
             var fallbackContent = await _exportService.ExportToDocxAsync(exportData, cancellationToken);
             return Result.Success((fallbackContent, "fallback"));
         }
+    }
+
+    private async Task<ExportDocumentData> BuildExportDataAsync(Project project, CancellationToken cancellationToken)
+    {
+        var exportData = ExportDocumentData.FromProject(project);
+
+        var replacements = await _templatePlaceholderService.ResolveAsync(project, cancellationToken);
+        if (replacements.Count == 0)
+        {
+            return exportData;
+        }
+
+        return exportData with { PlaceholderReplacements = replacements };
     }
 
     private static string ResolveOutputFileName(string? requestedOutputFileName, string projectTitle)

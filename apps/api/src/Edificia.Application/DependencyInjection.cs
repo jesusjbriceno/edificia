@@ -1,4 +1,6 @@
 using Edificia.Application.Behaviors;
+using Edificia.Application.Export.Services;
+using Edificia.Application.Interfaces;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -20,6 +22,10 @@ public static class DependencyInjection
 
         // Register all FluentValidation validators from this assembly
         services.AddValidatorsFromAssembly(assembly);
+
+        // Application services
+        services.AddScoped<ITemplateParameterResolver, TemplateParameterResolver>();
+        services.AddScoped<ITemplatePlaceholderService, TemplatePlaceholderService>();
 
         return services;
     }
