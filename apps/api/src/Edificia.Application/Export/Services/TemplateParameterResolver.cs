@@ -52,9 +52,9 @@ public sealed class TemplateParameterResolver : ITemplateParameterResolver
 
         return formatter.ToUpperInvariant() switch
         {
-            "UPPER" => value.ToUpperInvariant(),
-            "LOWER" => value.ToLowerInvariant(),
-            "TRIM" => value.Trim(),
+            TemplateParamFormatters.Upper => value.ToUpperInvariant(),
+            TemplateParamFormatters.Lower => value.ToLowerInvariant(),
+            TemplateParamFormatters.Trim => value.Trim(),
             _ => value
         };
     }

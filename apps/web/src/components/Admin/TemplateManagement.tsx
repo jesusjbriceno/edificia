@@ -266,6 +266,10 @@ export default function TemplateManagement() {
       <div className="bg-dark-card border border-white/5 rounded-2xl p-6">
         <h2 className="text-base font-semibold text-white mb-4">Parámetros globales de plantilla</h2>
 
+        <div className="mb-4 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-gray-200">
+          Catálogo gobernado: los parámetros y sus orígenes se definen por sistema. Desde este panel solo se permite activar o desactivar su uso en exportación.
+        </div>
+
         <div className="mt-3 grid gap-3 md:grid-cols-2">
           <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
             <p className="text-xs uppercase tracking-wider text-gray-400">Parámetros configurados</p>

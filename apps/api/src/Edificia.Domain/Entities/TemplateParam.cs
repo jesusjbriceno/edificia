@@ -1,3 +1,4 @@
+using Edificia.Domain.Constants;
 using Edificia.Domain.Exceptions;
 using Edificia.Domain.Primitives;
 
@@ -29,12 +30,20 @@ public sealed class TemplateParam : AuditableEntity
         EnsureRequired(displayName, nameof(displayName));
         EnsureRequired(sourceCode, nameof(sourceCode));
 
+        var normalizedKey = key.Trim().ToUpperInvariant();
+        var normalizedSourceCode = sourceCode.Trim().ToUpperInvariant();
+        var normalizedFormatter = Normalize(formatter);
+
+        EnsureValidKey(normalizedKey);
+        EnsureSupportedSourceCode(normalizedSourceCode);
+        EnsureSupportedFormatter(normalizedFormatter);
+
         return new TemplateParam(Guid.NewGuid())
         {
-            Key = key.Trim().ToUpperInvariant(),
+            Key = normalizedKey,
             DisplayName = displayName.Trim(),
-            SourceCode = sourceCode.Trim().ToUpperInvariant(),
-            Formatter = Normalize(formatter),
+            SourceCode = normalizedSourceCode,
+            Formatter = normalizedFormatter,
             IsActive = isActive
         };
     }
@@ -49,9 +58,15 @@ public sealed class TemplateParam : AuditableEntity
         EnsureRequired(displayName, nameof(displayName));
         EnsureRequired(sourceCode, nameof(sourceCode));
 
+        var normalizedSourceCode = sourceCode.Trim().ToUpperInvariant();
+        var normalizedFormatter = Normalize(formatter);
+
+        EnsureSupportedSourceCode(normalizedSourceCode);
+        EnsureSupportedFormatter(normalizedFormatter);
+
         DisplayName = displayName.Trim();
-        SourceCode = sourceCode.Trim().ToUpperInvariant();
-        Formatter = Normalize(formatter);
+        SourceCode = normalizedSourceCode;
+        Formatter = normalizedFormatter;
     }
 
     private static void EnsureRequired(string value, string fieldName)
@@ -69,5 +84,45 @@ public sealed class TemplateParam : AuditableEntity
         return string.IsNullOrWhiteSpace(value)
             ? null
             : value.Trim().ToUpperInvariant();
+    }
+
+    private static void EnsureValidKey(string key)
+    {
+        var isValid = key.All(static ch => char.IsAsciiLetterOrDigit(ch) || ch == '_');
+        if (isValid)
+        {
+            return;
+        }
+
+        throw new BusinessRuleException(
+            "TemplateParam.InvalidKeyFormat",
+            "La clave del parámetro solo puede contener letras, números y guion bajo (_)."
+        );
+    }
+
+    private static void EnsureSupportedSourceCode(string sourceCode)
+    {
+        if (TemplateParamSourceCodes.IsSupported(sourceCode))
+        {
+            return;
+        }
+
+        throw new BusinessRuleException(
+            "TemplateParam.UnsupportedSourceCode",
+            $"El source code '{sourceCode}' no está soportado por el catálogo global."
+        );
+    }
+
+    private static void EnsureSupportedFormatter(string? formatter)
+    {
+        if (TemplateParamFormatters.IsSupported(formatter))
+        {
+            return;
+        }
+
+        throw new BusinessRuleException(
+            "TemplateParam.UnsupportedFormatter",
+            $"El formatter '{formatter}' no está soportado."
+        );
     }
 }

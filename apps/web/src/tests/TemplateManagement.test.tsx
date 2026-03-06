@@ -217,4 +217,10 @@ describe('TemplateManagement', () => {
       expect(templateParamService.setActivation).toHaveBeenCalledWith('param-2', true);
     });
   });
+
+  it('muestra mensaje de catálogo gobernado para parámetros globales', async () => {
+    render(<TemplateManagement />);
+
+    expect(await screen.findByText(/catálogo gobernado/i)).toBeInTheDocument();
+  });
 });

@@ -27,4 +27,15 @@ public static class TemplateParamSourceCodes
         ExportDate,
         ExportDateTime
     ];
+
+    private static readonly HashSet<string> AllSet =
+    [
+        ..All
+    ];
+
+    public static bool IsSupported(string sourceCode)
+    {
+        return !string.IsNullOrWhiteSpace(sourceCode)
+               && AllSet.Contains(sourceCode.Trim().ToUpperInvariant());
+    }
 }
