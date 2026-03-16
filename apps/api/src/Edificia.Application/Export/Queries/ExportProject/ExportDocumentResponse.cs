@@ -12,4 +12,5 @@ public sealed record ExportDocumentResponse(
     string ContentType,
     Guid? ResolvedTemplateId = null,
     Guid? AppliedTemplateId = null,
-    string ExportMode = "legacy");
+    string ExportMode = "legacy",
+    string? TemplateError = null);

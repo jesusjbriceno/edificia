@@ -57,38 +57,104 @@ public sealed partial class DocxExportService : IDocumentExportService
         byte[] templateContent,
         CancellationToken cancellationToken = default)
     {
+        _logger?.LogDebug("[Template] Starting ExportToDocxWithTemplateAsync — template size {Bytes} bytes, project '{Title}'",
+            templateContent.Length, data.Title);
+
         using var stream = new MemoryStream();
         stream.Write(templateContent, 0, templateContent.Length);
         stream.Position = 0;
 
         using (var wordDoc = WordprocessingDocument.Open(stream, true))
         {
-            wordDoc.ChangeDocumentType(WordprocessingDocumentType.Document);
+            _logger?.LogDebug("[Template] Opened document — DocumentType={DocumentType}",
+                wordDoc.DocumentType);
+
+            // Solo convertir si la plantilla es un .dotx (Template). Para .docx ya es Document
+            // y ChangeDocumentType lanza InvalidOperationException si el tipo ya coincide.
+            if (wordDoc.DocumentType != WordprocessingDocumentType.Document)
+            {
+                wordDoc.ChangeDocumentType(WordprocessingDocumentType.Document);
+                _logger?.LogDebug("[Template] ChangeDocumentType applied → Document");
+            }
 
             var mainPart = wordDoc.MainDocumentPart ?? wordDoc.AddMainDocumentPart();
+
+            RemoveAttachedTemplateReference(mainPart);
 
             if (mainPart.Document is null)
             {
                 mainPart.Document = new Document(new Body());
+                _logger?.LogDebug("[Template] Document was null — created empty Document+Body");
             }
 
             _ = mainPart.Document.Body ?? mainPart.Document.AppendChild(new Body());
             EnsureNumberingDefinitions(mainPart);
 
             var tagReplacements = BuildTemplateTagReplacements(data);
+            _logger?.LogDebug("[Template] Built {Count} tag replacements (SDT keys)", tagReplacements.Count);
+
             var replacedControls = ApplyTemplateTagReplacements(mainPart, tagReplacements);
+            _logger?.LogDebug("[Template] ApplyTemplateTagReplacements → replacedControls={ReplacedControls}", replacedControls);
 
             var placeholderReplacements = BuildBracePlaceholderReplacements(data, tagReplacements);
-            var replacedPlaceholders = ApplyBracePlaceholderReplacements(mainPart, placeholderReplacements);
+            _logger?.LogDebug("[Template] Built {Count} brace placeholder replacements ({{{{...}}}})", placeholderReplacements.Count);
 
-            if (replacedControls == 0 && replacedPlaceholders == 0)
+            var (bodyCount, hfCount) = ApplyBracePlaceholderReplacements(mainPart, placeholderReplacements);
+            _logger?.LogDebug("[Template] ApplyBracePlaceholderReplacements → body={BodyCount}, headers/footers={HfCount}",
+                bodyCount, hfCount);
+
+            // Criterio híbrido: si no hay SDT content controls, la plantilla no tiene secciones de contenido
+            // mapeadas → regenerar el árbol del proyecto.
+            //
+            // Dos variantes:
+            //   A) bodyCount > 0: la plantilla tiene {{...}} en el body (p.ej. portada con metadatos).
+            //      Los reemplazos ya están aplicados — conservar esa estructura y ANEXAR el contenido.
+            //   B) bodyCount == 0: plantilla sin estructura relevante en el body → regenerar completo.
+            if (replacedControls == 0)
             {
-                _logger?.LogDebug("Template export completed without matching tags or placeholders.");
+                var body = mainPart.Document.Body!;
+                var sectPr = body.GetFirstChild<SectionProperties>()?.CloneNode(true) as SectionProperties;
+
+                if (bodyCount > 0)
+                {
+                    // Variante A: portada/metadatos ya sustituidos — conservar body y anexar proyecto.
+                    _logger?.LogDebug("[Template] Hybrid path (body preserved) — appending project content after template body ({BodyCount} replacements kept)",
+                        bodyCount);
+
+                    body.GetFirstChild<SectionProperties>()?.Remove();
+                    body.AppendChild(new Paragraph(new Run(new Break { Type = BreakValues.Page })));
+                    ProcessContentTree(body, mainPart, data.ContentTreeJson);
+                }
+                else
+                {
+                    // Variante B: plantilla sin estructura de body — regenerar título + contenido.
+                    _logger?.LogDebug("[Template] Hybrid path (full regen) — clearing body and regenerating project content");
+
+                    body.RemoveAllChildren();
+                    AddTitlePage(body, data);
+                    body.AppendChild(new Paragraph(new Run(new Break { Type = BreakValues.Page })));
+                    ProcessContentTree(body, mainPart, data.ContentTreeJson);
+                }
+
+                if (sectPr is not null)
+                    body.AppendChild(sectPr);
+
+                _logger?.LogDebug("[Template] Hybrid path complete — body has {Count} top-level elements",
+                    body.ChildElements.Count);
+            }
+            else
+            {
+                _logger?.LogDebug("[Template] SDT path taken — body kept from template, {Count} controls replaced",
+                    replacedControls);
             }
 
-            ForceUpdateFieldsOnOpen(mainPart);
+            // No forzar updateFields en plantillas: provoca el diálogo de seguridad
+            // "¿Desea actualizar los campos?" cuando el documento contiene campos INCLUDETEXT/INCLUDEPICTURE.
+            // Los campos de TOC y similares se actualizarán la primera vez que el usuario abra el fichero.
 
             mainPart.Document.Save();
+            _logger?.LogDebug("[Template] Document saved to stream — final stream size {Bytes} bytes",
+                stream.Length);
         }
 
         return Task.FromResult(stream.ToArray());
@@ -719,8 +785,21 @@ public sealed partial class DocxExportService : IDocumentExportService
 
     private static void EnsureNumberingDefinitions(MainDocumentPart mainPart)
     {
+        // Track whether the part itself is new BEFORE the ?? operator.
+        // If the part already exists but .Numbering returns null (empty/corrupt XML), the SDK
+        // has internally marked it as "loaded" and setting .Numbering throws ArgumentException.
+        var isNewPart = mainPart.NumberingDefinitionsPart is null;
         var numberingPart = mainPart.NumberingDefinitionsPart ?? mainPart.AddNewPart<NumberingDefinitionsPart>();
-        var numbering = numberingPart.Numbering ?? new Numbering();
+
+        // Si el part ya existía en la plantilla pero devuelve Numbering == null (XML vacío o inusual),
+        // no intentar reasignar el root element — el SDK lanza ArgumentException.
+        if (!isNewPart && numberingPart.Numbering is null)
+        {
+            return;
+        }
+
+        var existingNumbering = numberingPart.Numbering;
+        var numbering = existingNumbering ?? new Numbering();
 
         if (!numbering.Elements<AbstractNum>().Any(n => n.AbstractNumberId?.Value == 1))
         {
@@ -742,7 +821,11 @@ public sealed partial class DocxExportService : IDocumentExportService
             numbering.AppendChild(bulletInstance);
         }
 
-        numberingPart.Numbering = numbering;
+        if (existingNumbering is null)
+        {
+            numberingPart.Numbering = numbering;
+        }
+
         numberingPart.Numbering.Save();
     }
 
@@ -861,27 +944,34 @@ public sealed partial class DocxExportService : IDocumentExportService
         return replacements;
     }
 
-    private static int ApplyBracePlaceholderReplacements(
+    /// <summary>
+    /// Aplica reemplazos de placeholders con llaves dobles en todo el documento.
+    /// Devuelve por separado el número de reemplazos en el body principal y en
+    /// cabeceras/pies de página, ya que solo el body-count determina si el contenido
+    /// del proyecto fue inyectado directamente (y por tanto si el path híbrido debe ejecutarse).
+    /// </summary>
+    private static (int BodyCount, int HeaderFooterCount) ApplyBracePlaceholderReplacements(
         MainDocumentPart mainPart,
         IReadOnlyDictionary<string, string> replacements)
     {
         if (replacements.Count == 0)
         {
-            return 0;
+            return (0, 0);
         }
 
-        var replacedCount = 0;
+        var bodyCount = 0;
+        var headerFooterCount = 0;
 
         if (mainPart.Document is not null)
         {
-            replacedCount += ApplyBracePlaceholderReplacementsToElement(mainPart.Document, replacements);
+            bodyCount = ApplyBracePlaceholderReplacementsToElement(mainPart.Document, replacements);
         }
 
         foreach (var headerPart in mainPart.HeaderParts)
         {
             if (headerPart.Header is not null)
             {
-                replacedCount += ApplyBracePlaceholderReplacementsToElement(headerPart.Header, replacements);
+                headerFooterCount += ApplyBracePlaceholderReplacementsToElement(headerPart.Header, replacements);
             }
         }
 
@@ -889,11 +979,11 @@ public sealed partial class DocxExportService : IDocumentExportService
         {
             if (footerPart.Footer is not null)
             {
-                replacedCount += ApplyBracePlaceholderReplacementsToElement(footerPart.Footer, replacements);
+                headerFooterCount += ApplyBracePlaceholderReplacementsToElement(footerPart.Footer, replacements);
             }
         }
 
-        return replacedCount;
+        return (bodyCount, headerFooterCount);
     }
 
     private static int ApplyBracePlaceholderReplacementsToElement(
@@ -1312,6 +1402,25 @@ public sealed partial class DocxExportService : IDocumentExportService
 
     [GeneratedRegex(@"\{\{\s*(?<key>[A-Za-z0-9_.-]+)\s*\}\}")]
     private static partial Regex BracePlaceholderRegex();
+
+    private static void RemoveAttachedTemplateReference(MainDocumentPart mainPart)
+    {
+        var settingsPart = mainPart.DocumentSettingsPart;
+        if (settingsPart?.Settings is null) return;
+
+        var attachedTemplate = settingsPart.Settings.GetFirstChild<AttachedTemplate>();
+        if (attachedTemplate is null) return;
+
+        var rId = attachedTemplate.Id?.Value;
+        if (!string.IsNullOrWhiteSpace(rId))
+        {
+            try { settingsPart.DeleteReferenceRelationship(rId); }
+            catch { /* la relación puede no existir si el .dotx fue creado sin adjunto externo */ }
+        }
+
+        attachedTemplate.Remove();
+        settingsPart.Settings.Save();
+    }
 
     private static void ForceUpdateFieldsOnOpen(MainDocumentPart mainPart)
     {

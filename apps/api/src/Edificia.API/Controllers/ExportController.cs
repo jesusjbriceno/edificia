@@ -67,6 +67,11 @@ public sealed class ExportController : BaseApiController
 
         Response.Headers["X-Edificia-Export-Mode"] = response.ExportMode;
 
+        if (!string.IsNullOrEmpty(response.TemplateError))
+        {
+            Response.Headers["X-Edificia-Template-Error"] = response.TemplateError;
+        }
+
         return File(response.FileContent, response.ContentType, response.FileName);
     }
 }

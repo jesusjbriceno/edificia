@@ -24,7 +24,14 @@ public static class CorsConfiguration
                         .WithOrigins(allowedOrigins)
                         .AllowAnyHeader()
                         .AllowAnyMethod()
-                        .AllowCredentials();
+                        .AllowCredentials()
+                        .WithExposedHeaders(
+                            "Content-Disposition",
+                            "X-Edificia-Export-Mode",
+                            "X-Edificia-Resolved-Template-Id",
+                            "X-Edificia-Applied-Template-Id",
+                            "X-Edificia-Requested-Template-Id",
+                            "X-Edificia-Template-Error");
                 }
                 else
                 {

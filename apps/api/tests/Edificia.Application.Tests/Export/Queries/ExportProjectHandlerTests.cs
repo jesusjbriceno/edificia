@@ -228,17 +228,14 @@ public class ExportProjectHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ShouldFallbackToDefaultTemplate_WhenPreferredTemplateIsNotAvailable()
+    public async Task Handle_ShouldReturnValidationFailure_WhenPreferredTemplateIsNotAvailable()
     {
         var project = CreateProjectWithContent();
         var preferredTemplateId = Guid.NewGuid();
 
         var preferredTemplate = CreateTemplate("templates/memoria/v5.dotx", "MemoriaTecnica", isAvailable: false);
         SetEntityId(preferredTemplate, preferredTemplateId);
-        var defaultTemplate = CreateTemplate("templates/memoria/default.dotx", "MemoriaTecnica", isAvailable: true);
-        defaultTemplate.MarkAsDefault();
 
-        var templateBytes = new byte[] { 3, 2, 1 };
         var query = new ExportProjectQuery(project.Id, preferredTemplateId);
 
         SetupProjectFound(project);
@@ -247,25 +244,10 @@ public class ExportProjectHandlerTests
             .Setup(r => r.GetByIdAsync(preferredTemplateId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(preferredTemplate);
 
-        _templateRepositoryMock
-            .Setup(r => r.GetDefaultByTypeAsync("MemoriaTecnica", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(defaultTemplate);
-
-        _fileStorageServiceMock
-            .Setup(s => s.GetFileAsync(defaultTemplate.StoragePath, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(templateBytes);
-
-        _exportServiceMock
-            .Setup(s => s.ExportToDocxWithTemplateAsync(
-                It.IsAny<ExportDocumentData>(),
-                templateBytes,
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new byte[] { 0x50, 0x4B });
-
         var result = await _handler.Handle(query, CancellationToken.None);
 
-        result.IsSuccess.Should().BeTrue();
-        result.Value.ResolvedTemplateId.Should().Be(defaultTemplate.Id);
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("Validation.Export.TemplateNotAvailable");
     }
 
     [Fact]
@@ -422,6 +404,87 @@ public class ExportProjectHandlerTests
 
         result.IsSuccess.Should().BeTrue();
         result.Value.ExportMode.Should().Be("fallback");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldNotReuseCachedTemplateBytes_AcrossDifferentTemplateIds()
+    {
+        var project = CreateProjectWithContent();
+        var firstTemplate = CreateTemplate("templates/memoria/a.dotx", "MemoriaTecnica", isAvailable: true);
+        var secondTemplate = CreateTemplate("templates/memoria/b.dotx", "MemoriaTecnica", isAvailable: true);
+
+        var firstTemplateId = Guid.NewGuid();
+        var secondTemplateId = Guid.NewGuid();
+        SetEntityId(firstTemplate, firstTemplateId);
+        SetEntityId(secondTemplate, secondTemplateId);
+
+        var firstTemplateBytes = new byte[] { 0x01, 0x02, 0x03 };
+        var secondTemplateBytes = new byte[] { 0x0A, 0x0B, 0x0C };
+
+        SetupProjectFound(project);
+
+        _templateRepositoryMock
+            .Setup(r => r.GetByIdAsync(firstTemplateId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(firstTemplate);
+
+        _templateRepositoryMock
+            .Setup(r => r.GetByIdAsync(secondTemplateId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(secondTemplate);
+
+        _fileStorageServiceMock
+            .Setup(s => s.GetFileAsync(firstTemplate.StoragePath, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(firstTemplateBytes);
+
+        _fileStorageServiceMock
+            .Setup(s => s.GetFileAsync(secondTemplate.StoragePath, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(secondTemplateBytes);
+
+        _exportServiceMock
+            .Setup(s => s.ExportToDocxWithTemplateAsync(
+                It.IsAny<ExportDocumentData>(),
+                It.Is<byte[]>(bytes => bytes.SequenceEqual(firstTemplateBytes)),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new byte[] { 0x50, 0x4B });
+
+        _exportServiceMock
+            .Setup(s => s.ExportToDocxWithTemplateAsync(
+                It.IsAny<ExportDocumentData>(),
+                It.Is<byte[]>(bytes => bytes.SequenceEqual(secondTemplateBytes)),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new byte[] { 0x50, 0x4B });
+
+        var firstResult = await _handler.Handle(
+            new ExportProjectQuery(project.Id, firstTemplateId),
+            CancellationToken.None);
+
+        var secondResult = await _handler.Handle(
+            new ExportProjectQuery(project.Id, secondTemplateId),
+            CancellationToken.None);
+
+        firstResult.IsSuccess.Should().BeTrue();
+        secondResult.IsSuccess.Should().BeTrue();
+
+        _fileStorageServiceMock.Verify(
+            s => s.GetFileAsync(firstTemplate.StoragePath, It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        _fileStorageServiceMock.Verify(
+            s => s.GetFileAsync(secondTemplate.StoragePath, It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        _exportServiceMock.Verify(
+            s => s.ExportToDocxWithTemplateAsync(
+                It.IsAny<ExportDocumentData>(),
+                It.Is<byte[]>(bytes => bytes.SequenceEqual(firstTemplateBytes)),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        _exportServiceMock.Verify(
+            s => s.ExportToDocxWithTemplateAsync(
+                It.IsAny<ExportDocumentData>(),
+                It.Is<byte[]>(bytes => bytes.SequenceEqual(secondTemplateBytes)),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]

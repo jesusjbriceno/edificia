@@ -87,3 +87,5 @@ scaffold.sh
 
 # IDEAS & NOTAS
 bugs/
+.info/
+.local_data/

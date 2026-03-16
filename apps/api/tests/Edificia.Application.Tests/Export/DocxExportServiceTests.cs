@@ -47,8 +47,11 @@ public class DocxExportServiceTests
   }
 
   [Fact]
-  public async Task ExportToDocxWithTemplateAsync_ShouldReplaceBracePlaceholders_WithoutContentControls()
+  public async Task ExportToDocxWithTemplateAsync_ShouldRegenerateBody_WhenTemplateHasNoContentControls()
   {
+    // Templates without SDT content controls always get their body cleared and regenerated
+    // with the project title page + content tree (hybrid path). Brace placeholders in the
+    // body are irrelevant — the body is replaced entirely.
     var service = new DocxExportService();
     var data = CreateData("<p>Contenido base</p>") with
     {
@@ -69,15 +72,19 @@ public class DocxExportServiceTests
     using var doc = WordprocessingDocument.Open(stream, false);
 
     var bodyText = doc.MainDocumentPart!.Document!.Body!.InnerText;
-    bodyText.Should().Contain("Título: Proyecto Placeholder");
-    bodyText.Should().Contain("Dirección: Calle Placeholder 99");
+    // Body is regenerated with project data — template placeholder lines are gone
+    bodyText.Should().Contain("Proyecto de prueba");
+    bodyText.Should().Contain("Contenido base");
     bodyText.Should().NotContain("{{PROJECT_TITLE}}");
     bodyText.Should().NotContain("{{PROJECT_ADDRESS}}");
+    bodyText.Should().NotContain("Título: Proyecto Placeholder");
   }
 
   [Fact]
-  public async Task ExportToDocxWithTemplateAsync_ShouldReplaceBracePlaceholders_WhenTokenIsSplitAcrossRuns()
+  public async Task ExportToDocxWithTemplateAsync_ShouldReplaceSplitRunPlaceholders_InHeader()
   {
+    // Split-run placeholder replacement is important for headers/footers where Word may
+    // split tokens like {{PROJECT_TITLE}} across multiple runs.
     var service = new DocxExportService();
     var data = CreateData("<p>Contenido base</p>") with
     {
@@ -87,16 +94,17 @@ public class DocxExportServiceTests
       }
     };
 
-    var templateBytes = CreateDotxTemplateWithSplitPlaceholderRuns();
+    var templateBytes = CreateDotxTemplateWithSplitPlaceholderInHeader();
 
     var bytes = await service.ExportToDocxWithTemplateAsync(data, templateBytes, CancellationToken.None);
 
     using var stream = new MemoryStream(bytes);
     using var doc = WordprocessingDocument.Open(stream, false);
 
-    var bodyText = doc.MainDocumentPart!.Document!.Body!.InnerText;
-    bodyText.Should().Contain("Proyecto Split");
-    bodyText.Should().NotContain("{{PROJECT_TITLE}}");
+    var headerText = doc.MainDocumentPart!.HeaderParts
+      .FirstOrDefault()?.Header?.InnerText ?? string.Empty;
+    headerText.Should().Contain("Proyecto Split");
+    headerText.Should().NotContain("{{PROJECT_TITLE}}");
   }
 
     [Fact]
@@ -320,7 +328,7 @@ public class DocxExportServiceTests
       return stream.ToArray();
     }
 
-    private static byte[] CreateDotxTemplateWithSplitPlaceholderRuns()
+    private static byte[] CreateDotxTemplateWithSplitPlaceholderInHeader()
     {
       using var stream = new MemoryStream();
 
@@ -328,12 +336,23 @@ public class DocxExportServiceTests
       {
         var mainPart = template.AddMainDocumentPart();
 
-        var paragraph = new Paragraph(
+        // Header with {{PROJECT_TITLE}} split across three runs (as Word often serializes tokens)
+        var headerPart = mainPart.AddNewPart<HeaderPart>();
+        var headerParagraph = new Paragraph(
           new Run(new Text("{{PRO")),
           new Run(new Text("JECT_")),
           new Run(new Text("TITLE}}")));
+        headerPart.Header = new Header(headerParagraph);
+        headerPart.Header.Save();
 
-        var body = new Body(paragraph);
+        // Link header to section so it's associated with the document
+        var body = new Body(
+          new SectionProperties(
+            new HeaderReference
+            {
+              Type = HeaderFooterValues.Default,
+              Id = mainPart.GetIdOfPart(headerPart)
+            }));
         mainPart.Document = new Document(body);
         mainPart.Document.Save();
       }

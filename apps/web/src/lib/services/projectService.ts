@@ -100,7 +100,7 @@ export const projectService = {
   async exportDocx(
     projectId: string,
     options?: ExportDocxRequest,
-  ): Promise<{ blob: Blob; fileName: string }> {
+  ): Promise<{ blob: Blob; fileName: string; exportMode: string }> {
     const params = {
       templateId: options?.templateId,
       outputFileName: options?.outputFileName,
@@ -121,6 +121,8 @@ export const projectService = {
       }
     }
 
-    return { blob: response.data as Blob, fileName };
+    const exportMode = (response.headers['x-edificia-export-mode'] as string | undefined) ?? 'legacy';
+
+    return { blob: response.data as Blob, fileName, exportMode };
   },
 } as const;
