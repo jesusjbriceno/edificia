@@ -47,11 +47,10 @@ public class DocxExportServiceTests
   }
 
   [Fact]
-  public async Task ExportToDocxWithTemplateAsync_ShouldRegenerateBody_WhenTemplateHasNoContentControls()
+  public async Task ExportToDocxWithTemplateAsync_ShouldPreserveBodyAndAppendContent_WhenBodyHasBracePlaceholders()
   {
-    // Templates without SDT content controls always get their body cleared and regenerated
-    // with the project title page + content tree (hybrid path). Brace placeholders in the
-    // body are irrelevant — the body is replaced entirely.
+    // Hybrid path variant A: template body has {{...}} placeholders (e.g. a cover page).
+    // The replacements are applied and the body is preserved; project content is appended after.
     var service = new DocxExportService();
     var data = CreateData("<p>Contenido base</p>") with
     {
@@ -72,12 +71,77 @@ public class DocxExportServiceTests
     using var doc = WordprocessingDocument.Open(stream, false);
 
     var bodyText = doc.MainDocumentPart!.Document!.Body!.InnerText;
-    // Body is regenerated with project data — template placeholder lines are gone
-    bodyText.Should().Contain("Proyecto de prueba");
+    // Template body is preserved with replacements applied
+    bodyText.Should().Contain("Título: Proyecto Placeholder");
+    bodyText.Should().Contain("Dirección: Calle Placeholder 99");
+    // Project content is appended after the cover page
     bodyText.Should().Contain("Contenido base");
+    // Tokens are consumed
     bodyText.Should().NotContain("{{PROJECT_TITLE}}");
     bodyText.Should().NotContain("{{PROJECT_ADDRESS}}");
-    bodyText.Should().NotContain("Título: Proyecto Placeholder");
+    // Title page is NOT regenerated (body kept from template)
+    bodyText.Should().NotContain("MEMORIA DE PROYECTO");
+  }
+
+  [Fact]
+  public async Task ExportToDocxWithTemplateAsync_ShouldRegenerateBody_WhenNoSDTAndNoBodyPlaceholders()
+  {
+    // Hybrid path variant B: template has no SDT controls and no body brace placeholders.
+    // The body is cleared and regenerated with the legacy title page + content tree.
+    var service = new DocxExportService();
+    var data = CreateData("<p>Contenido base</p>");
+
+    var templateBytes = CreateDotxTemplateWithPlainText("Texto genérico sin placeholders");
+
+    var bytes = await service.ExportToDocxWithTemplateAsync(data, templateBytes, CancellationToken.None);
+
+    using var stream = new MemoryStream(bytes);
+    using var doc = WordprocessingDocument.Open(stream, false);
+
+    var bodyText = doc.MainDocumentPart!.Document!.Body!.InnerText;
+    // Title page regenerated
+    bodyText.Should().Contain("MEMORIA DE PROYECTO");
+    bodyText.Should().Contain("Proyecto de prueba");
+    // Content tree appended
+    bodyText.Should().Contain("Contenido base");
+    // Original template text is gone (body was cleared)
+    bodyText.Should().NotContain("Texto genérico sin placeholders");
+  }
+
+  [Fact]
+  public async Task ExportToDocxWithTemplateAsync_ShouldEnsureHeadingStyles_WhenTemplateHasNone()
+  {
+    // EnsureHeadingStyles must inject Heading1/2/3 into the template's StyleDefinitionsPart
+    // if they are not already defined, so ProcessContentTree produces styled headings.
+    var service = new DocxExportService();
+    var data = CreateDataWithHierarchy();
+
+    var templateBytes = CreateDotxTemplateWithPlainText("Portada");
+
+    var bytes = await service.ExportToDocxWithTemplateAsync(data, templateBytes, CancellationToken.None);
+
+    using var stream = new MemoryStream(bytes);
+    using var doc = WordprocessingDocument.Open(stream, false);
+
+    var stylesPart = doc.MainDocumentPart!.StyleDefinitionsPart;
+    stylesPart.Should().NotBeNull();
+
+    var styleIds = stylesPart!.Styles!
+      .Elements<Style>()
+      .Select(s => s.StyleId?.Value)
+      .ToList();
+
+    styleIds.Should().Contain("Heading1");
+    styleIds.Should().Contain("Heading2");
+    styleIds.Should().Contain("Heading3");
+
+    // Heading paragraphs are generated from the content tree
+    var headingParagraphs = doc.MainDocumentPart!.Document!.Body!
+      .Descendants<Paragraph>()
+      .Where(p => p.ParagraphProperties?.ParagraphStyleId?.Val?.Value?.StartsWith("Heading") == true)
+      .ToList();
+
+    headingParagraphs.Should().NotBeEmpty();
   }
 
   [Fact]
@@ -276,6 +340,36 @@ public class DocxExportServiceTests
             Title: "Proyecto de prueba",
             InterventionType: "Reforma",
             IsLoeRequired: false,
+            ContentTreeJson: contentTreeJson,
+            Address: "Calle Test 123");
+    }
+
+    private static ExportDocumentData CreateDataWithHierarchy()
+    {
+        const string contentTreeJson = """
+        {
+          "chapters": [
+            {
+              "id": "ch-01",
+              "title": "Capítulo Uno",
+              "content": "<p>Texto del capítulo</p>",
+              "sections": [
+                {
+                  "id": "sec-01-01",
+                  "title": "Sección 1.1",
+                  "content": "<p>Texto de sección</p>",
+                  "sections": []
+                }
+              ]
+            }
+          ]
+        }
+        """;
+
+        return new ExportDocumentData(
+            Title: "Proyecto de prueba",
+            InterventionType: "Obra Nueva",
+            IsLoeRequired: true,
             ContentTreeJson: contentTreeJson,
             Address: "Calle Test 123");
     }

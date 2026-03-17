@@ -89,6 +89,7 @@ public sealed partial class DocxExportService : IDocumentExportService
 
             _ = mainPart.Document.Body ?? mainPart.Document.AppendChild(new Body());
             EnsureNumberingDefinitions(mainPart);
+            EnsureHeadingStyles(mainPart);
 
             var tagReplacements = BuildTemplateTagReplacements(data);
             _logger?.LogDebug("[Template] Built {Count} tag replacements (SDT keys)", tagReplacements.Count);
@@ -165,14 +166,58 @@ public sealed partial class DocxExportService : IDocumentExportService
         var stylesPart = mainPart.AddNewPart<StyleDefinitionsPart>();
         var styles = new Styles();
 
-        // Heading 1 style
-        styles.AppendChild(CreateHeadingStyle("Heading1", "Título 1", "28", "1F3864"));
-        // Heading 2 style
-        styles.AppendChild(CreateHeadingStyle("Heading2", "Título 2", "24", "2E75B6"));
-        // Heading 3 style
-        styles.AppendChild(CreateHeadingStyle("Heading3", "Título 3", "22", "404040"));
+        // Use OOXML built-in names (lowercase, with space) so Word derives the localized
+        // display name correctly ("Título 1" in Spanish, "Heading 1" in English).
+        styles.AppendChild(CreateHeadingStyle("Heading1", "heading 1", "28", "1F3864"));
+        styles.AppendChild(CreateHeadingStyle("Heading2", "heading 2", "24", "2E75B6"));
+        styles.AppendChild(CreateHeadingStyle("Heading3", "heading 3", "22", "404040"));
 
         stylesPart.Styles = styles;
+    }
+
+    /// <summary>
+    /// Ensures Heading1/Heading2/Heading3 styles exist in the template's StyleDefinitionsPart.
+    /// Only adds a style if it is not already defined — preserving the template's own design.
+    /// Called exclusively in the template export path (AddStyleDefinitions covers the legacy path).
+    /// </summary>
+    private static void EnsureHeadingStyles(MainDocumentPart mainPart)
+    {
+        var stylesPart = mainPart.StyleDefinitionsPart;
+        if (stylesPart is null)
+        {
+            // Template had no style part at all — create one with our defaults.
+            var newPart = mainPart.AddNewPart<StyleDefinitionsPart>();
+            var styles = new Styles();
+            styles.AppendChild(CreateHeadingStyle("Heading1", "heading 1", "28", "1F3864"));
+            styles.AppendChild(CreateHeadingStyle("Heading2", "heading 2", "24", "2E75B6"));
+            styles.AppendChild(CreateHeadingStyle("Heading3", "heading 3", "22", "404040"));
+            newPart.Styles = styles;
+            return;
+        }
+
+        var existingStyles = stylesPart.Styles;
+        if (existingStyles is null)
+            return;
+
+        // Add only the missing heading styles so the template's own definitions are preserved.
+        var headingsToEnsure = new[]
+        {
+            ("Heading1", "heading 1", "28", "1F3864"),
+            ("Heading2", "heading 2", "24", "2E75B6"),
+            ("Heading3", "heading 3", "22", "404040"),
+        };
+
+        foreach (var (styleId, styleName, fontSize, color) in headingsToEnsure)
+        {
+            var exists = existingStyles
+                .Elements<Style>()
+                .Any(s => string.Equals(s.StyleId?.Value, styleId, StringComparison.OrdinalIgnoreCase));
+
+            if (!exists)
+            {
+                existingStyles.AppendChild(CreateHeadingStyle(styleId, styleName, fontSize, color));
+            }
+        }
     }
 
     private static Style CreateHeadingStyle(string styleId, string styleName, string fontSize, string color)
