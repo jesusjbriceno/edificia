@@ -89,3 +89,4 @@ scaffold.sh
 bugs/
 .info/
 .local_data/
+local_data/

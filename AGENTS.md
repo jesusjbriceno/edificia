@@ -124,19 +124,24 @@
 * La memoria del proyecto NO es una tabla. Es un árbol JSON guardado en Projects.ContentTreeJson.  
 * Usar PATCH endpoints para actualizaciones parciales y eficientes.
 
-### **6.4. Flujo de Plantillas de Exportación (`.dotx`)**
+### **6.4. Flujo de Plantillas de Exportación (`.docx` / `.dotx`)**
 
 * **Gestión Admin:** Endpoints en `/api/templates` protegidos con `RequireAdmin`.
-* **Formato soportado:** Solo `.dotx` (máx. 10 MB) para estilos corporativos de memoria.
-* **Tipo por defecto de exportación:** `MemoriaTecnica`.
-* **Validación de subida (obligatoria):** El backend debe validar OpenXML legible + `Content Controls` con `Tag`. Para `MemoriaTecnica` exigir como mínimo `ProjectTitle`, `MD.01`, `MC.01`.
-* **Resiliencia:** Si la plantilla activa no puede cargarse o procesarse, el sistema debe hacer fallback al exportador DOCX estándar sin romper la descarga.
-* **Frontend Admin:** La gestión de plantillas debe vivir en `/admin/templates`, reutilizar servicios tipados en `src/lib/services` y mostrar reglas de subida + errores guiados de validación al usuario.
-* **Evolución planificada (feature `.dotx`):**
-  * Separar estados de plantilla en `Disponible` y `Predeterminada` (una predeterminada por tipo).
-  * Incorporar selector de plantilla en el flujo de exportación con nombre de archivo editable.
-  * Migrar de tipo fijo a catálogo dinámico de tipos de plantilla gestionable por Admin/SuperAdmin.
-  * Mantener fallback al exportador estándar en toda la transición.
+* **Formatos soportados:** `.docx` y `.dotx` (máx. 10 MB). Se valida OpenXML legible + cuerpo principal.
+* **Tipo por defecto de exportación:** `MemoriaTecnica` (hardcoded; evolución a catálogo prevista).
+* **Estados de plantilla:** `IsAvailable` (seleccionable) + `IsDefault` (predeterminada por tipo; máx. 1 por tipo).
+* **Resolucion de placeholders:** `TemplatePlaceholderService` resuelve metadatos del proyecto (`PROJECT_TITLE`, `PROJECT_ADDRESS`, `EXPORT_DATE`, etc.) antes de la exportación. Los valores se inyectan en `{{CLAVE}}` en el body/cabeceras/pies y en Content Controls SDT.
+* **Path de exportación híbrido (`ExportToDocxWithTemplateAsync`):**
+  1. Si la plantilla tiene SDT Content Controls → sustituir y conservar body.
+  2. Si tiene `{{...}}` en el body (portada, metadatos) → sustituir y **anexar** árbol de contenido al final.
+  3. Sin SDT ni `{{...}}` en body → usar plantilla como fuente de estilos y regenerar body completo.
+  4. Cabeceras/pies: sustituir `{{...}}` siempre, independientemente del path elegido.
+* **`EnsureHeadingStyles`:** Inyecta estilos `Heading1/2/3` en el `StyleDefinitionsPart` de la plantilla si no están definidos, garantizando jerarquía visual correcta en el output.
+* **Resiliencia:** Fallback transparente al exportador DOCX estándar si la plantilla falla; se reporta vía header `X-Edificia-Export-Mode` (`template` / `fallback` / `legacy`) y `X-Edificia-Template-Error`.
+* **Frontend Admin:** Gestión en `/admin/templates`. Selector de plantilla y nombre de archivo editable en `ExportDocxModal`.
+* **Evolución pendiente:**
+  * Catálogo dinámico de tipos de plantilla (de hardcoded a tabla `template_types`).
+  * Tests de integración de resolución de placeholders end-to-end.
 
 ## **7. Git Flow y Pull Requests (Obligatorio)**
 
