@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # EdificIA — Claude Code Agent Guide
 
 > **Rol:** Arquitecto de Software Senior especializado en .NET 10 Clean Architecture + Astro/React.
@@ -12,6 +16,7 @@
 - **Lógica core:** Discrimina entre Obra Nueva y Reforma (exención LOE Art. 2.2) adaptando dinámicamente el árbol de contenidos normativos.
 - **Repositorio:** https://github.com/jesusjbriceno/edificia
 - **Local Web:** http://localhost:4321 | **Local API:** http://localhost:5000
+- **Producción Web:** https://edificia.jesusjbriceno.dev | **Producción API:** https://api-edificia.jesusjbriceno.dev
 
 ---
 
@@ -350,6 +355,7 @@ docker-compose up -d          # PostgreSQL 16 + Redis + MailHog
 cd apps/api
 dotnet build                  # Compilar toda la solución
 dotnet test                   # Ejecutar tests xUnit
+dotnet test --filter "FullyQualifiedName~<TestClass>"  # Ejecutar un test específico
 dotnet run --project src/Edificia.API  # API en :5000
 
 # Migraciones EF Core
@@ -360,7 +366,8 @@ dotnet ef database update --project src/Edificia.Infrastructure --startup-projec
 cd apps/web
 npm run dev                   # Dev server :4321
 npm run build                 # Build de producción
-npm run test                  # Vitest
+npm run test                  # Vitest (todos)
+npx vitest run src/tests/<archivo>.test.ts  # Ejecutar un test específico
 npm run storybook             # Storybook :6006
 ```
 
@@ -394,3 +401,5 @@ npm run storybook             # Storybook :6006
 | `docs/features/dotx_support/ROADMAP_IMPLEMENTACION_DOTX_N8N.md` | Roadmap feature activa |
 | `docs/features/dotx_support/INFORME_CAMBIOS_EVOLUCION_DOTX_2026-02.md` | Estado actual + evolución planificada |
 | `docs/development/openapi.yaml` | Especificación OpenAPI |
+
+> **Tip:** Para consultar documentación actualizada de frameworks (.NET, Astro, React, TipTap, etc.), usa el servidor MCP **Context7** si está disponible en el entorno. Proporciona documentación en tiempo real de las bibliotecas del proyecto.
