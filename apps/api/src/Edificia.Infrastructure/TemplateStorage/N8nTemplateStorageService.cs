@@ -21,15 +21,14 @@ public sealed class N8nTemplateStorageService : IFileStorageService
         _settings = settings.Value;
         _logger = logger;
 
-        if (string.IsNullOrWhiteSpace(_settings.N8nWebhookUrl))
-        {
-            throw new InvalidOperationException("TemplateStorage:N8nWebhookUrl es obligatorio para proveedor n8n.");
-        }
+        if (string.IsNullOrWhiteSpace(_settings.N8nStoreWebhookUrl))
+            throw new InvalidOperationException("TemplateStorage:N8nStoreWebhookUrl es obligatorio para proveedor n8n.");
+
+        if (string.IsNullOrWhiteSpace(_settings.N8nRetrieveWebhookUrl))
+            throw new InvalidOperationException("TemplateStorage:N8nRetrieveWebhookUrl es obligatorio para proveedor n8n.");
 
         if (string.IsNullOrWhiteSpace(_settings.N8nApiSecret))
-        {
             throw new InvalidOperationException("TemplateStorage:N8nApiSecret es obligatorio para proveedor n8n.");
-        }
     }
 
     public async Task<string> SaveFileAsync(
@@ -64,7 +63,7 @@ public sealed class N8nTemplateStorageService : IFileStorageService
                 contentBase64 = Convert.ToBase64String(bytes)
             });
 
-        var response = await SendAsync(payload, "upload", cancellationToken);
+        var response = await SendAsync(payload, _settings.N8nStoreWebhookUrl, "upload", cancellationToken);
 
         if (!response.Success || string.IsNullOrWhiteSpace(response.Data?.StorageKey))
         {
@@ -89,7 +88,7 @@ public sealed class N8nTemplateStorageService : IFileStorageService
                 storageKey = relativePath
             });
 
-        var response = await SendAsync(payload, "get", cancellationToken);
+        var response = await SendAsync(payload, _settings.N8nRetrieveWebhookUrl, "get", cancellationToken);
 
         if (!response.Success || string.IsNullOrWhiteSpace(response.Data?.ContentBase64))
         {
@@ -115,7 +114,7 @@ public sealed class N8nTemplateStorageService : IFileStorageService
                 hardDelete = false
             });
 
-        var response = await SendAsync(payload, "delete", cancellationToken);
+        var response = await SendAsync(payload, _settings.N8nStoreWebhookUrl, "delete", cancellationToken);
 
         if (!response.Success)
         {
@@ -131,10 +130,11 @@ public sealed class N8nTemplateStorageService : IFileStorageService
 
     private async Task<N8nTemplateStorageResponse> SendAsync(
         N8nTemplateStorageEnvelope payload,
+        string webhookUrl,
         string operationName,
         CancellationToken cancellationToken)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Post, _settings.N8nWebhookUrl)
+        using var request = new HttpRequestMessage(HttpMethod.Post, webhookUrl)
         {
             Content = JsonContent.Create(payload)
         };
@@ -149,7 +149,8 @@ public sealed class N8nTemplateStorageService : IFileStorageService
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogError(
-                "n8n template storage request failed. Status={StatusCode}, Body={Body}",
+                "n8n template storage request failed. Operation={Operation}, Status={StatusCode}, Body={Body}",
+                operationName,
                 (int)response.StatusCode,
                 body);
 
