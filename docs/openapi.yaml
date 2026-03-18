@@ -42,6 +42,8 @@ tags:
     description: Generación de texto con IA
   - name: Export
     description: Exportación de proyectos a DOCX
+  - name: Templates
+    description: Gestión de plantillas .dotx para exportación (requiere rol Admin)
   - name: Notifications
     description: Sistema de notificaciones del usuario autenticado
   - name: Health
@@ -541,6 +543,107 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  # ─── TEMPLATES ──────────────────────────────────────────
+  /api/templates:
+    post:
+      tags: [Templates]
+      summary: Create Template
+      description: Crea una nueva versión de plantilla `.dotx` para exportación (solo Admin).
+      operationId: createTemplate
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateTemplateFormRequest'
+      responses:
+        '201':
+          description: Plantilla creada
+          content:
+            application/json:
+              schema:
+                type: string
+                format: uuid
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Conflicto al crear la plantilla
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+    get:
+      tags: [Templates]
+      summary: Get Templates
+      description: Obtiene el listado de plantillas con filtros opcionales.
+      operationId: getTemplates
+      parameters:
+        - name: templateType
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 100
+          description: Filtro por tipo de plantilla
+        - name: isActive
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: Filtro por estado de activación
+      responses:
+        '200':
+          description: Listado de plantillas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TemplateResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/templates/{id}/toggle-status:
+    put:
+      tags: [Templates]
+      summary: Toggle Template Status
+      description: Activa o desactiva una plantilla (solo Admin).
+      operationId: toggleTemplateStatus
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID de la plantilla
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ToggleTemplateStatusRequest'
+      responses:
+        '204':
+          description: Estado de plantilla actualizado
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   # ─── AI ─────────────────────────────────────────────────
   /api/projects/{id}/ai/generate:
     post:
@@ -576,7 +679,11 @@ paths:
     get:
       tags: [Export]
       summary: Export to DOCX
-      description: Exporta el proyecto completo como documento Word (.docx).
+      description: |
+        Exporta el proyecto completo como documento Word (.docx).
+        Si existe una plantilla activa de tipo `MemoriaTecnica`, se usa como base (.dotx).
+        Si falla la carga o el renderizado de la plantilla, el sistema aplica fallback automático
+        al exportador estándar para no bloquear la descarga.
       operationId: exportToDocx
       parameters:
         - $ref: '#/components/parameters/ProjectId'
@@ -1122,6 +1229,76 @@ components:
           type: string
           nullable: true
           maxLength: 50
+
+    # --- Template Schemas ---
+    CreateTemplateFormRequest:
+      type: object
+      required: [name, templateType, templateFile]
+      properties:
+        name:
+          type: string
+          maxLength: 200
+          example: Plantilla corporativa 2026
+        templateType:
+          type: string
+          maxLength: 100
+          example: MemoriaTecnica
+        description:
+          type: string
+          nullable: true
+          maxLength: 1000
+          example: Plantilla oficial para exportación de memorias técnicas
+        templateFile:
+          type: string
+          format: binary
+          description: Archivo `.dotx` (máx 10 MB)
+
+    ToggleTemplateStatusRequest:
+      type: object
+      required: [isActive]
+      properties:
+        isActive:
+          type: boolean
+          example: true
+
+    TemplateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Plantilla corporativa 2026
+        description:
+          type: string
+          nullable: true
+        templateType:
+          type: string
+          example: MemoriaTecnica
+        version:
+          type: integer
+          example: 3
+        isActive:
+          type: boolean
+          example: true
+        originalFileName:
+          type: string
+          example: memoria-corporativa-v3.dotx
+        mimeType:
+          type: string
+          example: application/vnd.openxmlformats-officedocument.wordprocessingml.template
+        fileSizeBytes:
+          type: integer
+          format: int64
+          example: 123456
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
 
     # --- AI Schemas ---
     GenerateTextRequest:

@@ -12,7 +12,14 @@ vi.mock('@/lib/services/projectService.js', () => ({
   },
 }));
 
+vi.mock('@/lib/services/templateService', () => ({
+  templateService: {
+    list: vi.fn(),
+  },
+}));
+
 import { projectService } from '@/lib/services/projectService.js';
+import { templateService } from '@/lib/services/templateService';
 
 // Mock TipTap — provide minimal working editor stubs
 vi.mock('@tiptap/react', () => ({
@@ -84,6 +91,7 @@ describe('Export DOCX button', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     setupStore();
+    vi.mocked(templateService.list).mockResolvedValue([]);
   });
 
   it('should render "Exportar" button when a section is active', () => {
@@ -106,6 +114,7 @@ describe('Export DOCX button', () => {
 
     render(<EditorShell />);
     fireEvent.click(screen.getByText('Exportar'));
+    fireEvent.click(screen.getByRole('button', { name: /exportar docx/i }));
 
     await waitFor(() => {
       expect(screen.getByText('Exportando...')).toBeInTheDocument();
@@ -128,6 +137,7 @@ describe('Export DOCX button', () => {
 
     render(<EditorShell />);
     fireEvent.click(screen.getByText('Exportar'));
+    fireEvent.click(screen.getByRole('button', { name: /exportar docx/i }));
 
     await waitFor(() => {
       expect(projectService.exportDocx).toHaveBeenCalledWith('proj-export-1');
@@ -147,6 +157,7 @@ describe('Export DOCX button', () => {
 
     render(<EditorShell />);
     fireEvent.click(screen.getByText('Exportar'));
+    fireEvent.click(screen.getByRole('button', { name: /exportar docx/i }));
 
     // Should go to loading
     await waitFor(() => {
@@ -157,5 +168,13 @@ describe('Export DOCX button', () => {
     await waitFor(() => {
       expect(screen.getByText('Exportar')).toBeInTheDocument();
     });
+  });
+
+  it('should open export modal before calling API', async () => {
+    render(<EditorShell />);
+    fireEvent.click(screen.getByText('Exportar'));
+
+    expect(await screen.findByText(/exportar memoria a DOCX/i)).toBeInTheDocument();
+    expect(projectService.exportDocx).not.toHaveBeenCalled();
   });
 });

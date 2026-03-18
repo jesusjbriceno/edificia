@@ -3,6 +3,7 @@ using Edificia.Application.Interfaces;
 using Edificia.Domain.Entities;
 using Edificia.Domain.Enums;
 using FluentAssertions;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -11,16 +12,30 @@ namespace Edificia.Application.Tests.Export.Queries;
 public class ExportProjectHandlerTests
 {
     private readonly Mock<IProjectRepository> _repositoryMock;
+    private readonly Mock<ITemplateRepository> _templateRepositoryMock;
+    private readonly Mock<IFileStorageService> _fileStorageServiceMock;
     private readonly Mock<IDocumentExportService> _exportServiceMock;
+    private readonly IMemoryCache _memoryCache;
     private readonly ExportProjectHandler _handler;
 
     public ExportProjectHandlerTests()
     {
         _repositoryMock = new Mock<IProjectRepository>();
+        _templateRepositoryMock = new Mock<ITemplateRepository>();
+        _fileStorageServiceMock = new Mock<IFileStorageService>();
         _exportServiceMock = new Mock<IDocumentExportService>();
+        _memoryCache = new MemoryCache(new MemoryCacheOptions());
+
+        _templateRepositoryMock
+            .Setup(r => r.GetActiveByTypeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((AppTemplate?)null);
+
         _handler = new ExportProjectHandler(
             _repositoryMock.Object,
+            _templateRepositoryMock.Object,
+            _fileStorageServiceMock.Object,
             _exportServiceMock.Object,
+            _memoryCache,
             Mock.Of<ILogger<ExportProjectHandler>>());
     }
 
@@ -102,6 +117,88 @@ public class ExportProjectHandlerTests
                     d.Title == project.Title &&
                     d.ContentTreeJson == project.ContentTreeJson),
                 It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldUseTemplateExport_WhenActiveTemplateExists()
+    {
+        var project = CreateProjectWithContent();
+        var query = new ExportProjectQuery(project.Id);
+        var template = CreateActiveTemplate("templates/memoria/v3.dotx");
+        var templateBytes = new byte[] { 1, 2, 3 };
+
+        SetupProjectFound(project);
+
+        _templateRepositoryMock
+            .Setup(r => r.GetActiveByTypeAsync("MemoriaTecnica", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(template);
+
+        _fileStorageServiceMock
+            .Setup(s => s.GetFileAsync(template.StoragePath, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(templateBytes);
+
+        _exportServiceMock
+            .Setup(s => s.ExportToDocxWithTemplateAsync(
+                It.IsAny<ExportDocumentData>(),
+                templateBytes,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new byte[] { 0x50, 0x4B });
+
+        var result = await _handler.Handle(query, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        _exportServiceMock.Verify(
+            s => s.ExportToDocxWithTemplateAsync(
+                It.IsAny<ExportDocumentData>(),
+                templateBytes,
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+        _exportServiceMock.Verify(
+            s => s.ExportToDocxAsync(It.IsAny<ExportDocumentData>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldFallbackToLegacy_WhenTemplateExportThrows()
+    {
+        var project = CreateProjectWithContent();
+        var query = new ExportProjectQuery(project.Id);
+        var template = CreateActiveTemplate("templates/memoria/v3.dotx");
+        var templateBytes = new byte[] { 1, 2, 3 };
+
+        SetupProjectFound(project);
+
+        _templateRepositoryMock
+            .Setup(r => r.GetActiveByTypeAsync("MemoriaTecnica", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(template);
+
+        _fileStorageServiceMock
+            .Setup(s => s.GetFileAsync(template.StoragePath, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(templateBytes);
+
+        _exportServiceMock
+            .Setup(s => s.ExportToDocxWithTemplateAsync(
+                It.IsAny<ExportDocumentData>(),
+                templateBytes,
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Template rendering error"));
+
+        _exportServiceMock
+            .Setup(s => s.ExportToDocxAsync(It.IsAny<ExportDocumentData>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new byte[] { 0x50, 0x4B });
+
+        var result = await _handler.Handle(query, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        _exportServiceMock.Verify(
+            s => s.ExportToDocxWithTemplateAsync(
+                It.IsAny<ExportDocumentData>(),
+                templateBytes,
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+        _exportServiceMock.Verify(
+            s => s.ExportToDocxAsync(It.IsAny<ExportDocumentData>(), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -257,6 +354,22 @@ public class ExportProjectHandlerTests
             interventionType: InterventionType.NewConstruction,
             isLoeRequired: true,
             createdByUserId: Guid.NewGuid());
+    }
+
+    private static AppTemplate CreateActiveTemplate(string storagePath)
+    {
+        var template = AppTemplate.Create(
+            name: "Plantilla Memoria",
+            description: "Plantilla activa",
+            templateType: "MemoriaTecnica",
+            storagePath: storagePath,
+            originalFileName: "plantilla.dotx",
+            mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.template",
+            fileSizeBytes: 100,
+            createdByUserId: Guid.NewGuid());
+
+        template.Activate();
+        return template;
     }
 
     private void SetupProjectFound(Project project)

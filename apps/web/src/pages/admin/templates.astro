@@ -1,0 +1,13 @@
+---
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+import { AuthGuard } from '@/components/auth/AuthGuard';
+import TemplateManagement from '@/components/Admin/TemplateManagement';
+---
+
+<DashboardLayout title="Admin — Plantillas">
+	<AuthGuard allowedRoles={['Root', 'Admin']} client:load>
+		<div class="max-w-7xl mx-auto space-y-8">
+			<TemplateManagement client:load />
+		</div>
+	</AuthGuard>
+</DashboardLayout>

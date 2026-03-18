@@ -167,13 +167,14 @@ export default function AdminUserFormPage({ userId }: AdminUserFormPageProps) {
 
       {/* Cancel link */}
       <div className="flex justify-start">
-        <a
-          href="/admin/users"
-          className="text-sm text-gray-500 hover:text-white transition-colors flex items-center gap-1.5"
+        <Button
+          variant="outline"
+          onClick={() => { window.location.href = '/admin/users'; }}
+          className="h-10"
         >
-          <ArrowLeft size={14} />
+          <ArrowLeft size={14} className="mr-2" />
           Cancelar y volver
-        </a>
+        </Button>
       </div>
     </div>
   );
