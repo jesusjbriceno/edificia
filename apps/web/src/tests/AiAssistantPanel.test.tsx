@@ -99,6 +99,62 @@ describe('AiAssistantPanel', () => {
     expect(screen.getByRole('button', { name: /añadir al final/i })).toBeInTheDocument();
   });
 
+  it('should sanitize malicious html in preview', async () => {
+    const mockGenerate = vi.mocked(aiService.generate);
+    mockGenerate.mockResolvedValueOnce({
+      projectId: 'proj-123',
+      sectionId: 'sec-1',
+      generatedText: '<img src=x onerror=alert(1)><p>Texto limpio</p><script>alert(1)</script>',
+    });
+
+    const { container } = renderPanel();
+
+    fireEvent.change(screen.getByLabelText('Instrucciones'), {
+      target: { value: 'Genera contenido seguro' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /generar con ia/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Vista previa')).toBeInTheDocument();
+    });
+
+    const html = container.innerHTML;
+    expect(html).toContain('<p>Texto limpio</p>');
+    expect(html).not.toContain('onerror=');
+    expect(html).not.toContain('<script>');
+  });
+
+  it('should render markdown tables and safe links in preview', async () => {
+    const mockGenerate = vi.mocked(aiService.generate);
+    mockGenerate.mockResolvedValueOnce({
+      projectId: 'proj-123',
+      sectionId: 'sec-1',
+      generatedText: `| Norma | Enlace |
+| --- | --- |
+| CTE | [CTE](https://www.codigotecnico.org) |
+
+Fórmula: $q = m · c · ΔT$`,
+    });
+
+    const { container } = renderPanel();
+
+    fireEvent.change(screen.getByLabelText('Instrucciones'), {
+      target: { value: 'Genera tabla normativa' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /generar con ia/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Vista previa')).toBeInTheDocument();
+    });
+
+    const html = container.innerHTML;
+    expect(html).toContain('<table>');
+    expect(html).toContain('https://www.codigotecnico.org');
+    expect(html).toContain('$q = m · c · ΔT$');
+  });
+
   it('should show error state when generation fails', async () => {
     const mockGenerate = vi.mocked(aiService.generate);
     mockGenerate.mockRejectedValueOnce(new Error('Network error'));

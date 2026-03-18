@@ -4,6 +4,13 @@ import { useEditorStore } from '@/store/useEditorStore';
 import { projectService } from '@/lib/services/projectService.js';
 import { toast } from '@/store/useToastStore';
 import { ProjectStatus } from '@/lib/types';
+import { sanitizeRichHtml } from '@/lib/sanitizeHtml';
+import { normalizeAiContentToHtml } from '@/lib/normalizeAiContent';
+
+export interface ExportDocxOptions {
+  preferredTemplateId?: string;
+  fileName?: string;
+}
 
 /**
  * Encapsula toda la lógica de acción del EditorShell:
@@ -38,11 +45,13 @@ export function useEditorActions(editor: Editor | null) {
     (html: string, mode: 'replace' | 'append') => {
       if (!editor || !activeSectionId) return;
 
+      const safeHtml = sanitizeRichHtml(normalizeAiContentToHtml(html));
+
       if (mode === 'replace') {
-        editor.commands.setContent(html);
+        editor.commands.setContent(safeHtml);
       } else {
         editor.commands.focus('end');
-        editor.commands.insertContent(html);
+        editor.commands.insertContent(safeHtml);
       }
 
       updateContent(activeSectionId, editor.getHTML());
@@ -51,23 +60,44 @@ export function useEditorActions(editor: Editor | null) {
   );
 
   /** Solicita la exportación DOCX y dispara la descarga en el navegador. */
-  const handleExport = useCallback(async () => {
+  const handleExport = useCallback(async (options?: ExportDocxOptions) => {
     if (!projectId || exportingRef.current) return;
+
+    const exportOptions = {
+      templateId: options?.preferredTemplateId,
+      outputFileName: options?.fileName?.trim() || undefined,
+    };
+
+    const requestOptions = exportOptions.templateId || exportOptions.outputFileName
+      ? exportOptions
+      : undefined;
 
     exportingRef.current = true;
     setExporting(true);
     try {
-      const { blob, fileName } = await projectService.exportDocx(projectId);
+      const exportResult = requestOptions
+        ? await projectService.exportDocx(projectId, requestOptions)
+        : await projectService.exportDocx(projectId);
+
+      const { blob, fileName, exportMode } = exportResult;
+      const downloadFileName = options?.fileName?.trim() || fileName;
 
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
       anchor.href = url;
-      anchor.download = fileName;
+      anchor.download = downloadFileName;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
       URL.revokeObjectURL(url);
-      toast.success(`Documento "${fileName}" descargado correctamente.`);
+
+      if (exportMode === 'fallback') {
+        toast.warning(
+          `Documento descargado con exportador estándar. La plantilla seleccionada no pudo cargarse.`,
+        );
+      } else {
+        toast.success(`Documento "${downloadFileName}" descargado correctamente.`);
+      }
     } catch {
       toast.error('No se pudo exportar el documento. Inténtalo de nuevo.');
     } finally {

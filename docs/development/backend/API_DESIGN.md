@@ -1,7 +1,7 @@
 # **📡 Diseño de API REST — EdificIA**
 
 **Versión:** 3.0  
-**Última actualización:** Junio 2025  
+**Última actualización:** Marzo 2026  
 **Base URL (Local):** `http://localhost:5000/api`  
 **Base URL (Producción):** `https://api-edificia.jesusjbriceno.dev/api`
 
@@ -9,13 +9,14 @@
 
 ## **1. Visión General**
 
-La API de EdificIA expone **21 endpoints** organizados en 5 módulos:
+La API de EdificIA expone **28 endpoints** organizados en 6 módulos:
 
 | Módulo | Endpoints | Autenticación | Descripción |
 |--------|-----------|---------------|-------------|
 | Auth | 6 | Mixta | Autenticación JWT, gestión de tokens y perfil |
 | Projects | 6 | ActiveUser | CRUD de proyectos y árbol de contenido |
 | Users | 7 | RequireAdmin | Gestión de usuarios (CRUD + activación) |
+| Templates | 7 | RequireAdmin | Gestión de plantillas `.dotx` para exportación |
 | AI | 1 | ActiveUser | Generación de texto con IA |
 | Export | 1 | ActiveUser | Exportación a DOCX |
 
@@ -733,9 +734,201 @@ POST /api/users/{id}/reset-password
 
 ---
 
-## **5. Módulo: AI (`/api/projects/{id}/ai`)**
+## **5. Módulo: Templates (`/api/templates`)**
 
-### **5.1. Generate Section Text**
+> Todos los endpoints requieren política **RequireAdmin** (roles Root o Admin).
+
+### **5.1. Create Template**
+
+Carga una nueva plantilla `.dotx` y crea una nueva versión para un `templateType`.
+
+```
+POST /api/templates
+```
+
+**Content-Type:** `multipart/form-data`
+
+**Form fields:**
+
+| Campo | Tipo | Requerido | Validación |
+|-------|------|-----------|------------|
+| `name` | string | ✅ | No vacío, max 200 chars |
+| `templateType` | string | ✅ | No vacío, max 100 chars |
+| `description` | string? | ❌ | Max 1000 chars |
+| `templateFile` | file (.dotx) | ✅ | Extensión `.dotx`, MIME Word Template/`application/octet-stream`, max 10 MB |
+
+**Response `201 Created`:**
+
+```json
+"3fa85f64-5717-4562-b3fc-2c963f66afa6"
+```
+
+**Errores:**
+
+| Código | HTTP | Descripción |
+|--------|------|-------------|
+| `Validation.*` | 400 | Datos inválidos o fichero no válido |
+| `Conflict.*` | 409 | Conflicto de versión/estado al crear plantilla |
+
+---
+
+### **5.2. Get Templates**
+
+Devuelve listado de plantillas, con filtros opcionales.
+
+```
+GET /api/templates?templateType=MemoriaTecnica&isAvailable=true
+```
+
+**Query Parameters:**
+
+| Parámetro | Tipo | Requerido | Descripción |
+|-----------|------|-----------|-------------|
+| `templateType` | string? | ❌ | Filtra por tipo de plantilla |
+| `isAvailable` | bool? | ❌ | Filtra por estado disponible/no disponible |
+| `isActive` | bool? | ❌ | Alias legado de compatibilidad para `isAvailable` |
+
+**Response `200 OK`:**
+
+```json
+[
+  {
+    "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "name": "Plantilla corporativa 2026",
+    "description": "Plantilla oficial de memoria técnica",
+    "templateType": "MemoriaTecnica",
+    "version": 3,
+    "isAvailable": true,
+    "isDefault": false,
+    "isActive": true,
+    "originalFileName": "memoria-corporativa-v3.dotx",
+    "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.template",
+    "fileSizeBytes": 123456,
+    "createdAt": "2026-02-20T10:00:00Z",
+    "updatedAt": null
+  }
+]
+```
+
+---
+
+### **5.3. Toggle Template Status**
+
+Endpoint legado para compatibilidad. Internamente ajusta disponibilidad.
+
+```
+PUT /api/templates/{id}/toggle-status
+```
+
+**Request Body:**
+
+```json
+{
+  "isActive": true
+}
+```
+
+**Response `204 No Content`:** Sin cuerpo.
+
+**Errores:**
+
+| Código | HTTP | Descripción |
+|--------|------|-------------|
+| `Template.NotFound` | 404 | Plantilla no encontrada |
+| `Validation.*` | 400 | Estado solicitado inválido |
+
+---
+
+### **5.4. Update Template Metadata**
+
+Actualiza nombre y descripción de una plantilla.
+
+```
+PUT /api/templates/{id}
+```
+
+**Request Body:**
+
+```json
+{
+  "name": "Plantilla corporativa 2026 (actualizada)",
+  "description": "Versión ajustada para entregas 2026"
+}
+```
+
+**Response `204 No Content`:** Sin cuerpo.
+
+---
+
+### **5.5. Set Template Availability**
+
+Marca una plantilla como disponible/no disponible.
+
+```
+PUT /api/templates/{id}/availability
+```
+
+**Request Body:**
+
+```json
+{
+  "isAvailable": true
+}
+```
+
+**Response `204 No Content`:** Sin cuerpo.
+
+---
+
+### **5.6. Set Template Default**
+
+Marca una plantilla como predeterminada/no predeterminada por tipo.
+
+```
+PUT /api/templates/{id}/default
+```
+
+**Request Body:**
+
+```json
+{
+  "isDefault": true
+}
+```
+
+**Response `204 No Content`:** Sin cuerpo.
+
+**Errores:**
+
+| Código | HTTP | Descripción |
+|--------|------|-------------|
+| `Template.NotFound` | 404 | Plantilla no encontrada |
+| `Conflict.*` | 409 | Regla de negocio incumplida |
+
+---
+
+### **5.7. Delete Template**
+
+Elimina una plantilla.
+
+```
+DELETE /api/templates/{id}
+```
+
+**Response `204 No Content`:** Sin cuerpo.
+
+**Errores:**
+
+| Código | HTTP | Descripción |
+|--------|------|-------------|
+| `Template.NotFound` | 404 | Plantilla no encontrada |
+| `Conflict.*` | 409 | Regla de negocio incumplida |
+
+---
+
+## **6. Módulo: AI (`/api/projects/{id}/ai`)**
+
+### **6.1. Generate Section Text**
 
 Genera texto para una sección del proyecto usando IA (Flux Gateway con OAuth2).
 
@@ -788,15 +981,30 @@ POST /api/projects/{id}/ai/generate
 
 ---
 
-## **6. Módulo: Export (`/api/projects/{id}/export`)**
+## **7. Módulo: Export (`/api/projects/{id}/export`)**
 
-### **6.1. Export to DOCX**
+### **7.1. Export to DOCX**
 
 Exporta el proyecto completo como documento Word (.docx).
+
+**Comportamiento de plantillas:**
+
+- Si llega `templateId` y es compatible con el tipo documental, se intenta usar la plantilla seleccionada.
+- Si `templateId` no existe o no está disponible, se resuelve la plantilla predeterminada de `MemoriaTecnica`.
+- Si `templateId` corresponde a un tipo documental incompatible, se devuelve `400`.
+- Si la carga de plantilla o el renderizado falla, se aplica fallback automático al exportador estándar.
+- El endpoint siempre prioriza disponibilidad del documento frente a fallo puntual de plantilla.
 
 ```
 GET /api/projects/{id}/export
 ```
+
+**Query Parameters (opcionales):**
+
+| Parámetro | Tipo | Descripción |
+|-----------|------|-------------|
+| `templateId` | Guid? | Plantilla preferida para exportación |
+| `outputFileName` | string? | Nombre de archivo de salida (máx. 255) |
 
 **Autenticación:** ActiveUser
 
@@ -824,7 +1032,7 @@ Cuerpo: Archivo binario DOCX.
 
 ---
 
-## **7. Health Checks**
+## **8. Health Checks**
 
 Endpoints de monitorización (sin autenticación).
 
@@ -835,7 +1043,7 @@ Endpoints de monitorización (sin autenticación).
 
 ---
 
-## **8. Arquitectura Interna**
+## **9. Arquitectura Interna**
 
 ### **8.1. Pipeline de Request**
 
@@ -890,7 +1098,7 @@ El contenido del proyecto se almacena como **JSONB** en la columna `content_tree
 
 ---
 
-## **9. Resumen de DTOs**
+## **10. Resumen de DTOs**
 
 ### **Request DTOs**
 
@@ -907,6 +1115,11 @@ El contenido del proyecto se almacena como **JSONB** en la columna `content_tree
 | `GenerateTextRequest` | AI | POST /api/projects/{id}/ai/generate |
 | `CreateUserRequest` | Users | POST /api/users |
 | `UpdateUserRequest` | Users | PUT /api/users/{id} |
+| `CreateTemplateRequest` | Templates | POST /api/templates |
+| `ToggleTemplateStatusRequest` | Templates | PUT /api/templates/{id}/toggle-status |
+| `UpdateTemplateMetadataRequest` | Templates | PUT /api/templates/{id} |
+| `SetTemplateAvailabilityRequest` | Templates | PUT /api/templates/{id}/availability |
+| `SetTemplateDefaultRequest` | Templates | PUT /api/templates/{id}/default |
 
 ### **Response DTOs**
 
@@ -919,11 +1132,12 @@ El contenido del proyecto se almacena como **JSONB** en la columna `content_tree
 | `PagedResponse<T>` | Common | Lista paginada genérica |
 | `UserResponse` | Users | Datos del usuario con rol |
 | `GeneratedTextResponse` | AI | Texto generado por IA |
+| `TemplateResponse` | Templates | Metadatos de plantilla `.dotx` |
 | `ExportDocumentResponse` | Export | Archivo DOCX (binario) |
 
 ---
 
-## **10. Enumeraciones**
+## **11. Enumeraciones**
 
 ### **InterventionType**
 

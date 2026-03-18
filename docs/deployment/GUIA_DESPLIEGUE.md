@@ -55,6 +55,13 @@ Define la **estructura completa** de configuración. No contiene secretos reales
     "ApiSecret": "",
     "TimeoutSeconds": 210
   },
+  "TemplateStorage": {
+    "Provider": "local",
+    "BasePath": "./local_data/templates",
+    "N8nWebhookUrl": "http://localhost:5678/webhook/template-storage",
+    "N8nApiSecret": "",
+    "TimeoutSeconds": 60
+  },
   "Security": {
     "RootEmail": "admin@edificia.dev",
     "RootInitialPassword": "ChangeMe123!"
@@ -89,6 +96,7 @@ Define la **estructura completa** de configuración. No contiene secretos reales
 | `Security`         | `SecuritySettings`    | Infrastructure.Identity  |
 | `Email`            | `EmailSettings`       | Infrastructure.Email     |
 | `AI`               | `AiSettings`          | Infrastructure.Ai        |
+| `TemplateStorage`  | `TemplateStorageSettings` | Infrastructure.TemplateStorage |
 | `Cors`             | (lectura directa)     | API.Configuration        |
 | `ConnectionStrings`| (lectura directa)     | Infrastructure           |
 
@@ -262,6 +270,11 @@ nano .env  # Rellenar DB_HOST, DB_PORT, REDIS_HOST, REDIS_PORT con los valores r
 docker compose -f docker-compose.apps.yml --env-file .env up -d
 ```
 
+#### **Persistencia de plantillas `.dotx`**
+
+- Si `TemplateStorage__Provider=local`, el contenedor API debe montar un volumen persistente en la ruta configurada en `TemplateStorage__BasePath`.
+- Si `TemplateStorage__Provider=n8n`, la persistencia queda delegada al workflow de almacenamiento y no se requiere volumen local para plantillas.
+
 > **Variables adicionales para BD/Redis externos:**
 >
 > | Variable     | Descripción          | Ejemplo            |
@@ -282,6 +295,11 @@ docker compose -f docker-compose.apps.yml --env-file .env up -d
 | `JWT_SECRET`       | Clave JWT (mín. 32 chars)              | `openssl rand -base64 64`   |
 | `N8N_WEBHOOK_URL`  | URL del webhook n8n para generación IA | `https://n8n.example.com/webhook/...` |
 | `N8N_API_SECRET`   | Clave `X-Edificia-Auth` para n8n       | (generada)                  |
+| `TEMPLATE_STORAGE_PROVIDER` | Proveedor de almacenamiento de plantillas (`local` o `n8n`) | `local` |
+| `TEMPLATE_STORAGE_BASE_PATH` | Ruta local persistente para `.dotx` (si provider=local) | `/data/edificia/templates` |
+| `TEMPLATE_STORAGE_WEBHOOK_URL` | Webhook n8n para guardar/leer/borrar plantillas (si provider=n8n) | `https://n8n.example.com/webhook/template-storage` |
+| `TEMPLATE_STORAGE_API_SECRET` | Clave `X-Edificia-Auth` para el webhook de plantillas | (generada) |
+| `TEMPLATE_STORAGE_TIMEOUT_SECONDS` | Timeout HTTP para operaciones de almacenamiento | `60` |
 | `EMAIL_FROM_ADDRESS`| Dirección remitente de emails          | `noreply@edificia.dev`      |
 | `EMAIL_FROM_NAME`  | Nombre remitente de emails             | `EdificIA`                  |
 | `DATABASE_URL`     | URL completa PostgreSQL (alternativa)  | `postgresql://user:pass@host:5432/db` |
@@ -309,6 +327,11 @@ Docker traduce `__` (doble guión bajo) a `:` para la jerarquía de configuraci�
 | `AI__ApiSecret`                          | `AI:ApiSecret`                      |
 | `AI__Provider`                           | `AI:Provider`                       |
 | `AI__TimeoutSeconds`                     | `AI:TimeoutSeconds`                 |
+| `TemplateStorage__Provider`              | `TemplateStorage:Provider`          |
+| `TemplateStorage__BasePath`              | `TemplateStorage:BasePath`          |
+| `TemplateStorage__N8nWebhookUrl`         | `TemplateStorage:N8nWebhookUrl`     |
+| `TemplateStorage__N8nApiSecret`          | `TemplateStorage:N8nApiSecret`      |
+| `TemplateStorage__TimeoutSeconds`        | `TemplateStorage:TimeoutSeconds`    |
 | `Email__Provider`                        | `Email:Provider`                    |
 | `Email__FromAddress`                     | `Email:FromAddress`                 |
 | `Email__FromName`                        | `Email:FromName`                    |

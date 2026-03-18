@@ -1,5 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Linq;
+using DocMath = DocumentFormat.OpenXml.Math;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -32,6 +34,7 @@ public sealed partial class DocxExportService : IDocumentExportService
 
             // ── Document styles ──
             AddStyleDefinitions(mainPart);
+            EnsureNumberingDefinitions(mainPart);
 
             // ── Title page ──
             AddTitlePage(body, data);
@@ -41,9 +44,118 @@ public sealed partial class DocxExportService : IDocumentExportService
                 new Run(new Break { Type = BreakValues.Page })));
 
             // ── Content tree ──
-            ProcessContentTree(body, data.ContentTreeJson);
+            ProcessContentTree(body, mainPart, data.ContentTreeJson);
 
             mainPart.Document.Save();
+        }
+
+        return Task.FromResult(stream.ToArray());
+    }
+
+    public Task<byte[]> ExportToDocxWithTemplateAsync(
+        ExportDocumentData data,
+        byte[] templateContent,
+        CancellationToken cancellationToken = default)
+    {
+        _logger?.LogDebug("[Template] Starting ExportToDocxWithTemplateAsync — template size {Bytes} bytes, project '{Title}'",
+            templateContent.Length, data.Title);
+
+        using var stream = new MemoryStream();
+        stream.Write(templateContent, 0, templateContent.Length);
+        stream.Position = 0;
+
+        using (var wordDoc = WordprocessingDocument.Open(stream, true))
+        {
+            _logger?.LogDebug("[Template] Opened document — DocumentType={DocumentType}",
+                wordDoc.DocumentType);
+
+            // Solo convertir si la plantilla es un .dotx (Template). Para .docx ya es Document
+            // y ChangeDocumentType lanza InvalidOperationException si el tipo ya coincide.
+            if (wordDoc.DocumentType != WordprocessingDocumentType.Document)
+            {
+                wordDoc.ChangeDocumentType(WordprocessingDocumentType.Document);
+                _logger?.LogDebug("[Template] ChangeDocumentType applied → Document");
+            }
+
+            var mainPart = wordDoc.MainDocumentPart ?? wordDoc.AddMainDocumentPart();
+
+            RemoveAttachedTemplateReference(mainPart);
+
+            if (mainPart.Document is null)
+            {
+                mainPart.Document = new Document(new Body());
+                _logger?.LogDebug("[Template] Document was null — created empty Document+Body");
+            }
+
+            _ = mainPart.Document.Body ?? mainPart.Document.AppendChild(new Body());
+            EnsureNumberingDefinitions(mainPart);
+            EnsureHeadingStyles(mainPart);
+
+            var tagReplacements = BuildTemplateTagReplacements(data);
+            _logger?.LogDebug("[Template] Built {Count} tag replacements (SDT keys)", tagReplacements.Count);
+
+            var replacedControls = ApplyTemplateTagReplacements(mainPart, tagReplacements);
+            _logger?.LogDebug("[Template] ApplyTemplateTagReplacements → replacedControls={ReplacedControls}", replacedControls);
+
+            var placeholderReplacements = BuildBracePlaceholderReplacements(data, tagReplacements);
+            _logger?.LogDebug("[Template] Built {Count} brace placeholder replacements ({{{{...}}}})", placeholderReplacements.Count);
+
+            var (bodyCount, hfCount) = ApplyBracePlaceholderReplacements(mainPart, placeholderReplacements);
+            _logger?.LogDebug("[Template] ApplyBracePlaceholderReplacements → body={BodyCount}, headers/footers={HfCount}",
+                bodyCount, hfCount);
+
+            // Criterio híbrido: si no hay SDT content controls, la plantilla no tiene secciones de contenido
+            // mapeadas → regenerar el árbol del proyecto.
+            //
+            // Dos variantes:
+            //   A) bodyCount > 0: la plantilla tiene {{...}} en el body (p.ej. portada con metadatos).
+            //      Los reemplazos ya están aplicados — conservar esa estructura y ANEXAR el contenido.
+            //   B) bodyCount == 0: plantilla sin estructura relevante en el body → regenerar completo.
+            if (replacedControls == 0)
+            {
+                var body = mainPart.Document.Body!;
+                var sectPr = body.GetFirstChild<SectionProperties>()?.CloneNode(true) as SectionProperties;
+
+                if (bodyCount > 0)
+                {
+                    // Variante A: portada/metadatos ya sustituidos — conservar body y anexar proyecto.
+                    _logger?.LogDebug("[Template] Hybrid path (body preserved) — appending project content after template body ({BodyCount} replacements kept)",
+                        bodyCount);
+
+                    body.GetFirstChild<SectionProperties>()?.Remove();
+                    body.AppendChild(new Paragraph(new Run(new Break { Type = BreakValues.Page })));
+                    ProcessContentTree(body, mainPart, data.ContentTreeJson);
+                }
+                else
+                {
+                    // Variante B: plantilla sin estructura de body — regenerar título + contenido.
+                    _logger?.LogDebug("[Template] Hybrid path (full regen) — clearing body and regenerating project content");
+
+                    body.RemoveAllChildren();
+                    AddTitlePage(body, data);
+                    body.AppendChild(new Paragraph(new Run(new Break { Type = BreakValues.Page })));
+                    ProcessContentTree(body, mainPart, data.ContentTreeJson);
+                }
+
+                if (sectPr is not null)
+                    body.AppendChild(sectPr);
+
+                _logger?.LogDebug("[Template] Hybrid path complete — body has {Count} top-level elements",
+                    body.ChildElements.Count);
+            }
+            else
+            {
+                _logger?.LogDebug("[Template] SDT path taken — body kept from template, {Count} controls replaced",
+                    replacedControls);
+            }
+
+            // No forzar updateFields en plantillas: provoca el diálogo de seguridad
+            // "¿Desea actualizar los campos?" cuando el documento contiene campos INCLUDETEXT/INCLUDEPICTURE.
+            // Los campos de TOC y similares se actualizarán la primera vez que el usuario abra el fichero.
+
+            mainPart.Document.Save();
+            _logger?.LogDebug("[Template] Document saved to stream — final stream size {Bytes} bytes",
+                stream.Length);
         }
 
         return Task.FromResult(stream.ToArray());
@@ -54,14 +166,58 @@ public sealed partial class DocxExportService : IDocumentExportService
         var stylesPart = mainPart.AddNewPart<StyleDefinitionsPart>();
         var styles = new Styles();
 
-        // Heading 1 style
-        styles.AppendChild(CreateHeadingStyle("Heading1", "Título 1", "28", "1F3864"));
-        // Heading 2 style
-        styles.AppendChild(CreateHeadingStyle("Heading2", "Título 2", "24", "2E75B6"));
-        // Heading 3 style
-        styles.AppendChild(CreateHeadingStyle("Heading3", "Título 3", "22", "404040"));
+        // Use OOXML built-in names (lowercase, with space) so Word derives the localized
+        // display name correctly ("Título 1" in Spanish, "Heading 1" in English).
+        styles.AppendChild(CreateHeadingStyle("Heading1", "heading 1", "28", "1F3864"));
+        styles.AppendChild(CreateHeadingStyle("Heading2", "heading 2", "24", "2E75B6"));
+        styles.AppendChild(CreateHeadingStyle("Heading3", "heading 3", "22", "404040"));
 
         stylesPart.Styles = styles;
+    }
+
+    /// <summary>
+    /// Ensures Heading1/Heading2/Heading3 styles exist in the template's StyleDefinitionsPart.
+    /// Only adds a style if it is not already defined — preserving the template's own design.
+    /// Called exclusively in the template export path (AddStyleDefinitions covers the legacy path).
+    /// </summary>
+    private static void EnsureHeadingStyles(MainDocumentPart mainPart)
+    {
+        var stylesPart = mainPart.StyleDefinitionsPart;
+        if (stylesPart is null)
+        {
+            // Template had no style part at all — create one with our defaults.
+            var newPart = mainPart.AddNewPart<StyleDefinitionsPart>();
+            var styles = new Styles();
+            styles.AppendChild(CreateHeadingStyle("Heading1", "heading 1", "28", "1F3864"));
+            styles.AppendChild(CreateHeadingStyle("Heading2", "heading 2", "24", "2E75B6"));
+            styles.AppendChild(CreateHeadingStyle("Heading3", "heading 3", "22", "404040"));
+            newPart.Styles = styles;
+            return;
+        }
+
+        var existingStyles = stylesPart.Styles;
+        if (existingStyles is null)
+            return;
+
+        // Add only the missing heading styles so the template's own definitions are preserved.
+        var headingsToEnsure = new[]
+        {
+            ("Heading1", "heading 1", "28", "1F3864"),
+            ("Heading2", "heading 2", "24", "2E75B6"),
+            ("Heading3", "heading 3", "22", "404040"),
+        };
+
+        foreach (var (styleId, styleName, fontSize, color) in headingsToEnsure)
+        {
+            var exists = existingStyles
+                .Elements<Style>()
+                .Any(s => string.Equals(s.StyleId?.Value, styleId, StringComparison.OrdinalIgnoreCase));
+
+            if (!exists)
+            {
+                existingStyles.AppendChild(CreateHeadingStyle(styleId, styleName, fontSize, color));
+            }
+        }
     }
 
     private static Style CreateHeadingStyle(string styleId, string styleName, string fontSize, string color)
@@ -140,7 +296,7 @@ public sealed partial class DocxExportService : IDocumentExportService
                 new Text(value))));
     }
 
-    private void ProcessContentTree(Body body, string contentTreeJson)
+    private void ProcessContentTree(Body body, MainDocumentPart mainPart, string contentTreeJson)
     {
         try
         {
@@ -152,7 +308,7 @@ public sealed partial class DocxExportService : IDocumentExportService
             {
                 foreach (var chapter in chapters.EnumerateArray())
                 {
-                    ProcessNode(body, chapter, level: 1);
+                    ProcessNode(body, mainPart, chapter, level: 1);
                 }
             }
             else
@@ -168,7 +324,7 @@ public sealed partial class DocxExportService : IDocumentExportService
         }
     }
 
-    private void ProcessNode(Body body, JsonElement node, int level)
+    private void ProcessNode(Body body, MainDocumentPart mainPart, JsonElement node, int level)
     {
         // Extract title
         var title = node.TryGetProperty("title", out var titleElement)
@@ -197,7 +353,7 @@ public sealed partial class DocxExportService : IDocumentExportService
             var content = contentElement.GetString();
             if (!string.IsNullOrWhiteSpace(content))
             {
-                RenderHtmlContent(body, content);
+                RenderHtmlContent(body, mainPart, content);
             }
         }
 
@@ -207,7 +363,7 @@ public sealed partial class DocxExportService : IDocumentExportService
         {
             foreach (var child in sections.EnumerateArray())
             {
-                ProcessNode(body, child, level + 1);
+                ProcessNode(body, mainPart, child, level + 1);
             }
         }
     }
@@ -216,16 +372,27 @@ public sealed partial class DocxExportService : IDocumentExportService
     /// Converts simple HTML content (from TipTap editor) into Word paragraphs.
     /// Handles: paragraphs, bold, italic, underline, headings, lists.
     /// </summary>
-    private static void RenderHtmlContent(Body body, string html)
+    private static void RenderHtmlContent(Body body, MainDocumentPart mainPart, string html)
     {
-        // Split by block-level tags
-        var blocks = BlockSplitRegex().Split(html);
+        var blocks = SplitHtmlPreservingTables(html);
 
         foreach (var block in blocks)
         {
             if (string.IsNullOrWhiteSpace(block)) continue;
 
             var trimmed = block.Trim();
+
+            if (trimmed.StartsWith("<table", StringComparison.OrdinalIgnoreCase))
+            {
+                var table = CreateTableFromHtml(trimmed);
+                if (table is not null)
+                {
+                    body.AppendChild(table);
+                    body.AppendChild(new Paragraph(new ParagraphProperties(new SpacingBetweenLines { After = "120" })));
+                }
+
+                continue;
+            }
 
             // Handle list items
             if (trimmed.StartsWith("<li", StringComparison.OrdinalIgnoreCase))
@@ -237,8 +404,8 @@ public sealed partial class DocxExportService : IDocumentExportService
                             new NumberingId { Val = 1 }),
                         new SpacingBetweenLines { After = "60" }));
 
-                foreach (var run in CreateFormattedRuns(trimmed))
-                    listParagraph.AppendChild(run);
+                foreach (var element in CreateFormattedElements(mainPart, trimmed))
+                    listParagraph.AppendChild(element);
 
                 body.AppendChild(listParagraph);
                 continue;
@@ -264,14 +431,27 @@ public sealed partial class DocxExportService : IDocumentExportService
                 continue;
             }
 
+            var plainText = StripHtmlTags(trimmed);
+            var blockMathMatch = BlockMathRegex().Match(plainText);
+            if (blockMathMatch.Success)
+            {
+                var expression = NormalizeMathExpression(blockMathMatch.Groups["expr"].Value);
+                if (!string.IsNullOrWhiteSpace(expression))
+                {
+                    body.AppendChild(CreateBlockMathParagraph(expression));
+                }
+
+                continue;
+            }
+
             // Default: paragraph with inline formatting
             var paragraph = new Paragraph(
                 new ParagraphProperties(
                     new SpacingBetweenLines { After = "120" }));
 
-            foreach (var run in CreateFormattedRuns(trimmed))
+            foreach (var element in CreateFormattedElements(mainPart, trimmed))
             {
-                paragraph.AppendChild(run);
+                paragraph.AppendChild(element);
             }
 
             body.AppendChild(paragraph);
@@ -281,12 +461,8 @@ public sealed partial class DocxExportService : IDocumentExportService
     /// <summary>
     /// Creates Run elements with formatting from inline HTML tags (bold, italic, underline).
     /// </summary>
-    private static IEnumerable<Run> CreateFormattedRuns(string html)
+    private static IEnumerable<OpenXmlElement> CreateFormattedElements(MainDocumentPart mainPart, string html)
     {
-        var plainText = StripHtmlTags(html);
-        if (string.IsNullOrWhiteSpace(plainText))
-            yield break;
-
         // Detect inline formatting from the HTML
         var isBold = html.Contains("<strong", StringComparison.OrdinalIgnoreCase) ||
                      html.Contains("<b>", StringComparison.OrdinalIgnoreCase);
@@ -301,7 +477,923 @@ public sealed partial class DocxExportService : IDocumentExportService
         if (isItalic) runProperties.AppendChild(new Italic());
         if (isUnderline) runProperties.AppendChild(new Underline { Val = UnderlineValues.Single });
 
-        yield return new Run(runProperties, new Text(plainText) { Space = SpaceProcessingModeValues.Preserve });
+        var anchorMatches = AnchorRegex().Matches(html);
+        if (anchorMatches.Count == 0)
+        {
+            var plainText = StripHtmlTags(html);
+            foreach (var run in CreateRunsWithMath(plainText, runProperties))
+            {
+                yield return run;
+            }
+
+            yield break;
+        }
+
+        var currentIndex = 0;
+        foreach (Match match in anchorMatches)
+        {
+            if (match.Index > currentIndex)
+            {
+                var beforeText = StripHtmlTags(html[currentIndex..match.Index]);
+                foreach (var run in CreateRunsWithMath(beforeText, runProperties))
+                {
+                    yield return run;
+                }
+            }
+
+            var href = match.Groups["href"].Value;
+            var anchorText = StripHtmlTags(match.Groups["text"].Value);
+            if (!string.IsNullOrWhiteSpace(anchorText))
+            {
+                var hyperlink = CreateHyperlink(mainPart, href, anchorText, runProperties);
+                if (hyperlink is not null)
+                {
+                    yield return hyperlink;
+                }
+                else
+                {
+                    foreach (var run in CreateRunsWithMath(anchorText, runProperties))
+                    {
+                        yield return run;
+                    }
+                }
+            }
+
+            currentIndex = match.Index + match.Length;
+        }
+
+        if (currentIndex < html.Length)
+        {
+            var afterText = StripHtmlTags(html[currentIndex..]);
+            foreach (var run in CreateRunsWithMath(afterText, runProperties))
+            {
+                yield return run;
+            }
+        }
+    }
+
+    private static IEnumerable<OpenXmlElement> CreateRunsWithMath(string text, RunProperties baseRunProperties)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            yield break;
+        }
+
+        var matches = InlineMathRegex().Matches(text);
+        if (matches.Count == 0)
+        {
+            yield return CreateTextRun(text, baseRunProperties);
+            yield break;
+        }
+
+        var currentIndex = 0;
+        foreach (Match match in matches)
+        {
+            if (match.Index > currentIndex)
+            {
+                var beforeText = text[currentIndex..match.Index];
+                if (!string.IsNullOrWhiteSpace(beforeText))
+                {
+                    yield return CreateTextRun(beforeText, baseRunProperties);
+                }
+            }
+
+            var expression = NormalizeMathExpression(match.Groups["expr"].Value);
+            if (!string.IsNullOrWhiteSpace(expression))
+            {
+                yield return CreateOfficeMathExpression(expression);
+            }
+
+            currentIndex = match.Index + match.Length;
+        }
+
+        if (currentIndex < text.Length)
+        {
+            var afterText = text[currentIndex..];
+            if (!string.IsNullOrWhiteSpace(afterText))
+            {
+                yield return CreateTextRun(afterText, baseRunProperties);
+            }
+        }
+    }
+
+    private static Run CreateTextRun(string text, RunProperties baseRunProperties)
+        => new(
+            (RunProperties)baseRunProperties.CloneNode(true),
+            new Text(text) { Space = SpaceProcessingModeValues.Preserve });
+
+    private static Run CreateMathRun(string expression, RunProperties baseRunProperties)
+    {
+        var mathRunProperties = (RunProperties)baseRunProperties.CloneNode(true);
+        mathRunProperties.AppendChild(new RunFonts { Ascii = "Cambria Math", HighAnsi = "Cambria Math" });
+        mathRunProperties.AppendChild(new Italic());
+
+        return new Run(
+            mathRunProperties,
+            new Text(expression) { Space = SpaceProcessingModeValues.Preserve });
+    }
+
+    private static Paragraph CreateBlockMathParagraph(string expression)
+    {
+        var paragraph = new Paragraph(
+            new ParagraphProperties(
+                new Justification { Val = JustificationValues.Center },
+                new SpacingBetweenLines { Before = "80", After = "120" }));
+
+        paragraph.AppendChild(CreateOfficeMathExpression(expression));
+        return paragraph;
+    }
+
+    private static DocMath.OfficeMath CreateOfficeMathExpression(string expression)
+    {
+        var officeMath = new DocMath.OfficeMath();
+
+        if (TryParseSummation(expression, out var sumSub, out var sumSup, out var sumBody))
+        {
+            officeMath.AppendChild(CreateSummationNode(sumSub, sumSup));
+
+            if (!string.IsNullOrWhiteSpace(sumBody))
+            {
+                officeMath.AppendChild(CreateMathNode(sumBody));
+            }
+
+            return officeMath;
+        }
+
+        officeMath.AppendChild(CreateMathNode(expression));
+        return officeMath;
+    }
+
+    private static OpenXmlElement CreateMathNode(string expression)
+    {
+        var normalized = NormalizeMathExpression(expression);
+
+        if (TryParseFraction(normalized, out var numerator, out var denominator))
+        {
+            return CreateFractionNode(numerator, denominator);
+        }
+
+        if (TryParseSubSup(normalized, out var baseExprSubSup, out var subExpr, out var supExpr))
+        {
+            return CreateSubSuperscriptNode(baseExprSubSup, subExpr, supExpr);
+        }
+
+        if (TryParseSuperscript(normalized, out var baseExprSup, out var superExpr))
+        {
+            return CreateSuperscriptNode(baseExprSup, superExpr);
+        }
+
+        if (TryParseSubscript(normalized, out var baseExprSub, out var subOnlyExpr))
+        {
+            return CreateSubscriptNode(baseExprSub, subOnlyExpr);
+        }
+
+        return CreateMathTextRun(normalized);
+    }
+
+    private static DocMath.Fraction CreateFractionNode(string numerator, string denominator)
+    {
+        var fraction = new DocMath.Fraction();
+        var num = new DocMath.Numerator();
+        var den = new DocMath.Denominator();
+
+        num.AppendChild(CreateMathBaseElement(numerator));
+        den.AppendChild(CreateMathBaseElement(denominator));
+
+        fraction.AppendChild(num);
+        fraction.AppendChild(den);
+
+        return fraction;
+    }
+
+    private static DocMath.SubSuperscript CreateSubSuperscriptNode(string baseExpr, string subExpr, string supExpr)
+    {
+        var node = new DocMath.SubSuperscript();
+
+        var baseElement = new DocMath.Base();
+        baseElement.AppendChild(CreateMathNode(baseExpr));
+
+        var subElement = new DocMath.SubArgument();
+        subElement.AppendChild(CreateMathBaseElement(subExpr));
+
+        var supElement = new DocMath.SuperArgument();
+        supElement.AppendChild(CreateMathBaseElement(supExpr));
+
+        node.AppendChild(baseElement);
+        node.AppendChild(subElement);
+        node.AppendChild(supElement);
+
+        return node;
+    }
+
+    private static DocMath.Superscript CreateSuperscriptNode(string baseExpr, string superExpr)
+    {
+        var node = new DocMath.Superscript();
+
+        var baseElement = new DocMath.Base();
+        baseElement.AppendChild(CreateMathNode(baseExpr));
+
+        var superElement = new DocMath.SuperArgument();
+        superElement.AppendChild(CreateMathBaseElement(superExpr));
+
+        node.AppendChild(baseElement);
+        node.AppendChild(superElement);
+
+        return node;
+    }
+
+    private static DocMath.Subscript CreateSubscriptNode(string baseExpr, string subExpr)
+    {
+        var node = new DocMath.Subscript();
+
+        var baseElement = new DocMath.Base();
+        baseElement.AppendChild(CreateMathNode(baseExpr));
+
+        var subElement = new DocMath.SubArgument();
+        subElement.AppendChild(CreateMathBaseElement(subExpr));
+
+        node.AppendChild(baseElement);
+        node.AppendChild(subElement);
+
+        return node;
+    }
+
+    private static DocMath.SubSuperscript CreateSummationNode(string subExpr, string supExpr)
+        => CreateSubSuperscriptNode("∑", subExpr, supExpr);
+
+    private static DocMath.Base CreateMathBaseElement(string expression)
+    {
+        var baseElement = new DocMath.Base();
+        baseElement.AppendChild(CreateMathNode(UnwrapBraces(expression)));
+        return baseElement;
+    }
+
+    private static DocMath.Run CreateMathTextRun(string text)
+    {
+        var mathRun = new DocMath.Run();
+        mathRun.AppendChild(new DocMath.Text(text));
+        return mathRun;
+    }
+
+    private static string UnwrapBraces(string expression)
+    {
+        var trimmed = NormalizeMathExpression(expression);
+        if (trimmed.Length >= 2 && trimmed.StartsWith('{') && trimmed.EndsWith('}'))
+        {
+            return trimmed[1..^1];
+        }
+
+        return trimmed;
+    }
+
+    private static bool TryParseFraction(string expression, out string numerator, out string denominator)
+    {
+        var match = FractionMathRegex().Match(expression);
+        if (match.Success)
+        {
+            numerator = match.Groups["num"].Value;
+            denominator = match.Groups["den"].Value;
+            return true;
+        }
+
+        numerator = string.Empty;
+        denominator = string.Empty;
+        return false;
+    }
+
+    private static bool TryParseSummation(string expression, out string subExpr, out string supExpr, out string bodyExpr)
+    {
+        var match = SummationMathRegex().Match(expression);
+        if (match.Success)
+        {
+            subExpr = match.Groups["sub"].Value;
+            supExpr = match.Groups["sup"].Value;
+            bodyExpr = match.Groups["body"].Value;
+            return true;
+        }
+
+        subExpr = string.Empty;
+        supExpr = string.Empty;
+        bodyExpr = string.Empty;
+        return false;
+    }
+
+    private static bool TryParseSubSup(string expression, out string baseExpr, out string subExpr, out string supExpr)
+    {
+        var match = SubSupMathRegex().Match(expression);
+        if (match.Success)
+        {
+            baseExpr = match.Groups["base"].Value;
+            subExpr = match.Groups["sub"].Value;
+            supExpr = match.Groups["sup"].Value;
+            return true;
+        }
+
+        baseExpr = string.Empty;
+        subExpr = string.Empty;
+        supExpr = string.Empty;
+        return false;
+    }
+
+    private static bool TryParseSuperscript(string expression, out string baseExpr, out string supExpr)
+    {
+        var match = SupMathRegex().Match(expression);
+        if (match.Success)
+        {
+            baseExpr = match.Groups["base"].Value;
+            supExpr = match.Groups["sup"].Value;
+            return true;
+        }
+
+        baseExpr = string.Empty;
+        supExpr = string.Empty;
+        return false;
+    }
+
+    private static bool TryParseSubscript(string expression, out string baseExpr, out string subExpr)
+    {
+        var match = SubMathRegex().Match(expression);
+        if (match.Success)
+        {
+            baseExpr = match.Groups["base"].Value;
+            subExpr = match.Groups["sub"].Value;
+            return true;
+        }
+
+        baseExpr = string.Empty;
+        subExpr = string.Empty;
+        return false;
+    }
+
+    private static string NormalizeMathExpression(string expression)
+        => System.Net.WebUtility.HtmlDecode(expression).Trim();
+
+    private static void EnsureNumberingDefinitions(MainDocumentPart mainPart)
+    {
+        // Track whether the part itself is new BEFORE the ?? operator.
+        // If the part already exists but .Numbering returns null (empty/corrupt XML), the SDK
+        // has internally marked it as "loaded" and setting .Numbering throws ArgumentException.
+        var isNewPart = mainPart.NumberingDefinitionsPart is null;
+        var numberingPart = mainPart.NumberingDefinitionsPart ?? mainPart.AddNewPart<NumberingDefinitionsPart>();
+
+        // Si el part ya existía en la plantilla pero devuelve Numbering == null (XML vacío o inusual),
+        // no intentar reasignar el root element — el SDK lanza ArgumentException.
+        if (!isNewPart && numberingPart.Numbering is null)
+        {
+            return;
+        }
+
+        var existingNumbering = numberingPart.Numbering;
+        var numbering = existingNumbering ?? new Numbering();
+
+        if (!numbering.Elements<AbstractNum>().Any(n => n.AbstractNumberId?.Value == 1))
+        {
+            var bulletAbstract = new AbstractNum(
+                new Level(
+                    new NumberingFormat { Val = NumberFormatValues.Bullet },
+                    new LevelText { Val = "•" },
+                    new LevelJustification { Val = LevelJustificationValues.Left },
+                    new PreviousParagraphProperties(new Indentation { Left = "720", Hanging = "360" }))
+                { LevelIndex = 0 })
+            { AbstractNumberId = 1 };
+
+            numbering.AppendChild(bulletAbstract);
+        }
+
+        if (!numbering.Elements<NumberingInstance>().Any(n => n.NumberID?.Value == 1))
+        {
+            var bulletInstance = new NumberingInstance(new AbstractNumId { Val = 1 }) { NumberID = 1 };
+            numbering.AppendChild(bulletInstance);
+        }
+
+        if (existingNumbering is null)
+        {
+            numberingPart.Numbering = numbering;
+        }
+
+        numberingPart.Numbering.Save();
+    }
+
+    private static Hyperlink? CreateHyperlink(MainDocumentPart mainPart, string href, string text, RunProperties baseRunProperties)
+    {
+        if (!TryCreateAllowedUri(href, out var uri))
+        {
+            return null;
+        }
+
+        var relationship = mainPart.AddHyperlinkRelationship(uri, true);
+
+        var linkRunProperties = (RunProperties)baseRunProperties.CloneNode(true);
+        linkRunProperties.AppendChild(new Color { Val = "0563C1" });
+        linkRunProperties.AppendChild(new Underline { Val = UnderlineValues.Single });
+
+        var linkRun = new Run(
+            linkRunProperties,
+            new Text(text) { Space = SpaceProcessingModeValues.Preserve });
+
+        return new Hyperlink(linkRun)
+        {
+            Id = relationship.Id,
+            History = OnOffValue.FromBoolean(true)
+        };
+    }
+
+    private static bool TryCreateAllowedUri(string href, out Uri uri)
+    {
+        uri = null!;
+
+        if (string.IsNullOrWhiteSpace(href) ||
+            !Uri.TryCreate(href.Trim(), UriKind.Absolute, out var parsed))
+        {
+            return false;
+        }
+
+        if (parsed.Scheme is not ("http" or "https" or "mailto"))
+        {
+            return false;
+        }
+
+        uri = parsed;
+        return true;
+    }
+
+    private static Dictionary<string, string> BuildTemplateTagReplacements(ExportDocumentData data)
+    {
+        var replacements = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["ProjectTitle"] = data.Title,
+            ["InterventionType"] = data.InterventionType,
+            ["Address"] = data.Address ?? string.Empty,
+            ["IsLoeRequired"] = data.IsLoeRequired ? "Sí" : "No"
+        };
+
+        if (data.PlaceholderReplacements is not null)
+        {
+            foreach (var (key, value) in data.PlaceholderReplacements)
+            {
+                if (!string.IsNullOrWhiteSpace(key))
+                {
+                    replacements[key.Trim()] = value ?? string.Empty;
+                }
+            }
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(data.ContentTreeJson);
+            if (doc.RootElement.TryGetProperty("chapters", out var chapters)
+                && chapters.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var chapter in chapters.EnumerateArray())
+                {
+                    CollectSectionTagReplacements(chapter, replacements);
+                }
+            }
+        }
+        catch
+        {
+            // No interrumpir exportación por errores de parsing del árbol; otros tags siguen aplicándose.
+        }
+
+        return replacements;
+    }
+
+    private static Dictionary<string, string> BuildBracePlaceholderReplacements(
+        ExportDocumentData data,
+        IReadOnlyDictionary<string, string> tagReplacements)
+    {
+        var replacements = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var (key, value) in tagReplacements)
+        {
+            var normalizedKey = NormalizePlaceholderKey(key);
+            if (!string.IsNullOrWhiteSpace(normalizedKey))
+            {
+                replacements[normalizedKey] = value ?? string.Empty;
+            }
+        }
+
+        if (data.PlaceholderReplacements is not null)
+        {
+            foreach (var (key, value) in data.PlaceholderReplacements)
+            {
+                var normalizedKey = NormalizePlaceholderKey(key);
+                if (!string.IsNullOrWhiteSpace(normalizedKey))
+                {
+                    // Global placeholder mappings should win over legacy-derived defaults.
+                    replacements[normalizedKey] = value ?? string.Empty;
+                }
+            }
+        }
+
+        return replacements;
+    }
+
+    /// <summary>
+    /// Aplica reemplazos de placeholders con llaves dobles en todo el documento.
+    /// Devuelve por separado el número de reemplazos en el body principal y en
+    /// cabeceras/pies de página, ya que solo el body-count determina si el contenido
+    /// del proyecto fue inyectado directamente (y por tanto si el path híbrido debe ejecutarse).
+    /// </summary>
+    private static (int BodyCount, int HeaderFooterCount) ApplyBracePlaceholderReplacements(
+        MainDocumentPart mainPart,
+        IReadOnlyDictionary<string, string> replacements)
+    {
+        if (replacements.Count == 0)
+        {
+            return (0, 0);
+        }
+
+        var bodyCount = 0;
+        var headerFooterCount = 0;
+
+        if (mainPart.Document is not null)
+        {
+            bodyCount = ApplyBracePlaceholderReplacementsToElement(mainPart.Document, replacements);
+        }
+
+        foreach (var headerPart in mainPart.HeaderParts)
+        {
+            if (headerPart.Header is not null)
+            {
+                headerFooterCount += ApplyBracePlaceholderReplacementsToElement(headerPart.Header, replacements);
+            }
+        }
+
+        foreach (var footerPart in mainPart.FooterParts)
+        {
+            if (footerPart.Footer is not null)
+            {
+                headerFooterCount += ApplyBracePlaceholderReplacementsToElement(footerPart.Footer, replacements);
+            }
+        }
+
+        return (bodyCount, headerFooterCount);
+    }
+
+    private static int ApplyBracePlaceholderReplacementsToElement(
+        OpenXmlElement root,
+        IReadOnlyDictionary<string, string> replacements)
+    {
+        var replacedCount = 0;
+        var processedTextNodes = new HashSet<Text>();
+
+        foreach (var paragraph in root.Descendants<Paragraph>())
+        {
+            var paragraphTextNodes = paragraph.Descendants<Text>().ToList();
+            if (paragraphTextNodes.Count == 0)
+            {
+                continue;
+            }
+
+            replacedCount += ReplacePlaceholdersAcrossTextNodes(paragraphTextNodes, replacements);
+
+            foreach (var textNode in paragraphTextNodes)
+            {
+                processedTextNodes.Add(textNode);
+            }
+        }
+
+        var remainingTextNodes = root
+            .Descendants<Text>()
+            .Where(textNode => !processedTextNodes.Contains(textNode))
+            .ToList();
+
+        if (remainingTextNodes.Count > 0)
+        {
+            replacedCount += ReplacePlaceholdersAcrossTextNodes(remainingTextNodes, replacements);
+        }
+
+        return replacedCount;
+    }
+
+    private static int ReplacePlaceholdersAcrossTextNodes(
+        IReadOnlyList<Text> textNodes,
+        IReadOnlyDictionary<string, string> replacements)
+    {
+        if (textNodes.Count == 0)
+        {
+            return 0;
+        }
+
+        var originalSegments = textNodes.Select(node => node.Text ?? string.Empty).ToList();
+        var combinedOriginalText = string.Concat(originalSegments);
+
+        if (combinedOriginalText.Length == 0 || !combinedOriginalText.Contains("{{", StringComparison.Ordinal))
+        {
+            return 0;
+        }
+
+        var replacementCount = 0;
+        var combinedUpdatedText = BracePlaceholderRegex().Replace(combinedOriginalText, match =>
+        {
+            var key = NormalizePlaceholderKey(match.Groups["key"].Value);
+            if (!replacements.TryGetValue(key, out var replacementValue))
+            {
+                return match.Value;
+            }
+
+            replacementCount++;
+            return replacementValue ?? string.Empty;
+        });
+
+        if (replacementCount == 0 || string.Equals(combinedOriginalText, combinedUpdatedText, StringComparison.Ordinal))
+        {
+            return 0;
+        }
+
+        var cursor = 0;
+
+        for (var index = 0; index < textNodes.Count; index++)
+        {
+            var textNode = textNodes[index];
+            var isLastNode = index == textNodes.Count - 1;
+            var available = combinedUpdatedText.Length - cursor;
+            var targetLength = originalSegments[index].Length;
+
+            if (available <= 0)
+            {
+                textNode.Text = string.Empty;
+                textNode.Space = SpaceProcessingModeValues.Preserve;
+                continue;
+            }
+
+            var chunkLength = isLastNode
+                ? available
+                : Math.Min(targetLength, available);
+
+            textNode.Text = combinedUpdatedText.Substring(cursor, chunkLength);
+            textNode.Space = SpaceProcessingModeValues.Preserve;
+            cursor += chunkLength;
+        }
+
+        return replacementCount;
+    }
+
+    private static string NormalizePlaceholderKey(string? key)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            return string.Empty;
+        }
+
+        var trimmed = key.Trim();
+
+        if (trimmed.StartsWith("{{", StringComparison.Ordinal)
+            && trimmed.EndsWith("}}", StringComparison.Ordinal)
+            && trimmed.Length >= 4)
+        {
+            trimmed = trimmed[2..^2].Trim();
+        }
+
+        return trimmed.ToUpperInvariant();
+    }
+
+    private static void CollectSectionTagReplacements(JsonElement node, IDictionary<string, string> replacements)
+    {
+        if (node.TryGetProperty("id", out var idElement)
+            && idElement.ValueKind == JsonValueKind.String)
+        {
+            var sectionId = idElement.GetString();
+            var sectionTag = ConvertSectionIdToTag(sectionId);
+
+            if (!string.IsNullOrWhiteSpace(sectionTag)
+                && node.TryGetProperty("content", out var contentElement)
+                && contentElement.ValueKind == JsonValueKind.String)
+            {
+                var content = contentElement.GetString();
+                replacements[sectionTag] = string.IsNullOrWhiteSpace(content)
+                    ? string.Empty
+                    : StripHtmlTags(content);
+            }
+        }
+
+        if (node.TryGetProperty("sections", out var sections)
+            && sections.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var child in sections.EnumerateArray())
+            {
+                CollectSectionTagReplacements(child, replacements);
+            }
+        }
+    }
+
+    private static string ConvertSectionIdToTag(string? sectionId)
+    {
+        if (string.IsNullOrWhiteSpace(sectionId))
+        {
+            return string.Empty;
+        }
+
+        var parts = sectionId
+            .Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToArray();
+
+        if (parts.Length < 2)
+        {
+            return string.Empty;
+        }
+
+        var prefix = parts[0].ToUpperInvariant();
+        var numericParts = parts.Skip(1).Select(NormalizeTagPart).ToArray();
+
+        return $"{prefix}.{string.Join('.', numericParts)}";
+    }
+
+    private static string NormalizeTagPart(string value)
+    {
+        if (int.TryParse(value, out var number))
+        {
+            return number.ToString("00");
+        }
+
+        return value.ToUpperInvariant();
+    }
+
+    private static int ApplyTemplateTagReplacements(MainDocumentPart mainPart, IReadOnlyDictionary<string, string> replacements)
+    {
+        var replacedCount = 0;
+
+        foreach (var sdt in EnumerateTaggedContentControls(mainPart))
+        {
+            if (TryGetTagValue(sdt, out var tagValue)
+                && replacements.TryGetValue(tagValue, out var replacementValue))
+            {
+                ReplaceSdtContentWithText(sdt, replacementValue);
+                replacedCount++;
+            }
+        }
+
+        return replacedCount;
+    }
+
+    private static IEnumerable<SdtElement> EnumerateTaggedContentControls(MainDocumentPart mainPart)
+    {
+        if (mainPart.Document is not null)
+        {
+            foreach (var element in mainPart.Document.Descendants<OpenXmlElement>())
+            {
+                if (element is SdtElement sdt)
+                {
+                    yield return sdt;
+                }
+            }
+        }
+
+        foreach (var headerPart in mainPart.HeaderParts)
+        {
+            if (headerPart.Header is null) continue;
+            foreach (var element in headerPart.Header.Descendants<OpenXmlElement>())
+            {
+                if (element is SdtElement sdt)
+                {
+                    yield return sdt;
+                }
+            }
+        }
+
+        foreach (var footerPart in mainPart.FooterParts)
+        {
+            if (footerPart.Footer is null) continue;
+            foreach (var element in footerPart.Footer.Descendants<OpenXmlElement>())
+            {
+                if (element is SdtElement sdt)
+                {
+                    yield return sdt;
+                }
+            }
+        }
+    }
+
+    private static bool TryGetTagValue(SdtElement sdt, out string tagValue)
+    {
+        tagValue = string.Empty;
+
+        var tag = sdt.SdtProperties?.GetFirstChild<Tag>()?.Val?.Value;
+        if (string.IsNullOrWhiteSpace(tag))
+        {
+            return false;
+        }
+
+        tagValue = tag.Trim();
+        return true;
+    }
+
+    private static void ReplaceSdtContentWithText(SdtElement sdt, string replacementValue)
+    {
+        switch (sdt)
+        {
+            case SdtBlock sdtBlock when sdtBlock.SdtContentBlock is not null:
+                ReplaceCompositeContent(sdtBlock.SdtContentBlock, replacementValue);
+                break;
+
+            case SdtRun sdtRun when sdtRun.SdtContentRun is not null:
+                ReplaceCompositeContent(sdtRun.SdtContentRun, replacementValue);
+                break;
+
+            case SdtCell sdtCell when sdtCell.SdtContentCell is not null:
+                ReplaceCompositeContent(sdtCell.SdtContentCell, replacementValue);
+                break;
+        }
+    }
+
+    private static void ReplaceCompositeContent(OpenXmlCompositeElement contentElement, string replacementValue)
+    {
+        contentElement.RemoveAllChildren();
+
+        if (contentElement is SdtContentRun)
+        {
+            contentElement.AppendChild(new Run(new Text(replacementValue ?? string.Empty)
+            {
+                Space = SpaceProcessingModeValues.Preserve
+            }));
+            return;
+        }
+
+        var paragraph = new Paragraph();
+        paragraph.AppendChild(new Run(new Text(replacementValue ?? string.Empty)
+        {
+            Space = SpaceProcessingModeValues.Preserve
+        }));
+        contentElement.AppendChild(paragraph);
+    }
+
+    private static IEnumerable<string> SplitHtmlPreservingTables(string html)
+    {
+        var matches = TableRegex().Matches(html);
+        if (matches.Count == 0)
+        {
+            return BlockSplitRegex().Split(html);
+        }
+
+        var blocks = new List<string>();
+        var currentIndex = 0;
+
+        foreach (Match match in matches)
+        {
+            if (match.Index > currentIndex)
+            {
+                blocks.AddRange(BlockSplitRegex().Split(html[currentIndex..match.Index]));
+            }
+
+            blocks.Add(match.Value);
+            currentIndex = match.Index + match.Length;
+        }
+
+        if (currentIndex < html.Length)
+        {
+            blocks.AddRange(BlockSplitRegex().Split(html[currentIndex..]));
+        }
+
+        return blocks;
+    }
+
+    private static Table? CreateTableFromHtml(string htmlTable)
+    {
+        var rowMatches = TableRowRegex().Matches(htmlTable);
+        if (rowMatches.Count == 0)
+        {
+            return null;
+        }
+
+        var table = new Table();
+        table.AppendChild(new TableProperties(
+            new TableBorders(
+                new TopBorder { Val = BorderValues.Single, Size = 8 },
+                new BottomBorder { Val = BorderValues.Single, Size = 8 },
+                new LeftBorder { Val = BorderValues.Single, Size = 8 },
+                new RightBorder { Val = BorderValues.Single, Size = 8 },
+                new InsideHorizontalBorder { Val = BorderValues.Single, Size = 6 },
+                new InsideVerticalBorder { Val = BorderValues.Single, Size = 6 })));
+
+        foreach (Match rowMatch in rowMatches)
+        {
+            var row = new TableRow();
+            var cellMatches = TableCellRegex().Matches(rowMatch.Groups["cells"].Value);
+            foreach (Match cellMatch in cellMatches)
+            {
+                var tagName = cellMatch.Groups["tag"].Value;
+                var cellText = StripHtmlTags(cellMatch.Groups["content"].Value);
+
+                var runProperties = new RunProperties();
+                if (string.Equals(tagName, "th", StringComparison.OrdinalIgnoreCase))
+                {
+                    runProperties.AppendChild(new Bold());
+                }
+
+                var paragraph = new Paragraph(new Run(runProperties, new Text(cellText)));
+                row.AppendChild(new TableCell(
+                    paragraph,
+                    new TableCellProperties(new TableCellWidth { Type = TableWidthUnitValues.Auto })));
+            }
+
+            if (row.ChildElements.Count > 0)
+            {
+                table.AppendChild(row);
+            }
+        }
+
+        return table.ChildElements.Count > 0 ? table : null;
     }
 
     private static string StripHtmlTags(string html)
@@ -317,6 +1409,78 @@ public sealed partial class DocxExportService : IDocumentExportService
     [GeneratedRegex(@"<h([1-6])[^>]*>(.*?)</h\1>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
     private static partial Regex ContentHeadingRegex();
 
+    [GeneratedRegex(@"<a\b[^>]*?href\s*=\s*['""](?<href>[^'""]+)['""][^>]*>(?<text>.*?)</a>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    private static partial Regex AnchorRegex();
+
+    [GeneratedRegex(@"<table\b[^>]*>.*?</table>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    private static partial Regex TableRegex();
+
+    [GeneratedRegex(@"<tr\b[^>]*>(?<cells>.*?)</tr>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    private static partial Regex TableRowRegex();
+
+    [GeneratedRegex(@"<(?<tag>th|td)\b[^>]*>(?<content>.*?)</\k<tag>>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    private static partial Regex TableCellRegex();
+
+    [GeneratedRegex(@"^\s*\$\$(?<expr>[\s\S]+?)\$\$\s*$", RegexOptions.Singleline)]
+    private static partial Regex BlockMathRegex();
+
+    [GeneratedRegex(@"\$(?<expr>[^$\r\n]+)\$")]
+    private static partial Regex InlineMathRegex();
+
+    [GeneratedRegex(@"^\\frac\{(?<num>.+)\}\{(?<den>.+)\}$", RegexOptions.Singleline)]
+    private static partial Regex FractionMathRegex();
+
+    [GeneratedRegex(@"^\\sum_\{(?<sub>[^{}]+)\}\^\{(?<sup>[^{}]+)\}\s*(?<body>.*)$", RegexOptions.Singleline)]
+    private static partial Regex SummationMathRegex();
+
+    [GeneratedRegex(@"^(?<base>[A-Za-z0-9]+)_\{(?<sub>[^{}]+)\}\^\{(?<sup>[^{}]+)\}$", RegexOptions.Singleline)]
+    private static partial Regex SubSupMathRegex();
+
+    [GeneratedRegex(@"^(?<base>[A-Za-z0-9]+)\^\{?(?<sup>[A-Za-z0-9+\-*/=().]+)\}?$", RegexOptions.Singleline)]
+    private static partial Regex SupMathRegex();
+
+    [GeneratedRegex(@"^(?<base>[A-Za-z0-9]+)_\{?(?<sub>[A-Za-z0-9+\-*/=().]+)\}?$", RegexOptions.Singleline)]
+    private static partial Regex SubMathRegex();
+
     [GeneratedRegex(@"<[^>]+>")]
     private static partial Regex HtmlTagRegex();
+
+    [GeneratedRegex(@"\{\{\s*(?<key>[A-Za-z0-9_.-]+)\s*\}\}")]
+    private static partial Regex BracePlaceholderRegex();
+
+    private static void RemoveAttachedTemplateReference(MainDocumentPart mainPart)
+    {
+        var settingsPart = mainPart.DocumentSettingsPart;
+        if (settingsPart?.Settings is null) return;
+
+        var attachedTemplate = settingsPart.Settings.GetFirstChild<AttachedTemplate>();
+        if (attachedTemplate is null) return;
+
+        var rId = attachedTemplate.Id?.Value;
+        if (!string.IsNullOrWhiteSpace(rId))
+        {
+            try { settingsPart.DeleteReferenceRelationship(rId); }
+            catch { /* la relación puede no existir si el .dotx fue creado sin adjunto externo */ }
+        }
+
+        attachedTemplate.Remove();
+        settingsPart.Settings.Save();
+    }
+
+    private static void ForceUpdateFieldsOnOpen(MainDocumentPart mainPart)
+    {
+        var settingsPart = mainPart.DocumentSettingsPart ?? mainPart.AddNewPart<DocumentSettingsPart>();
+
+        if (settingsPart.Settings is null)
+        {
+            settingsPart.Settings = new Settings();
+        }
+
+        var hasUpdateFields = settingsPart.Settings.Elements<UpdateFieldsOnOpen>().Any();
+        if (!hasUpdateFields)
+        {
+            settingsPart.Settings.Append(new UpdateFieldsOnOpen { Val = true });
+            settingsPart.Settings.Save();
+        }
+    }
 }

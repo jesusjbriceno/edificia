@@ -11,12 +11,14 @@ namespace Edificia.Application.Interfaces;
 /// <param name="IsLoeRequired">Whether the project is subject to LOE regulations.</param>
 /// <param name="ContentTreeJson">The full content tree JSON structure with chapters and sections.</param>
 /// <param name="Address">Optional project address.</param>
+/// <param name="PlaceholderReplacements">Optional resolved placeholder values by key (without braces).</param>
 public sealed record ExportDocumentData(
     string Title,
     string InterventionType,
     bool IsLoeRequired,
     string ContentTreeJson,
-    string? Address = null)
+    string? Address = null,
+    IReadOnlyDictionary<string, string>? PlaceholderReplacements = null)
 {
     /// <summary>
     /// Creates an ExportDocumentData from a Project entity, formatting the intervention type.

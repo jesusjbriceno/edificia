@@ -12,7 +12,14 @@ vi.mock('@/lib/services/projectService.js', () => ({
   },
 }));
 
+vi.mock('@/lib/services/templateService', () => ({
+  templateService: {
+    list: vi.fn(),
+  },
+}));
+
 import { projectService } from '@/lib/services/projectService.js';
+import { templateService } from '@/lib/services/templateService';
 
 // Mock TipTap — provide minimal working editor stubs
 vi.mock('@tiptap/react', () => ({
@@ -84,6 +91,7 @@ describe('Export DOCX button', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     setupStore();
+    vi.mocked(templateService.list).mockResolvedValue([]);
   });
 
   it('should render "Exportar" button when a section is active', () => {
@@ -106,6 +114,7 @@ describe('Export DOCX button', () => {
 
     render(<EditorShell />);
     fireEvent.click(screen.getByText('Exportar'));
+    fireEvent.click(screen.getByRole('button', { name: /exportar docx/i }));
 
     await waitFor(() => {
       expect(screen.getByText('Exportando...')).toBeInTheDocument();
@@ -128,6 +137,7 @@ describe('Export DOCX button', () => {
 
     render(<EditorShell />);
     fireEvent.click(screen.getByText('Exportar'));
+    fireEvent.click(screen.getByRole('button', { name: /exportar docx/i }));
 
     await waitFor(() => {
       expect(projectService.exportDocx).toHaveBeenCalledWith('proj-export-1');
@@ -147,6 +157,7 @@ describe('Export DOCX button', () => {
 
     render(<EditorShell />);
     fireEvent.click(screen.getByText('Exportar'));
+    fireEvent.click(screen.getByRole('button', { name: /exportar docx/i }));
 
     // Should go to loading
     await waitFor(() => {
@@ -156,6 +167,53 @@ describe('Export DOCX button', () => {
     // Should recover back to normal button
     await waitFor(() => {
       expect(screen.getByText('Exportar')).toBeInTheDocument();
+    });
+  });
+
+  it('should open export modal before calling API', async () => {
+    render(<EditorShell />);
+    fireEvent.click(screen.getByText('Exportar'));
+
+    expect(await screen.findByText(/exportar memoria a DOCX/i)).toBeInTheDocument();
+    expect(projectService.exportDocx).not.toHaveBeenCalled();
+  });
+
+  it('should send selected template and custom filename from export modal', async () => {
+    vi.mocked(templateService.list).mockResolvedValueOnce([
+      {
+        id: 'tpl-10',
+        name: 'Plantilla Técnica',
+        description: null,
+        templateType: 'MemoriaTecnica',
+        version: 3,
+        isAvailable: true,
+        isDefault: true,
+        isActive: true,
+        originalFileName: 'tecnica.dotx',
+        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.template',
+        fileSizeBytes: 123,
+        createdAt: new Date().toISOString(),
+        updatedAt: null,
+      },
+    ]);
+
+    (projectService.exportDocx as ReturnType<typeof vi.fn>).mockResolvedValue({
+      blob: new Blob(['docx content']),
+      fileName: 'memoria-server.docx',
+    });
+
+    render(<EditorShell />);
+    fireEvent.click(screen.getByText('Exportar'));
+
+    const fileNameInput = await screen.findByPlaceholderText(/memoria-proyecto\.docx/i);
+    fireEvent.change(fileNameInput, { target: { value: 'memoria-personalizada' } });
+    fireEvent.click(screen.getByRole('button', { name: /exportar docx/i }));
+
+    await waitFor(() => {
+      expect(projectService.exportDocx).toHaveBeenCalledWith('proj-export-1', {
+        templateId: 'tpl-10',
+        outputFileName: 'memoria-personalizada.docx',
+      });
     });
   });
 });

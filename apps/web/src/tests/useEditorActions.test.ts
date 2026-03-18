@@ -142,6 +142,29 @@ describe('useEditorActions — handleExport', () => {
     expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('memoria.docx'));
   });
 
+  it('envía templateId y outputFileName cuando se seleccionan en el modal', async () => {
+    const mockBlob = new Blob(['content']);
+    vi.mocked(projectService.exportDocx).mockResolvedValueOnce({
+      blob: mockBlob,
+      fileName: 'server-name.docx',
+    });
+
+    const { result } = renderHook(() => useEditorActions(null));
+
+    await act(async () => {
+      await result.current.handleExport({
+        preferredTemplateId: 'tpl-123',
+        fileName: 'memoria-personalizada.docx',
+      });
+    });
+
+    expect(projectService.exportDocx).toHaveBeenCalledWith('proj-actions-1', {
+      templateId: 'tpl-123',
+      outputFileName: 'memoria-personalizada.docx',
+    });
+    expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('memoria-personalizada.docx'));
+  });
+
   it('muestra toast.error si la exportación falla', async () => {
     vi.mocked(projectService.exportDocx).mockRejectedValueOnce(new Error('Network error'));
 
@@ -250,6 +273,21 @@ describe('useEditorActions — handleAiInsertContent', () => {
     expect(mockEditor.commands.setContent).toHaveBeenCalledWith('<p>Nuevo contenido</p>');
   });
 
+  it('sanitiza HTML malicioso antes de reemplazar contenido', () => {
+    const { result } = renderHook(() =>
+      useEditorActions(mockEditor as unknown as Parameters<typeof useEditorActions>[0]),
+    );
+
+    act(() => {
+      result.current.handleAiInsertContent('<img src=x onerror=alert(1)><p>Seguro</p><script>alert(1)</script>', 'replace');
+    });
+
+    const inserted = vi.mocked(mockEditor.commands.setContent).mock.calls.at(-1)?.[0] as string;
+    expect(inserted).toContain('<p>Seguro</p>');
+    expect(inserted).not.toContain('onerror');
+    expect(inserted).not.toContain('<script>');
+  });
+
   it('añade al final del editor en modo append', () => {
     const { result } = renderHook(() =>
       useEditorActions(mockEditor as unknown as Parameters<typeof useEditorActions>[0]),
@@ -261,6 +299,20 @@ describe('useEditorActions — handleAiInsertContent', () => {
 
     expect(mockEditor.commands.focus).toHaveBeenCalledWith('end');
     expect(mockEditor.commands.insertContent).toHaveBeenCalledWith('<p>Añadido</p>');
+  });
+
+  it('convierte markdown con tabla y enlace antes de insertar', () => {
+    const { result } = renderHook(() =>
+      useEditorActions(mockEditor as unknown as Parameters<typeof useEditorActions>[0]),
+    );
+
+    act(() => {
+      result.current.handleAiInsertContent('| A | B |\n|---|---|\n| 1 | [Norma](https://example.com) |', 'replace');
+    });
+
+    const inserted = vi.mocked(mockEditor.commands.setContent).mock.calls.at(-1)?.[0] as string;
+    expect(inserted).toContain('<table>');
+    expect(inserted).toContain('https://example.com');
   });
 
   it('no hace nada si el editor es null', () => {

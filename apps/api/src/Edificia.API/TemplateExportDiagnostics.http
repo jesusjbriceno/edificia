@@ -1,0 +1,103 @@
+@ApiBaseUrl = http://localhost:5000
+@email = admin@edificia.local
+@password = ChangeMe123!
+@projectId = 00000000-0000-0000-0000-000000000000
+@preferredTemplateId = 00000000-0000-0000-0000-000000000000
+@defaultTemplateId = 00000000-0000-0000-0000-000000000000
+@outputFileName = diagnostico-export.docx
+
+### 1) Login (capture bearer token)
+POST {{ApiBaseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+> {%
+  if (response.status !== 200) {
+    client.log("Login failed. Check email/password.");
+    return;
+  }
+
+  const token = response.body?.accessToken;
+  if (!token) {
+    client.log("Login response does not include accessToken.");
+    return;
+  }
+
+  client.global.set("authToken", token);
+  client.log("authToken saved.");
+%}
+
+### 2) List templates (all) - verify IDs, availability, default
+GET {{ApiBaseUrl}}/api/templates?templateType=MemoriaTecnica
+Authorization: Bearer {{authToken}}
+Accept: application/json
+
+### 3) List templates (available only) - what export modal can select
+GET {{ApiBaseUrl}}/api/templates?templateType=MemoriaTecnica&isAvailable=true
+Authorization: Bearer {{authToken}}
+Accept: application/json
+
+### 4) Force default template (optional)
+PUT {{ApiBaseUrl}}/api/templates/{{defaultTemplateId}}/default
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "isDefault": true
+}
+
+### 5) Export with explicit templateId
+GET {{ApiBaseUrl}}/api/projects/{{projectId}}/export?templateId={{preferredTemplateId}}&outputFileName={{outputFileName}}
+Authorization: Bearer {{authToken}}
+Accept: application/vnd.openxmlformats-officedocument.wordprocessingml.document
+
+> {%
+  const requested = request.variables.get("preferredTemplateId")?.toLowerCase();
+  const resolved = response.headers.valueOf("x-edificia-resolved-template-id")?.toLowerCase();
+  const applied = response.headers.valueOf("x-edificia-applied-template-id")?.toLowerCase();
+  const mode = response.headers.valueOf("x-edificia-export-mode");
+
+  client.log(`status=${response.status}`);
+  client.log(`mode=${mode}`);
+  client.log(`requested=${requested}`);
+  client.log(`resolved=${resolved}`);
+  client.log(`applied=${applied}`);
+
+  client.assert(response.status === 200, "Expected HTTP 200 on export");
+  client.assert(resolved === requested, "Resolved template does not match requested template");
+
+  if (mode === "template") {
+    client.assert(applied === requested, "Applied template should match requested template in template mode");
+  }
+
+  if (mode === "fallback") {
+    client.log("Export mode is fallback: template selection worked but template rendering/load failed.");
+  }
+%}
+
+### 6) Export without templateId (default resolution path)
+GET {{ApiBaseUrl}}/api/projects/{{projectId}}/export?outputFileName={{outputFileName}}
+Authorization: Bearer {{authToken}}
+Accept: application/vnd.openxmlformats-officedocument.wordprocessingml.document
+
+> {%
+  const resolved = response.headers.valueOf("x-edificia-resolved-template-id");
+  const applied = response.headers.valueOf("x-edificia-applied-template-id");
+  const mode = response.headers.valueOf("x-edificia-export-mode");
+
+  client.log(`status=${response.status}`);
+  client.log(`mode=${mode}`);
+  client.log(`resolved=${resolved}`);
+  client.log(`applied=${applied}`);
+
+  client.assert(response.status === 200, "Expected HTTP 200 on export");
+%}
+
+### 7) Compare template binary retrieval by templateId (optional smoke)
+### Repeat request 5 changing preferredTemplateId between two templates.
+### If resolved/applied IDs switch correctly but resulting document style does not,
+### root cause is likely storage payload mismatch (template bytes behind storage key).

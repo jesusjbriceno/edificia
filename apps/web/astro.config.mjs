@@ -8,6 +8,22 @@ export default defineConfig({
   integrations: [react()],
   vite: {
     plugins: [tailwindcss()],
+    optimizeDeps: {
+      include: [
+        'idb-keyval',
+        'react-hook-form',
+        '@hookform/resolvers/zod',
+        'zod',
+        '@tiptap/react',
+        '@tiptap/starter-kit',
+        '@tiptap/extension-underline',
+        '@tiptap/extension-link',
+        '@tiptap/extension-table',
+        '@tiptap/extension-table-row',
+        '@tiptap/extension-table-cell',
+        '@tiptap/extension-table-header',
+      ],
+    },
     // Suppress broken source maps from node_modules (e.g. lucide-react)
     build: {
       rollupOptions: {

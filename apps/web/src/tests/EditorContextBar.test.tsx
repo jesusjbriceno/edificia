@@ -15,7 +15,7 @@ const defaultProps: EditorContextBarProps = {
   projectId: 'proj-abc',
   onSubmitForReview: vi.fn(),
   onToggleAi: vi.fn(),
-  onExport: vi.fn(),
+  onOpenExport: vi.fn(),
 };
 
 function renderBar(overrides: Partial<EditorContextBarProps> = {}) {
@@ -128,11 +128,11 @@ describe('EditorContextBar — botón Exportar', () => {
     expect(btn).toHaveAttribute('title');
   });
 
-  it('llama a onExport al hacer click', () => {
-    const onExport = vi.fn();
-    renderBar({ onExport });
+  it('llama a onOpenExport al hacer click', () => {
+    const onOpenExport = vi.fn();
+    renderBar({ onOpenExport });
     fireEvent.click(screen.getByRole('button', { name: /exportar memoria a docx/i }));
-    expect(onExport).toHaveBeenCalledOnce();
+    expect(onOpenExport).toHaveBeenCalledOnce();
   });
 
   it('está deshabilitado y tiene aria-busy cuando exporting=true', () => {

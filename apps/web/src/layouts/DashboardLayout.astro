@@ -1,6 +1,6 @@
 ---
 import BaseLayout from './BaseLayout.astro';
-import { LayoutDashboard, FolderKanban, Users, Settings, Search, Bell } from 'lucide-react';
+import { LayoutDashboard, FolderKanban, Users, FileText, CircleHelp, Settings, Search, Bell } from 'lucide-react';
 import HeaderUser from '@/components/HeaderUser';
 import SidebarLogout from '@/components/SidebarLogout';
 import MobileSidebar from '@/components/MobileSidebar';
@@ -48,6 +48,14 @@ const linkClass = (href: string) => {
 				<a href="/admin/users" class={linkClass('/admin/users')}>
 					<Users size={18} className={currentPath.startsWith('/admin/users') ? 'text-brand-primary' : ''} />
 					Usuarios
+				</a>
+				<a href="/admin/templates" class={linkClass('/admin/templates')}>
+					<FileText size={18} className={currentPath.startsWith('/admin/templates') ? 'text-brand-primary' : ''} />
+					Plantillas
+				</a>
+				<a href="/ayuda" class={linkClass('/ayuda')}>
+					<CircleHelp size={18} className={currentPath.startsWith('/ayuda') ? 'text-brand-primary' : ''} />
+					Ayuda
 				</a>
 			</nav>
 

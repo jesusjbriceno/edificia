@@ -28,6 +28,7 @@
 * **Validación:** FluentValidation.  
 * **Mapeo:** **Manual** (Operadores explícitos). **PROHIBIDO AutoMapper**.  
 * **IA:** N8nAiService (webhook n8n → Flux Gateway / Google Gemini), variable `N8N_WEBHOOK_URL`.  
+* **Exportación DOCX:** Soporte híbrido con plantilla `.dotx` activa (`TemplateType = MemoriaTecnica`) y fallback automático al exportador estándar.  
 * **Testing:** xUnit \+ Moq.
 
 ### **🎨 Frontend (apps/web)**
@@ -67,7 +68,7 @@
 │       ├── public/normativa/   \# JSONs estáticos (cte\_2024.json)  
 │       ├── src/  
 │       │   ├── components/ui/  \# Componentes Atómicos (Tailwind)  
-│       │   ├── components/Admin/  \# Componentes de administración (Users, Projects, Notifications)  
+│       │   ├── components/Admin/  \# Componentes de administración (Users, Projects, Notifications, Templates)  
 │       │   ├── components/Editor/  \# Componentes del editor (EditorShell, SidebarNavigation, EditorHeader)  
 │       │   ├── pages/          \# Rutas Astro  
 │       │   └── store/          \# Zustand Stores  
@@ -122,6 +123,25 @@
 
 * La memoria del proyecto NO es una tabla. Es un árbol JSON guardado en Projects.ContentTreeJson.  
 * Usar PATCH endpoints para actualizaciones parciales y eficientes.
+
+### **6.4. Flujo de Plantillas de Exportación (`.docx` / `.dotx`)**
+
+* **Gestión Admin:** Endpoints en `/api/templates` protegidos con `RequireAdmin`.
+* **Formatos soportados:** `.docx` y `.dotx` (máx. 10 MB). Se valida OpenXML legible + cuerpo principal.
+* **Tipo por defecto de exportación:** `MemoriaTecnica` (hardcoded; evolución a catálogo prevista).
+* **Estados de plantilla:** `IsAvailable` (seleccionable) + `IsDefault` (predeterminada por tipo; máx. 1 por tipo).
+* **Resolucion de placeholders:** `TemplatePlaceholderService` resuelve metadatos del proyecto (`PROJECT_TITLE`, `PROJECT_ADDRESS`, `EXPORT_DATE`, etc.) antes de la exportación. Los valores se inyectan en `{{CLAVE}}` en el body/cabeceras/pies y en Content Controls SDT.
+* **Path de exportación híbrido (`ExportToDocxWithTemplateAsync`):**
+  1. Si la plantilla tiene SDT Content Controls → sustituir y conservar body.
+  2. Si tiene `{{...}}` en el body (portada, metadatos) → sustituir y **anexar** árbol de contenido al final.
+  3. Sin SDT ni `{{...}}` en body → usar plantilla como fuente de estilos y regenerar body completo.
+  4. Cabeceras/pies: sustituir `{{...}}` siempre, independientemente del path elegido.
+* **`EnsureHeadingStyles`:** Inyecta estilos `Heading1/2/3` en el `StyleDefinitionsPart` de la plantilla si no están definidos, garantizando jerarquía visual correcta en el output.
+* **Resiliencia:** Fallback transparente al exportador DOCX estándar si la plantilla falla; se reporta vía header `X-Edificia-Export-Mode` (`template` / `fallback` / `legacy`) y `X-Edificia-Template-Error`.
+* **Frontend Admin:** Gestión en `/admin/templates`. Selector de plantilla y nombre de archivo editable en `ExportDocxModal`.
+* **Evolución pendiente:**
+  * Catálogo dinámico de tipos de plantilla (de hardcoded a tabla `template_types`).
+  * Tests de integración de resolución de placeholders end-to-end.
 
 ## **7. Git Flow y Pull Requests (Obligatorio)**
 

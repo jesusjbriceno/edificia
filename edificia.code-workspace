@@ -1,8 +1,37 @@
 {
-	"folders": [
-		{
-			"path": "."
-		}
-	],
-	"settings": {}
+  "folders": [
+    {
+      "path": ".",
+    },
+  ],
+  "settings": {
+    "chat.tools.terminal.autoApprove": {
+      "npm run test": true,
+      "gh": true,
+      "npx vitest": true,
+      "pnpm": true,
+    },
+    "snyk.advanced.organization": "55527ad1-5d68-422f-b6f7-066d4c598bc1",
+    "snyk.advanced.autoSelectOrganization": true,
+    "workbench.colorCustomizations": {
+      "activityBar.activeBackground": "#3399ff",
+      "activityBar.background": "#3399ff",
+      "activityBar.foreground": "#15202b",
+      "activityBar.inactiveForeground": "#15202b99",
+      "activityBarBadge.background": "#bf0060",
+      "activityBarBadge.foreground": "#e7e7e7",
+      "commandCenter.border": "#e7e7e799",
+      "sash.hoverBorder": "#3399ff",
+      "statusBar.background": "#007fff",
+      "statusBar.foreground": "#e7e7e7",
+      "statusBarItem.hoverBackground": "#3399ff",
+      "statusBarItem.remoteBackground": "#007fff",
+      "statusBarItem.remoteForeground": "#e7e7e7",
+      "titleBar.activeBackground": "#007fff",
+      "titleBar.activeForeground": "#e7e7e7",
+      "titleBar.inactiveBackground": "#007fff99",
+      "titleBar.inactiveForeground": "#e7e7e799"
+    },
+    "peacock.color": "#007fff",
+  },
 }

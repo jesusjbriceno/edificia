@@ -24,6 +24,8 @@ public sealed class ExportController : BaseApiController
     /// Exporta la memoria del proyecto como un documento Word (.docx).
     /// </summary>
     /// <param name="id">ID del proyecto a exportar.</param>
+    /// <param name="templateId">ID opcional de la plantilla preferida para la exportación.</param>
+    /// <param name="outputFileName">Nombre opcional del archivo de salida (.docx).</param>
     /// <param name="cancellationToken">Token de cancelación.</param>
     /// <returns>Archivo .docx descargable.</returns>
     /// <response code="200">Documento exportado correctamente.</response>
@@ -34,15 +36,42 @@ public sealed class ExportController : BaseApiController
     [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> ExportProject(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> ExportProject(
+        Guid id,
+        [FromQuery] Guid? templateId = null,
+        [FromQuery] string? outputFileName = null,
+        CancellationToken cancellationToken = default)
     {
-        var query = new ExportProjectQuery(id);
+        var query = new ExportProjectQuery(id, templateId, outputFileName);
         var result = await _mediator.Send(query, cancellationToken);
 
         if (result.IsFailure)
             return HandleResult(result);
 
         var response = result.Value;
+
+        if (templateId.HasValue)
+        {
+            Response.Headers["X-Edificia-Requested-Template-Id"] = templateId.Value.ToString();
+        }
+
+        if (response.ResolvedTemplateId.HasValue)
+        {
+            Response.Headers["X-Edificia-Resolved-Template-Id"] = response.ResolvedTemplateId.Value.ToString();
+        }
+
+        if (response.AppliedTemplateId.HasValue)
+        {
+            Response.Headers["X-Edificia-Applied-Template-Id"] = response.AppliedTemplateId.Value.ToString();
+        }
+
+        Response.Headers["X-Edificia-Export-Mode"] = response.ExportMode;
+
+        if (!string.IsNullOrEmpty(response.TemplateError))
+        {
+            Response.Headers["X-Edificia-Template-Error"] = response.TemplateError;
+        }
+
         return File(response.FileContent, response.ContentType, response.FileName);
     }
 }

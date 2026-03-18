@@ -41,6 +41,24 @@ Hemos conectado EdificIA a una pasarela de Inteligencia Artificial segura.
 4. **Redacción:** Rellenas fichas sencillas y la IA escribe por ti.  
 5. **Exportación:** Descargas un .DOCX impecable listo para el Visado.
 
+## **4\. Plantillas de Exportación**
+
+Para mantener una imagen corporativa homogénea en todas las memorias, EdificIA permite usar plantillas Word compatibles.
+
+### **👩‍💼 Gestión (solo administradores)**
+
+En el área de administración (`/admin/templates`) puedes:
+
+1. **Subir una nueva plantilla** Word (máximo 10 MB).  
+2. **Ver versiones** y metadatos (nombre, tamaño, fecha).  
+3. **Activar o desactivar** la plantilla vigente para exportación.
+
+### **📄 Comportamiento al exportar**
+
+- Si hay una plantilla activa de tipo **MemoriaTecnica**, se aplica automáticamente al generar el DOCX.
+- Si la plantilla no está disponible o falla el procesado, EdificIA aplica un **fallback automático** al exportador estándar.
+- Resultado: el usuario siempre obtiene un documento descargable, sin interrupciones del flujo.
+
 ### **🚀 Empieza a Edificar**
 
 Accede a tu panel y crea tu primer proyecto. Verás la diferencia desde el primer clic.

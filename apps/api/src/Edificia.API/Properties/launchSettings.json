@@ -24,7 +24,24 @@
       },
       "dotnetRunMessages": true,
       "applicationUrl": "http://localhost:5000"
+    },
+    "IIS Express": {
+      "commandName": "IISExpress",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Local",
+        "DATABASE_URL": "postgresql://postgres:cT5Kbx4kp9P9fYxe46F47me1VH1Of5J6osLyj658jDDgxQ3jgzHyvi74U55N4shC@127.0.0.1:5432/edificia_db?schema=public"
+      }
     }
   },
-  "$schema": "https://json.schemastore.org/launchsettings.json"
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "iisSettings": {
+    "windowsAuthentication": false,
+    "anonymousAuthentication": true,
+    "iisExpress": {
+      "applicationUrl": "http://localhost:55128/",
+      "sslPort": 44386
+    }
+  }
 }
