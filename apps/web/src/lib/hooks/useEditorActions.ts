@@ -63,10 +63,23 @@ export function useEditorActions(editor: Editor | null) {
   const handleExport = useCallback(async (options?: ExportDocxOptions) => {
     if (!projectId || exportingRef.current) return;
 
+    const exportOptions = {
+      templateId: options?.preferredTemplateId,
+      outputFileName: options?.fileName?.trim() || undefined,
+    };
+
+    const requestOptions = exportOptions.templateId || exportOptions.outputFileName
+      ? exportOptions
+      : undefined;
+
     exportingRef.current = true;
     setExporting(true);
     try {
-      const { blob, fileName } = await projectService.exportDocx(projectId);
+      const exportResult = requestOptions
+        ? await projectService.exportDocx(projectId, requestOptions)
+        : await projectService.exportDocx(projectId);
+
+      const { blob, fileName, exportMode } = exportResult;
       const downloadFileName = options?.fileName?.trim() || fileName;
 
       const url = URL.createObjectURL(blob);
@@ -77,7 +90,14 @@ export function useEditorActions(editor: Editor | null) {
       anchor.click();
       anchor.remove();
       URL.revokeObjectURL(url);
-      toast.success(`Documento "${downloadFileName}" descargado correctamente.`);
+
+      if (exportMode === 'fallback') {
+        toast.warning(
+          `Documento descargado con exportador estándar. La plantilla seleccionada no pudo cargarse.`,
+        );
+      } else {
+        toast.success(`Documento "${downloadFileName}" descargado correctamente.`);
+      }
     } catch {
       toast.error('No se pudo exportar el documento. Inténtalo de nuevo.');
     } finally {

@@ -6,18 +6,18 @@ Ejecutar la feature de soporte de plantillas `.dotx` con almacenamiento delegado
 
 Documento rector obligatorio durante toda la ejecución: `AGENTS.md`.
 
-## 1.1 Estado real a 2026-02 (baseline)
+## 1.1 Estado real a 2026-03 (baseline)
 
 - Upload de plantillas `.dotx` implementado con validación avanzada (extensión/MIME/tamaño/OpenXML/tags).
-- Gestión admin implementada en `/admin/templates` (alta, listado, activar/desactivar).
+- Gestión admin implementada en `/admin/templates` (alta, listado, edición, eliminación, disponibilidad y predeterminada).
 - Exportación híbrida implementada con fallback al motor estándar.
-- Selección de plantilla actual: automática por plantilla activa de `MemoriaTecnica` (sin selector por usuario).
+- Selección de plantilla operativa desde UI de exportación (`templateId`) y nombre de archivo configurable (`outputFileName`).
 
 ---
 
 ## 1.2 Objetivo de evolución (siguiente iteración)
 
-Evolucionar desde el modelo actual (activa única por tipo) a un modelo escalable con:
+Evolucionar desde el modelo actual a un modelo escalable con:
 
 1. Plantillas disponibles + plantilla predeterminada por tipo documental.
 2. Selector de plantilla en el flujo de exportación.
@@ -151,7 +151,11 @@ Evolucionar desde el modelo actual (activa única por tipo) a un modelo escalabl
 1. `TemplatesController` (Admin):
    - `POST /api/templates`
    - `GET /api/templates`
-   - `PUT /api/templates/{id}/toggle-status`
+  - `PUT /api/templates/{id}`
+  - `PUT /api/templates/{id}/availability`
+  - `PUT /api/templates/{id}/default`
+  - `DELETE /api/templates/{id}`
+  - `PUT /api/templates/{id}/toggle-status` (compatibilidad legado)
 2. Validadores FluentValidation:
    - extensión, MIME, tamaño, campos.
 3. Persistir DB solo tras `success=true` del webhook.
@@ -176,7 +180,7 @@ Evolucionar desde el modelo actual (activa única por tipo) a un modelo escalabl
 ### Tareas
 
 1. Refactor `ExportProjectHandler`:
-   - resolver plantilla activa,
+  - resolver plantilla seleccionada (`templateId`) o predeterminada,
    - usar `TemplateDocxGenerator` cuando exista,
    - fallback a motor legado cuando no exista.
 2. Añadir `UpdateFieldsOnOpen` para TOC.

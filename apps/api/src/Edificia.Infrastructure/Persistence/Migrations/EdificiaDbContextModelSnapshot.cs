@@ -46,11 +46,17 @@ namespace Edificia.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("file_size_bytes");
 
-                    b.Property<bool>("IsActive")
+                    b.Property<bool>("IsAvailable")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(false)
-                        .HasColumnName("is_active");
+                        .HasColumnName("is_available");
+
+                    b.Property<bool>("IsDefault")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_default");
 
                     b.Property<string>("MimeType")
                         .IsRequired()
@@ -101,10 +107,10 @@ namespace Edificia.Infrastructure.Persistence.Migrations
                     b.HasIndex("TemplateType")
                         .IsUnique()
                         .HasDatabaseName("ix_app_templates_template_type")
-                        .HasFilter("is_active = true");
+                        .HasFilter("is_default = true");
 
-                    b.HasIndex("TemplateType", "IsActive")
-                        .HasDatabaseName("ix_app_templates_template_type_is_active");
+                    b.HasIndex("TemplateType", "IsAvailable")
+                        .HasDatabaseName("ix_app_templates_template_type_is_available");
 
                     b.HasIndex("TemplateType", "Version")
                         .IsUnique()
@@ -400,6 +406,74 @@ namespace Edificia.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_refresh_tokens_user_id");
 
                     b.ToTable("refresh_tokens", (string)null);
+                });
+
+            modelBuilder.Entity("Edificia.Domain.Entities.TemplateParam", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("display_name");
+
+                    b.Property<string>("Formatter")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("formatter");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("key");
+
+                    b.Property<string>("SourceCode")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("source_code");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_template_params");
+
+                    b.HasIndex("IsActive")
+                        .HasDatabaseName("ix_template_params_is_active");
+
+                    b.HasIndex("Key")
+                        .IsUnique()
+                        .HasDatabaseName("ix_template_params_key");
+
+                    b.ToTable("template_params", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_TemplateParams_Formatter_Allowed", "formatter IS NULL OR formatter IN ('UPPER','LOWER','TRIM')");
+
+                            t.HasCheckConstraint("CK_TemplateParams_Key_Format", "key ~ '^[A-Z0-9_]+$'");
+
+                            t.HasCheckConstraint("CK_TemplateParams_Key_NotEmpty", "key <> ''");
+
+                            t.HasCheckConstraint("CK_TemplateParams_SourceCode_Allowed", "source_code IN ('PROJECT_TITLE','PROJECT_DESCRIPTION','PROJECT_ADDRESS','INTERVENTION_TYPE','IS_LOE_REQUIRED','CADASTRAL_REFERENCE','LOCAL_REGULATIONS','EXPORT_DATE','EXPORT_DATETIME')");
+
+                            t.HasCheckConstraint("CK_TemplateParams_SourceCode_NotEmpty", "source_code <> ''");
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole<System.Guid>", b =>

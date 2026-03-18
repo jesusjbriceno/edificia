@@ -13,13 +13,13 @@ El sistema debe permitir la administración, almacenamiento y aplicación dinám
 
 * **RF-01 | Alta de Plantillas:** El administrador debe poder subir archivos `.dotx` a través de la UI (Astro).  
 * **RF-02 | Tipificación:** Cada plantilla debe estar categorizada (Ej: `MemoriaTécnica`, `Presupuesto`, `ReporteInspeccion`).  
-* **RF-03 | Metadatos:** El sistema debe registrar nombre, descripción, versión, estado (Activo/Inactivo) y usuario creador.  
-* **RF-04 | Listado y Edición:** La UI debe ofrecer un CRUD completo (Listar, Activar/Desactivar, Eliminar lógica/físicamente).
+* **RF-03 | Metadatos:** El sistema debe registrar nombre, descripción, versión, disponibilidad, predeterminación por tipo y usuario creador.  
+* **RF-04 | Listado y Edición:** La UI debe ofrecer un CRUD completo (Listar, Editar, Marcar disponible/no disponible, Marcar predeterminada por tipo, Eliminar).
 
 ### Motor de Renderizado y Fallback
 
 * **RF-05 | Renderizado Pixel-Perfect:** El sistema debe inyectar la información en los *Content Controls* (`SdtElement`) de la plantilla preservando el *Style ID* original del `.dotx`.  
-* **RF-06 | Mecanismo de Fallback:** Si un proyecto solicita una exportación y no hay plantillas activas para su tipología, el sistema derivará la petición de forma transparente al motor de generación programática en `.docx` heredado.  
+* **RF-06 | Mecanismo de Fallback:** Si un proyecto solicita una exportación y no hay plantilla seleccionada/disponible/predeterminada usable para su tipología, el sistema derivará la petición de forma transparente al motor de generación programática en `.docx` heredado.  
 * **RF-07 | Actualización de Índices:** El documento generado debe forzar la actualización automática de campos dinámicos (TOC - Tabla de Contenidos) al ser abierto por el cliente.
 
 ### Infraestructura y Parametrización

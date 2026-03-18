@@ -41,15 +41,15 @@ Hemos conectado EdificIA a una pasarela de Inteligencia Artificial segura.
 4. **Redacción:** Rellenas fichas sencillas y la IA escribe por ti.  
 5. **Exportación:** Descargas un .DOCX impecable listo para el Visado.
 
-## **4\. Plantillas de Exportación (.dotx)**
+## **4\. Plantillas de Exportación**
 
-Para mantener una imagen corporativa homogénea en todas las memorias, EdificIA permite usar plantillas Word `.dotx`.
+Para mantener una imagen corporativa homogénea en todas las memorias, EdificIA permite usar plantillas Word compatibles.
 
 ### **👩‍💼 Gestión (solo administradores)**
 
 En el área de administración (`/admin/templates`) puedes:
 
-1. **Subir una nueva plantilla** `.dotx` (máximo 10 MB).  
+1. **Subir una nueva plantilla** Word (máximo 10 MB).  
 2. **Ver versiones** y metadatos (nombre, tamaño, fecha).  
 3. **Activar o desactivar** la plantilla vigente para exportación.
 

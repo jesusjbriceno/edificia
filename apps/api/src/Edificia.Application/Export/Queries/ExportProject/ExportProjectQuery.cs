@@ -7,4 +7,9 @@ namespace Edificia.Application.Export.Queries.ExportProject;
 /// Query to export a project's content tree as a .docx document.
 /// </summary>
 /// <param name="ProjectId">The ID of the project to export.</param>
-public sealed record ExportProjectQuery(Guid ProjectId) : IRequest<Result<ExportDocumentResponse>>;
+/// <param name="TemplateId">Optional preferred template ID selected by the user.</param>
+/// <param name="OutputFileName">Optional output file name requested by the user.</param>
+public sealed record ExportProjectQuery(
+	Guid ProjectId,
+	Guid? TemplateId = null,
+	string? OutputFileName = null) : IRequest<Result<ExportDocumentResponse>>;

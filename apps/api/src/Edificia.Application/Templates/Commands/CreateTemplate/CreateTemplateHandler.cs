@@ -52,14 +52,6 @@ public sealed class CreateTemplateHandler : IRequestHandler<CreateTemplateComman
                 fileSizeBytes: request.FileSizeBytes,
                 createdByUserId: request.CreatedByUserId);
 
-            var activeTemplate = await _templateRepository.GetActiveByTypeAsync(request.TemplateType, cancellationToken);
-            var hasActiveTemplate = activeTemplate is not null;
-
-            if (!hasActiveTemplate)
-            {
-                template.Activate();
-            }
-
             var currentCount = await _templateRepository.CountByTypeAsync(request.TemplateType, cancellationToken);
             for (var i = 1; i <= currentCount; i++)
             {
@@ -70,7 +62,17 @@ public sealed class CreateTemplateHandler : IRequestHandler<CreateTemplateComman
                     template.FileSizeBytes);
             }
 
-            if (hasActiveTemplate)
+            var defaultTemplate = await _templateRepository.GetDefaultByTypeAsync(request.TemplateType, cancellationToken);
+            if (defaultTemplate is null)
+            {
+                if (!template.IsAvailable)
+                {
+                    template.Activate();
+                }
+
+                template.MarkAsDefault();
+            }
+            else
             {
                 template.Deactivate();
             }

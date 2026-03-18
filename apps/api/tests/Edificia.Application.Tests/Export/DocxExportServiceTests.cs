@@ -46,6 +46,131 @@ public class DocxExportServiceTests
     bodyText.Should().NotContain("MEMORIA DE PROYECTO");
   }
 
+  [Fact]
+  public async Task ExportToDocxWithTemplateAsync_ShouldPreserveBodyAndAppendContent_WhenBodyHasBracePlaceholders()
+  {
+    // Hybrid path variant A: template body has {{...}} placeholders (e.g. a cover page).
+    // The replacements are applied and the body is preserved; project content is appended after.
+    var service = new DocxExportService();
+    var data = CreateData("<p>Contenido base</p>") with
+    {
+      PlaceholderReplacements = new Dictionary<string, string>
+      {
+        ["PROJECT_TITLE"] = "Proyecto Placeholder",
+        ["PROJECT_ADDRESS"] = "Calle Placeholder 99"
+      }
+    };
+
+    var templateBytes = CreateDotxTemplateWithPlainText(
+      "Título: {{PROJECT_TITLE}}",
+      "Dirección: {{PROJECT_ADDRESS}}");
+
+    var bytes = await service.ExportToDocxWithTemplateAsync(data, templateBytes, CancellationToken.None);
+
+    using var stream = new MemoryStream(bytes);
+    using var doc = WordprocessingDocument.Open(stream, false);
+
+    var bodyText = doc.MainDocumentPart!.Document!.Body!.InnerText;
+    // Template body is preserved with replacements applied
+    bodyText.Should().Contain("Título: Proyecto Placeholder");
+    bodyText.Should().Contain("Dirección: Calle Placeholder 99");
+    // Project content is appended after the cover page
+    bodyText.Should().Contain("Contenido base");
+    // Tokens are consumed
+    bodyText.Should().NotContain("{{PROJECT_TITLE}}");
+    bodyText.Should().NotContain("{{PROJECT_ADDRESS}}");
+    // Title page is NOT regenerated (body kept from template)
+    bodyText.Should().NotContain("MEMORIA DE PROYECTO");
+  }
+
+  [Fact]
+  public async Task ExportToDocxWithTemplateAsync_ShouldRegenerateBody_WhenNoSDTAndNoBodyPlaceholders()
+  {
+    // Hybrid path variant B: template has no SDT controls and no body brace placeholders.
+    // The body is cleared and regenerated with the legacy title page + content tree.
+    var service = new DocxExportService();
+    var data = CreateData("<p>Contenido base</p>");
+
+    var templateBytes = CreateDotxTemplateWithPlainText("Texto genérico sin placeholders");
+
+    var bytes = await service.ExportToDocxWithTemplateAsync(data, templateBytes, CancellationToken.None);
+
+    using var stream = new MemoryStream(bytes);
+    using var doc = WordprocessingDocument.Open(stream, false);
+
+    var bodyText = doc.MainDocumentPart!.Document!.Body!.InnerText;
+    // Title page regenerated
+    bodyText.Should().Contain("MEMORIA DE PROYECTO");
+    bodyText.Should().Contain("Proyecto de prueba");
+    // Content tree appended
+    bodyText.Should().Contain("Contenido base");
+    // Original template text is gone (body was cleared)
+    bodyText.Should().NotContain("Texto genérico sin placeholders");
+  }
+
+  [Fact]
+  public async Task ExportToDocxWithTemplateAsync_ShouldEnsureHeadingStyles_WhenTemplateHasNone()
+  {
+    // EnsureHeadingStyles must inject Heading1/2/3 into the template's StyleDefinitionsPart
+    // if they are not already defined, so ProcessContentTree produces styled headings.
+    var service = new DocxExportService();
+    var data = CreateDataWithHierarchy();
+
+    var templateBytes = CreateDotxTemplateWithPlainText("Portada");
+
+    var bytes = await service.ExportToDocxWithTemplateAsync(data, templateBytes, CancellationToken.None);
+
+    using var stream = new MemoryStream(bytes);
+    using var doc = WordprocessingDocument.Open(stream, false);
+
+    var stylesPart = doc.MainDocumentPart!.StyleDefinitionsPart;
+    stylesPart.Should().NotBeNull();
+
+    var styleIds = stylesPart!.Styles!
+      .Elements<Style>()
+      .Select(s => s.StyleId?.Value)
+      .ToList();
+
+    styleIds.Should().Contain("Heading1");
+    styleIds.Should().Contain("Heading2");
+    styleIds.Should().Contain("Heading3");
+
+    // Heading paragraphs are generated from the content tree
+    var headingParagraphs = doc.MainDocumentPart!.Document!.Body!
+      .Descendants<Paragraph>()
+      .Where(p => p.ParagraphProperties?.ParagraphStyleId?.Val?.Value?.StartsWith("Heading") == true)
+      .ToList();
+
+    headingParagraphs.Should().NotBeEmpty();
+  }
+
+  [Fact]
+  public async Task ExportToDocxWithTemplateAsync_ShouldReplaceSplitRunPlaceholders_InHeader()
+  {
+    // Split-run placeholder replacement is important for headers/footers where Word may
+    // split tokens like {{PROJECT_TITLE}} across multiple runs.
+    var service = new DocxExportService();
+    var data = CreateData("<p>Contenido base</p>") with
+    {
+      PlaceholderReplacements = new Dictionary<string, string>
+      {
+        ["PROJECT_TITLE"] = "Proyecto Split"
+      }
+    };
+
+    var templateBytes = CreateDotxTemplateWithSplitPlaceholderInHeader();
+
+    var bytes = await service.ExportToDocxWithTemplateAsync(data, templateBytes, CancellationToken.None);
+
+    using var stream = new MemoryStream(bytes);
+    using var doc = WordprocessingDocument.Open(stream, false);
+
+    var headerText = doc.MainDocumentPart!.HeaderParts
+      .FirstOrDefault()?.Header?.InnerText ?? string.Empty;
+    headerText.Should().Contain("Proyecto Split");
+    headerText.Should().NotContain("{{PROJECT_TITLE}}");
+  }
+
     [Fact]
     public async Task ExportToDocxAsync_ShouldCreateNativeTable_WhenHtmlContainsTable()
     {
@@ -219,6 +344,36 @@ public class DocxExportServiceTests
             Address: "Calle Test 123");
     }
 
+    private static ExportDocumentData CreateDataWithHierarchy()
+    {
+        const string contentTreeJson = """
+        {
+          "chapters": [
+            {
+              "id": "ch-01",
+              "title": "Capítulo Uno",
+              "content": "<p>Texto del capítulo</p>",
+              "sections": [
+                {
+                  "id": "sec-01-01",
+                  "title": "Sección 1.1",
+                  "content": "<p>Texto de sección</p>",
+                  "sections": []
+                }
+              ]
+            }
+          ]
+        }
+        """;
+
+        return new ExportDocumentData(
+            Title: "Proyecto de prueba",
+            InterventionType: "Obra Nueva",
+            IsLoeRequired: true,
+            ContentTreeJson: contentTreeJson,
+            Address: "Calle Test 123");
+    }
+
     private static byte[] CreateDotxTemplateWithTags(params string[] tags)
     {
       using var stream = new MemoryStream();
@@ -239,6 +394,59 @@ public class DocxExportServiceTests
           body.AppendChild(sdt);
         }
 
+        mainPart.Document = new Document(body);
+        mainPart.Document.Save();
+      }
+
+      return stream.ToArray();
+    }
+
+    private static byte[] CreateDotxTemplateWithPlainText(params string[] lines)
+    {
+      using var stream = new MemoryStream();
+
+      using (var template = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Template, true))
+      {
+        var mainPart = template.AddMainDocumentPart();
+        var body = new Body();
+
+        foreach (var line in lines)
+        {
+          body.AppendChild(new Paragraph(new Run(new Text(line))));
+        }
+
+        mainPart.Document = new Document(body);
+        mainPart.Document.Save();
+      }
+
+      return stream.ToArray();
+    }
+
+    private static byte[] CreateDotxTemplateWithSplitPlaceholderInHeader()
+    {
+      using var stream = new MemoryStream();
+
+      using (var template = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Template, true))
+      {
+        var mainPart = template.AddMainDocumentPart();
+
+        // Header with {{PROJECT_TITLE}} split across three runs (as Word often serializes tokens)
+        var headerPart = mainPart.AddNewPart<HeaderPart>();
+        var headerParagraph = new Paragraph(
+          new Run(new Text("{{PRO")),
+          new Run(new Text("JECT_")),
+          new Run(new Text("TITLE}}")));
+        headerPart.Header = new Header(headerParagraph);
+        headerPart.Header.Save();
+
+        // Link header to section so it's associated with the document
+        var body = new Body(
+          new SectionProperties(
+            new HeaderReference
+            {
+              Type = HeaderFooterValues.Default,
+              Id = mainPart.GetIdOfPart(headerPart)
+            }));
         mainPart.Document = new Document(body);
         mainPart.Document.Save();
       }

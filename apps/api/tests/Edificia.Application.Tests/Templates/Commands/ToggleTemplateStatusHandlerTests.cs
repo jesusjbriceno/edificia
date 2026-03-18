@@ -37,10 +37,9 @@ public class ToggleTemplateStatusHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ShouldDeactivateCurrentActiveAndActivateRequestedTemplate()
+    public async Task Handle_ShouldSetAvailabilityWithoutAffectingOtherTemplates()
     {
         var templateId = Guid.NewGuid();
-        var otherId = Guid.NewGuid();
 
         var targetTemplate = AppTemplate.Create(
             "Nueva plantilla",
@@ -52,19 +51,7 @@ public class ToggleTemplateStatusHandlerTests
             123,
             Guid.NewGuid());
 
-        var currentActive = AppTemplate.Create(
-            "Actual plantilla",
-            null,
-            "MemoriaTecnica",
-            "templates/memoria/v1.dotx",
-            "v1.dotx",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.template",
-            123,
-            Guid.NewGuid());
-        currentActive.Activate();
-
         SetEntityId(targetTemplate, templateId);
-        SetEntityId(currentActive, otherId);
 
         var command = new ToggleTemplateStatusCommand(templateId, true);
 
@@ -72,17 +59,11 @@ public class ToggleTemplateStatusHandlerTests
             .Setup(x => x.GetByIdAsync(templateId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(targetTemplate);
 
-        _templateRepositoryMock
-            .Setup(x => x.GetActiveByTypeAsync("MemoriaTecnica", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(currentActive);
-
         var result = await _handler.Handle(command, CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        targetTemplate.IsActive.Should().BeTrue();
-        currentActive.IsActive.Should().BeFalse();
+        targetTemplate.IsAvailable.Should().BeTrue();
 
-        _templateRepositoryMock.Verify(x => x.Update(currentActive), Times.Once);
         _templateRepositoryMock.Verify(x => x.Update(targetTemplate), Times.Once);
         _templateRepositoryMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }

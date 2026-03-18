@@ -85,5 +85,11 @@ scaffold.sh
 /apps/api/src/Edificia.API/appsettings.Local.json
 /apps/api/src/Edificia.API/appsettings.Local.json
 
+# CLAUDE CODE
+.claude/settings.local.json
+
 # IDEAS & NOTAS
 bugs/
+.info/
+.local_data/
+local_data/

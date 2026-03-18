@@ -144,7 +144,8 @@ Nombre recomendado:
 2. Ve a **/admin/templates**.
 3. Sube el archivo `.dotx` (selección de archivo o arrastrar y soltar en la zona **Drag & Drop**).
 4. Asigna tipo `MemoriaTecnica`.
-5. Activa la plantilla.
+5. Marca la plantilla como **Disponible**.
+6. (Opcional) Márcala como **Predeterminada** para usarla por defecto en exportación.
 
 ---
 
@@ -154,7 +155,7 @@ Nombre recomendado:
 - [ ] Se aplican estilos corporativos (tipos de letra, cabecera, etc.).
 - [ ] Los bloques dinámicos aparecen rellenos.
 - [ ] La tabla de contenidos se actualiza al abrir en Word.
-- [ ] Si desactivas la plantilla, la exportación sigue funcionando (fallback).
+- [ ] Si marcas la plantilla como no disponible, la exportación sigue funcionando (fallback).
 
 ---
 
@@ -194,7 +195,7 @@ Si alguno falla, la API devuelve error de validación (`Template.InvalidFormat`)
 
 ### Problema: “No aparece en exportación”
 
-- Verifica que la plantilla está **activa** en `/admin/templates`.
+- Verifica que la plantilla está **disponible** en `/admin/templates`.
 - Reexporta el documento.
 
 ### Problema: “La subida falla por `Tag` obligatorios”
@@ -211,7 +212,7 @@ Si alguno falla, la API devuelve error de validación (`Template.InvalidFormat`)
 - Versiona tus plantillas (`v1`, `v2`, `v3`).
 - Cambia una cosa cada vez y prueba exportación.
 - Evita diseños excesivamente complejos en primera versión.
-- Guarda una plantilla “estable” siempre activa y prueba cambios en una nueva versión.
+- Mantén una plantilla “estable” como predeterminada y prueba cambios en una nueva versión disponible.
 
 ---
 

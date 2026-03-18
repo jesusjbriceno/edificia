@@ -125,7 +125,33 @@ Evolucionar de un modelo de plantilla única activa por tipo hacia un modelo esc
 
 ---
 
-## 6. Criterio de aceptación de la evolución
+## 6. Estado real a 2026-03 (feature/dotx_placeholders_core)
+
+### Implementado y operativo
+
+- **Formato de plantilla**: aceptados `.docx` y `.dotx` en upload y exportación.
+- **Estados de plantilla**: `IsAvailable` + `IsDefault` (máx. 1 por tipo). Migrado de `IsActive` único.
+- **Selector de plantilla**: `ExportDocxModal` con selector de plantilla disponible y nombre de archivo editable.
+- **Resolución de placeholders**: `TemplatePlaceholderService` + `TemplateParameterResolver` — resuelve metadatos del proyecto (`PROJECT_TITLE`, `PROJECT_ADDRESS`, `EXPORT_DATE`, etc.) antes de exportar.
+- **Catálogo `TemplateParam`**: administrado en `/admin/template-params`. Gobernanza de activación/desactivación.
+- **Exportación híbrida mejorada**:
+  - Path SDT: sustituye Content Controls y conserva body de plantilla.
+  - Path híbrido A: sustituye `{{...}}` en body (portada/metadatos) y anexa árbol de contenido al final.
+  - Path híbrido B: plantilla sin estructura de body → regenera title page + árbol completo.
+  - Cabeceras/pies: sustituye `{{...}}` siempre (incluye soporte de split-run en Word).
+- **`EnsureHeadingStyles`**: garantiza que `Heading1/2/3` existen en el `StyleDefinitionsPart` de la plantilla para correcta jerarquía visual.
+- **`EnsureNumberingDefinitions`**: guard contra `ArgumentException` del SDK cuando `NumberingDefinitionsPart` existe con XML vacío.
+- **Diagnóstico en respuesta**: headers `X-Edificia-Export-Mode` y `X-Edificia-Template-Error`.
+- **Logging DEBUG**: trazabilidad completa del pipeline de exportación con plantilla.
+
+### Pendiente de implementar
+
+- Catálogo dinámico de tipos de plantilla (de hardcoded `"MemoriaTecnica"` a tabla `template_types`).
+- Tests de integración end-to-end de resolución de placeholders.
+
+---
+
+## 7. Criterio de aceptación de la evolución
 
 - El usuario puede elegir plantilla al exportar cuando haya más de una disponible.
 - Si solo hay una plantilla disponible para el tipo, se selecciona automáticamente.

@@ -52,16 +52,17 @@ export function ExportDocxModal({ isOpen, onClose, onConfirm, exporting }: Reado
     async function loadActiveTemplates() {
       setLoadingTemplates(true);
       try {
-        const data = await templateService.list({ templateType: 'MemoriaTecnica', isActive: true });
+        const data = await templateService.list({ templateType: 'MemoriaTecnica', isAvailable: true });
         if (!mounted) return;
         setTemplates(data);
-        setSelectedTemplateId(data[0]?.id ?? DEFAULT_TEMPLATE_OPTION);
+        const defaultTemplate = data.find((template) => template.isDefault);
+        setSelectedTemplateId(defaultTemplate?.id ?? data[0]?.id ?? DEFAULT_TEMPLATE_OPTION);
       } catch (error) {
         if (!mounted) return;
         if (error instanceof ApiError) {
-          setTemplateError(error.message || 'No se pudieron cargar las plantillas activas.');
+          setTemplateError(error.message || 'No se pudieron cargar las plantillas disponibles.');
         } else {
-          setTemplateError('No se pudieron cargar las plantillas activas.');
+          setTemplateError('No se pudieron cargar las plantillas disponibles.');
         }
         setTemplates([]);
         setSelectedTemplateId(DEFAULT_TEMPLATE_OPTION);
@@ -87,7 +88,9 @@ export function ExportDocxModal({ isOpen, onClose, onConfirm, exporting }: Reado
     for (const template of templates) {
       options.push({
         value: template.id,
-        label: `${template.name} · v${template.version}`,
+        label: template.isDefault
+          ? `${template.name} · v${template.version} · Predeterminada`
+          : `${template.name} · v${template.version}`,
       });
     }
 
@@ -109,8 +112,8 @@ export function ExportDocxModal({ isOpen, onClose, onConfirm, exporting }: Reado
     <Modal isOpen={isOpen} onClose={onClose} title="Exportar memoria a DOCX" className="max-w-xl">
       <div className="space-y-5">
         <p className="text-sm text-gray-300">
-          Selecciona la plantilla disponible y define el nombre del archivo. En esta fase,
-          el backend mantiene la asignación automática por tipo activo.
+          Selecciona la plantilla a aplicar y define el nombre del archivo.
+          Estos valores se envían al backend para la exportación real.
         </p>
 
         <div className="space-y-2">
@@ -120,7 +123,7 @@ export function ExportDocxModal({ isOpen, onClose, onConfirm, exporting }: Reado
           {loadingTemplates ? (
             <div className="h-11 rounded-lg border border-white/10 bg-white/5 px-3 flex items-center text-sm text-gray-400">
               <Loader2 size={14} className="animate-spin mr-2" />
-              Cargando plantillas activas...
+              Cargando plantillas disponibles...
             </div>
           ) : (
             <Select

@@ -39,6 +39,7 @@ public class CreateTemplateHandlerTests
     public async Task Handle_ShouldReturnSuccess_WhenTemplateIsCreated()
     {
         var command = BuildValidCommand();
+        AppTemplate? savedTemplate = null;
 
         _fileStorageServiceMock
             .Setup(x => x.SaveFileAsync(
@@ -49,17 +50,25 @@ public class CreateTemplateHandlerTests
             .ReturnsAsync("templates/memoria/v1.dotx");
 
         _templateRepositoryMock
-            .Setup(x => x.GetActiveByTypeAsync(command.TemplateType, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetDefaultByTypeAsync(command.TemplateType, It.IsAny<CancellationToken>()))
             .ReturnsAsync((AppTemplate?)null);
 
         _templateRepositoryMock
             .Setup(x => x.CountByTypeAsync(command.TemplateType, It.IsAny<CancellationToken>()))
             .ReturnsAsync(0);
 
+        _templateRepositoryMock
+            .Setup(x => x.AddAsync(It.IsAny<AppTemplate>(), It.IsAny<CancellationToken>()))
+            .Callback<AppTemplate, CancellationToken>((template, _) => savedTemplate = template)
+            .Returns(Task.CompletedTask);
+
         var result = await _handler.Handle(command, CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().NotBeEmpty();
+        savedTemplate.Should().NotBeNull();
+        savedTemplate!.IsAvailable.Should().BeTrue();
+        savedTemplate.IsDefault.Should().BeTrue();
 
         _templateRepositoryMock.Verify(x => x.AddAsync(It.IsAny<AppTemplate>(), It.IsAny<CancellationToken>()), Times.Once);
         _templateRepositoryMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
@@ -88,13 +97,13 @@ public class CreateTemplateHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ShouldCreateInactiveNextVersion_WhenActiveTemplateExists()
+    public async Task Handle_ShouldCreateInactiveNextVersion_WhenDefaultTemplateExists()
     {
         var command = BuildValidCommand();
         AppTemplate? savedTemplate = null;
 
-        var activeTemplate = AppTemplate.Create(
-            "Plantilla activa",
+        var defaultTemplate = AppTemplate.Create(
+            "Plantilla predeterminada",
             null,
             command.TemplateType,
             "templates/memoria/v1.dotx",
@@ -102,7 +111,8 @@ public class CreateTemplateHandlerTests
             command.MimeType,
             20,
             Guid.NewGuid());
-        activeTemplate.Activate();
+        defaultTemplate.SetAvailable(true);
+        defaultTemplate.MarkAsDefault();
 
         _fileStorageServiceMock
             .Setup(x => x.SaveFileAsync(
@@ -113,8 +123,8 @@ public class CreateTemplateHandlerTests
             .ReturnsAsync("templates/memoria/v2.dotx");
 
         _templateRepositoryMock
-            .Setup(x => x.GetActiveByTypeAsync(command.TemplateType, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(activeTemplate);
+            .Setup(x => x.GetDefaultByTypeAsync(command.TemplateType, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(defaultTemplate);
 
         _templateRepositoryMock
             .Setup(x => x.CountByTypeAsync(command.TemplateType, It.IsAny<CancellationToken>()))
@@ -130,6 +140,8 @@ public class CreateTemplateHandlerTests
         result.IsSuccess.Should().BeTrue();
         savedTemplate.Should().NotBeNull();
         savedTemplate!.Version.Should().Be(2);
+        savedTemplate.IsAvailable.Should().BeFalse();
+        savedTemplate.IsDefault.Should().BeFalse();
         savedTemplate.IsActive.Should().BeFalse();
     }
 

@@ -1,7 +1,7 @@
 # **📡 Diseño de API REST — EdificIA**
 
 **Versión:** 3.0  
-**Última actualización:** Junio 2025  
+**Última actualización:** Marzo 2026  
 **Base URL (Local):** `http://localhost:5000/api`  
 **Base URL (Producción):** `https://api-edificia.jesusjbriceno.dev/api`
 
@@ -9,14 +9,14 @@
 
 ## **1. Visión General**
 
-La API de EdificIA expone **24 endpoints** organizados en 6 módulos:
+La API de EdificIA expone **28 endpoints** organizados en 6 módulos:
 
 | Módulo | Endpoints | Autenticación | Descripción |
 |--------|-----------|---------------|-------------|
 | Auth | 6 | Mixta | Autenticación JWT, gestión de tokens y perfil |
 | Projects | 6 | ActiveUser | CRUD de proyectos y árbol de contenido |
 | Users | 7 | RequireAdmin | Gestión de usuarios (CRUD + activación) |
-| Templates | 3 | RequireAdmin | Gestión de plantillas `.dotx` para exportación |
+| Templates | 7 | RequireAdmin | Gestión de plantillas `.dotx` para exportación |
 | AI | 1 | ActiveUser | Generación de texto con IA |
 | Export | 1 | ActiveUser | Exportación a DOCX |
 
@@ -777,7 +777,7 @@ POST /api/templates
 Devuelve listado de plantillas, con filtros opcionales.
 
 ```
-GET /api/templates?templateType=MemoriaTecnica&isActive=true
+GET /api/templates?templateType=MemoriaTecnica&isAvailable=true
 ```
 
 **Query Parameters:**
@@ -785,7 +785,8 @@ GET /api/templates?templateType=MemoriaTecnica&isActive=true
 | Parámetro | Tipo | Requerido | Descripción |
 |-----------|------|-----------|-------------|
 | `templateType` | string? | ❌ | Filtra por tipo de plantilla |
-| `isActive` | bool? | ❌ | Filtra por estado activa/inactiva |
+| `isAvailable` | bool? | ❌ | Filtra por estado disponible/no disponible |
+| `isActive` | bool? | ❌ | Alias legado de compatibilidad para `isAvailable` |
 
 **Response `200 OK`:**
 
@@ -797,6 +798,8 @@ GET /api/templates?templateType=MemoriaTecnica&isActive=true
     "description": "Plantilla oficial de memoria técnica",
     "templateType": "MemoriaTecnica",
     "version": 3,
+    "isAvailable": true,
+    "isDefault": false,
     "isActive": true,
     "originalFileName": "memoria-corporativa-v3.dotx",
     "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.template",
@@ -811,7 +814,7 @@ GET /api/templates?templateType=MemoriaTecnica&isActive=true
 
 ### **5.3. Toggle Template Status**
 
-Activa o desactiva una plantilla.
+Endpoint legado para compatibilidad. Internamente ajusta disponibilidad.
 
 ```
 PUT /api/templates/{id}/toggle-status
@@ -833,6 +836,93 @@ PUT /api/templates/{id}/toggle-status
 |--------|------|-------------|
 | `Template.NotFound` | 404 | Plantilla no encontrada |
 | `Validation.*` | 400 | Estado solicitado inválido |
+
+---
+
+### **5.4. Update Template Metadata**
+
+Actualiza nombre y descripción de una plantilla.
+
+```
+PUT /api/templates/{id}
+```
+
+**Request Body:**
+
+```json
+{
+  "name": "Plantilla corporativa 2026 (actualizada)",
+  "description": "Versión ajustada para entregas 2026"
+}
+```
+
+**Response `204 No Content`:** Sin cuerpo.
+
+---
+
+### **5.5. Set Template Availability**
+
+Marca una plantilla como disponible/no disponible.
+
+```
+PUT /api/templates/{id}/availability
+```
+
+**Request Body:**
+
+```json
+{
+  "isAvailable": true
+}
+```
+
+**Response `204 No Content`:** Sin cuerpo.
+
+---
+
+### **5.6. Set Template Default**
+
+Marca una plantilla como predeterminada/no predeterminada por tipo.
+
+```
+PUT /api/templates/{id}/default
+```
+
+**Request Body:**
+
+```json
+{
+  "isDefault": true
+}
+```
+
+**Response `204 No Content`:** Sin cuerpo.
+
+**Errores:**
+
+| Código | HTTP | Descripción |
+|--------|------|-------------|
+| `Template.NotFound` | 404 | Plantilla no encontrada |
+| `Conflict.*` | 409 | Regla de negocio incumplida |
+
+---
+
+### **5.7. Delete Template**
+
+Elimina una plantilla.
+
+```
+DELETE /api/templates/{id}
+```
+
+**Response `204 No Content`:** Sin cuerpo.
+
+**Errores:**
+
+| Código | HTTP | Descripción |
+|--------|------|-------------|
+| `Template.NotFound` | 404 | Plantilla no encontrada |
+| `Conflict.*` | 409 | Regla de negocio incumplida |
 
 ---
 
@@ -899,13 +989,22 @@ Exporta el proyecto completo como documento Word (.docx).
 
 **Comportamiento de plantillas:**
 
-- Si existe una plantilla activa de tipo `MemoriaTecnica`, se usa como base para la exportación.
+- Si llega `templateId` y es compatible con el tipo documental, se intenta usar la plantilla seleccionada.
+- Si `templateId` no existe o no está disponible, se resuelve la plantilla predeterminada de `MemoriaTecnica`.
+- Si `templateId` corresponde a un tipo documental incompatible, se devuelve `400`.
 - Si la carga de plantilla o el renderizado falla, se aplica fallback automático al exportador estándar.
 - El endpoint siempre prioriza disponibilidad del documento frente a fallo puntual de plantilla.
 
 ```
 GET /api/projects/{id}/export
 ```
+
+**Query Parameters (opcionales):**
+
+| Parámetro | Tipo | Descripción |
+|-----------|------|-------------|
+| `templateId` | Guid? | Plantilla preferida para exportación |
+| `outputFileName` | string? | Nombre de archivo de salida (máx. 255) |
 
 **Autenticación:** ActiveUser
 
@@ -1018,6 +1117,9 @@ El contenido del proyecto se almacena como **JSONB** en la columna `content_tree
 | `UpdateUserRequest` | Users | PUT /api/users/{id} |
 | `CreateTemplateRequest` | Templates | POST /api/templates |
 | `ToggleTemplateStatusRequest` | Templates | PUT /api/templates/{id}/toggle-status |
+| `UpdateTemplateMetadataRequest` | Templates | PUT /api/templates/{id} |
+| `SetTemplateAvailabilityRequest` | Templates | PUT /api/templates/{id}/availability |
+| `SetTemplateDefaultRequest` | Templates | PUT /api/templates/{id}/default |
 
 ### **Response DTOs**
 

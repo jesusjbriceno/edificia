@@ -11,6 +11,14 @@ public interface ITemplateRepository : IBaseRepository<AppTemplate>
         string templateType,
         CancellationToken cancellationToken = default);
 
+    Task<AppTemplate?> GetDefaultByTypeAsync(
+        string templateType,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<AppTemplate>> GetAvailableByTypeAsync(
+        string templateType,
+        CancellationToken cancellationToken = default);
+
     Task<int> CountByTypeAsync(
         string templateType,
         CancellationToken cancellationToken = default);

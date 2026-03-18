@@ -247,7 +247,7 @@ Requisito de diseño:
 
 ## 10.2. Exportación con plantilla
 
-1. API resuelve plantilla activa en DB.
+1. API resuelve plantilla seleccionada (`templateId`) o predeterminada por tipo en DB.
 2. API intenta L1 cache.
 3. Cache miss: API llama `GET_TEMPLATE` al webhook.
 4. API renderiza DOCX con OpenXML.

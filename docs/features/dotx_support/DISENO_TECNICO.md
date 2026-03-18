@@ -1,18 +1,16 @@
 # Diseño Técnico y Arquitectura de Software
 
-## 0. Estado real y colisiones detectadas (2026-02)
+## 0. Estado real y colisiones detectadas (2026-03)
 
 ### Estado actual implementado
 
-- Existe flujo de gestión `.dotx` en admin (alta/listado/activar-desactivar).
-- Exportación usa plantilla activa de `MemoriaTecnica` con fallback automático al motor estándar.
+- Existe flujo de gestión `.dotx` en admin (alta/listado/edición/eliminación/disponibilidad/predeterminada).
+- Exportación permite selector de plantilla y nombre de archivo, con fallback automático al motor estándar.
 
 ### Colisiones con evolución funcional
 
-1. No existe selector de plantilla en exportación para usuario.
-2. Solo hay estado `IsActive` (no diferencia entre disponible y predeterminada).
-3. No existe catálogo dinámico de tipos de plantilla gestionable por admin.
-4. El exportador resuelve tipo por defecto fijo (`MemoriaTecnica`).
+1. No existe catálogo dinámico de tipos de plantilla gestionable por admin.
+2. El exportador mantiene tipo documental fijo (`MemoriaTecnica`) a la espera de CU-05.
 
 ---
 
@@ -30,7 +28,8 @@ public class AppTemplate : AuditableEntity // Hereda Id, CreatedAt, etc.
     public string OriginalFileName { get; set; }
     public string MimeType { get; set; }
     public long FileSizeBytes { get; set; }
-    public bool IsActive { get; set; }
+    public bool IsAvailable { get; set; }
+    public bool IsDefault { get; set; }
     public int Version { get; set; }
 }
 ```
@@ -39,11 +38,8 @@ public class AppTemplate : AuditableEntity // Hereda Id, CreatedAt, etc.
 
 Para escalar sin romper compatibilidad:
 
-- Fase 1: mantener `IsActive` y añadir selector de plantilla en exportación.
-- Fase 2: migrar a modelo dual:
-    - `IsAvailable` (visible/seleccionable)
-    - `IsDefault` (predeterminada por tipo)
-- Fase 3: introducir catálogo `TemplateType` persistido (`template_types`).
+- Estado actual: modelo dual operativo (`IsAvailable` + `IsDefault`) y selector de plantilla en exportación.
+- Evolución pendiente: introducir catálogo `TemplateType` persistido (`template_types`).
 
 ## 2. Patrón de Almacenamiento (Storage Provider Strategy)
 
@@ -93,7 +89,7 @@ sequenceDiagram
     participant OpenXML as OpenXMLTemplateGenerator
     participant Storage as FileStorageService
 
-    API->>DB: GetActiveTemplate(type: "Memoria")
+    API->>DB: ResolveTemplate(templateId?, type: "Memoria")
     DB-->>API: Template (or null)
     API->>Engine: Generate(projectData, Template)
 

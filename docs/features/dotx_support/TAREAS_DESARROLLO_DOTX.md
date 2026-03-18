@@ -6,13 +6,21 @@ Backlog técnico clasificado para ejecutar la feature `.dotx` con storage delega
 
 Referencia obligatoria: `AGENTS.md`.
 
-## 1.1 Estado actual del backlog (2026-02)
+## 1.1 Estado actual del backlog (2026-03)
 
-- MVP de gestión `.dotx` implementado (upload/listado/activar-desactivar/validación/fallback export).
-- Pendiente de evolución funcional para escalabilidad:
-   - selector de plantilla en exportación,
+- Base funcional implementada y validada en PR-1..PR-5:
+   - gestión admin (`upload/listado/edición/eliminación`),
    - modelo `Disponible` + `Predeterminada`,
-   - catálogo dinámico de tipos.
+   - selector real en exportación (`templateId` + `outputFileName`),
+   - fallback automático al exportador estándar.
+- Pendiente de iteración posterior:
+   - catálogo dinámico de tipos de plantilla.
+
+## 1.2 Plan operativo por Casos de Uso (2026-03)
+
+- Para la ejecución de la iteración actual, usar como documento rector:
+   - `docs/features/dotx_support/PLAN_CU_IMPLEMENTACION_2026-03.md`
+- Este plan desglosa tareas por CU, secuencia por PR, criterios de cierre, checklist de revisión final, actualización documental y ejecución de tests.
 
 ---
 
@@ -53,7 +61,11 @@ Referencia obligatoria: `AGENTS.md`.
 1. `TemplatesController` (Admin):
    - `POST /api/templates`
    - `GET /api/templates`
-   - `PUT /api/templates/{id}/toggle-status`
+   - `PUT /api/templates/{id}`
+   - `PUT /api/templates/{id}/availability`
+   - `PUT /api/templates/{id}/default`
+   - `DELETE /api/templates/{id}`
+   - `PUT /api/templates/{id}/toggle-status` (compatibilidad legado)
 2. Validación FluentValidation (extensión/MIME/tamaño).
 3. Persistencia DB solo tras `success=true` webhook.
 

@@ -9,7 +9,7 @@
 ## 2. Actores del Sistema
 
 1. **Administrador:** Usuario con rol Admin que sube, clasifica y gestiona el ciclo de vida de las plantillas `.dotx`.  
-2. **Usuario Técnico (Arquitecto/Ingeniero):** Solicita la exportación de un proyecto. No elige la plantilla directamente; el sistema resuelve cuál aplicar según los metadatos del proyecto.  
+2. **Usuario Técnico (Arquitecto/Ingeniero):** Solicita la exportación de un proyecto. Puede elegir plantilla y nombre de archivo; el sistema completa la resolución con predeterminada/fallback cuando aplica.  
 3. **Sistema Orquestador (n8n):** Recibe eventos (Webhooks) desde la API para flujos de trabajo paralelos.
 4. **SuperAdministrador (evolución):** Gestiona catálogo de tipos de plantilla para nuevos documentos.
 

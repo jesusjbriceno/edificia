@@ -22,6 +22,8 @@ public class EdificiaDbContext : IdentityDbContext<ApplicationUser, IdentityRole
 
     public DbSet<AppTemplate> Templates => Set<AppTemplate>();
 
+    public DbSet<TemplateParam> TemplateParams => Set<TemplateParam>();
+
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

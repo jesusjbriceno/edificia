@@ -142,6 +142,29 @@ describe('useEditorActions — handleExport', () => {
     expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('memoria.docx'));
   });
 
+  it('envía templateId y outputFileName cuando se seleccionan en el modal', async () => {
+    const mockBlob = new Blob(['content']);
+    vi.mocked(projectService.exportDocx).mockResolvedValueOnce({
+      blob: mockBlob,
+      fileName: 'server-name.docx',
+    });
+
+    const { result } = renderHook(() => useEditorActions(null));
+
+    await act(async () => {
+      await result.current.handleExport({
+        preferredTemplateId: 'tpl-123',
+        fileName: 'memoria-personalizada.docx',
+      });
+    });
+
+    expect(projectService.exportDocx).toHaveBeenCalledWith('proj-actions-1', {
+      templateId: 'tpl-123',
+      outputFileName: 'memoria-personalizada.docx',
+    });
+    expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('memoria-personalizada.docx'));
+  });
+
   it('muestra toast.error si la exportación falla', async () => {
     vi.mocked(projectService.exportDocx).mockRejectedValueOnce(new Error('Network error'));
 

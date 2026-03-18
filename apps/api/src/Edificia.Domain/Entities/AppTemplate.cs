@@ -1,5 +1,6 @@
 using Edificia.Domain.Exceptions;
 using Edificia.Domain.Primitives;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Edificia.Domain.Entities;
 
@@ -16,7 +17,9 @@ public sealed class AppTemplate : AuditableEntity
     public string OriginalFileName { get; private set; } = string.Empty;
     public string MimeType { get; private set; } = string.Empty;
     public long FileSizeBytes { get; private set; }
-    public bool IsActive { get; private set; }
+    public bool IsAvailable { get; private set; }
+    public bool IsDefault { get; private set; }
+    public bool IsActive => IsAvailable;
     public int Version { get; private set; }
     public Guid CreatedByUserId { get; private set; }
 
@@ -24,6 +27,7 @@ public sealed class AppTemplate : AuditableEntity
 
     private AppTemplate(Guid id) : base(id) { }
 
+    [SuppressMessage("Major Code Smell", "S107:Methods should not have too many parameters", Justification = "Factory explícita del agregado con metadatos completos de plantilla.")]
     public static AppTemplate Create(
         string name,
         string? description,
@@ -63,7 +67,8 @@ public sealed class AppTemplate : AuditableEntity
             OriginalFileName = originalFileName.Trim(),
             MimeType = mimeType.Trim(),
             FileSizeBytes = fileSizeBytes,
-            IsActive = false,
+            IsAvailable = false,
+            IsDefault = false,
             Version = 1,
             CreatedByUserId = createdByUserId
         };
@@ -71,19 +76,49 @@ public sealed class AppTemplate : AuditableEntity
 
     public void Activate()
     {
-        if (IsActive)
+        if (IsAvailable)
         {
             throw new BusinessRuleException(
                 "Template.AlreadyActive",
                 "La plantilla ya está activa.");
         }
 
-        IsActive = true;
+        IsAvailable = true;
     }
 
     public void Deactivate()
     {
-        IsActive = false;
+        IsAvailable = false;
+        IsDefault = false;
+    }
+
+    public void SetAvailable(bool isAvailable)
+    {
+        if (isAvailable)
+        {
+            IsAvailable = true;
+            return;
+        }
+
+        IsAvailable = false;
+        IsDefault = false;
+    }
+
+    public void MarkAsDefault()
+    {
+        if (!IsAvailable)
+        {
+            throw new BusinessRuleException(
+                "Template.NotAvailable",
+                "Solo una plantilla disponible puede marcarse como predeterminada.");
+        }
+
+        IsDefault = true;
+    }
+
+    public void ClearDefault()
+    {
+        IsDefault = false;
     }
 
     public void PublishNewVersion(
@@ -108,7 +143,7 @@ public sealed class AppTemplate : AuditableEntity
         MimeType = mimeType.Trim();
         FileSizeBytes = fileSizeBytes;
         Version++;
-        IsActive = true;
+        IsAvailable = true;
     }
 
     public void Rename(string name, string? description)

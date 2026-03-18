@@ -28,27 +28,7 @@ public sealed class ToggleTemplateStatusHandler : IRequestHandler<ToggleTemplate
                 return Result.Failure(TemplateErrors.TemplateNotFound);
             }
 
-            if (request.IsActive)
-            {
-                var currentActive = await _templateRepository.GetActiveByTypeAsync(template.TemplateType, cancellationToken);
-                if (currentActive is not null && currentActive.Id != template.Id)
-                {
-                    currentActive.Deactivate();
-                    _templateRepository.Update(currentActive);
-                }
-
-                if (!template.IsActive)
-                {
-                    template.Activate();
-                }
-            }
-            else
-            {
-                if (template.IsActive)
-                {
-                    template.Deactivate();
-                }
-            }
+            template.SetAvailable(request.IsActive);
 
             _templateRepository.Update(template);
             await _templateRepository.SaveChangesAsync(cancellationToken);

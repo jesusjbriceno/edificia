@@ -246,10 +246,23 @@ export interface TemplateResponse {
   description: string | null;
   templateType: string;
   version: number;
+  isAvailable: boolean;
+  isDefault: boolean;
   isActive: boolean;
   originalFileName: string;
   mimeType: string;
   fileSizeBytes: number;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface TemplateParamResponse {
+  id: string;
+  key: string;
+  displayName: string;
+  sourceCode: string;
+  formatter: string | null;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string | null;
 }

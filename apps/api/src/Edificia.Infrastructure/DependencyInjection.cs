@@ -149,6 +149,7 @@ public static class DependencyInjection
         // ---------- Repositories ----------
         services.AddScoped<IProjectRepository, ProjectRepository>();
         services.AddScoped<ITemplateRepository, TemplateRepository>();
+        services.AddScoped<ITemplateParamRepository, TemplateParamRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();

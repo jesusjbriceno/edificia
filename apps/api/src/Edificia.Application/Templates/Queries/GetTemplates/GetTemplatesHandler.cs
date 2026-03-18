@@ -33,7 +33,7 @@ public sealed class GetTemplatesHandler
 
         if (request.IsActive.HasValue)
         {
-            conditions.Add("is_active = @IsActive");
+            conditions.Add("is_available = @IsActive");
             parameters.Add("IsActive", request.IsActive.Value);
         }
 

@@ -1,44 +1,57 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, FilePlus2, FileText, Loader2 } from 'lucide-react';
+import { AlertCircle, FilePlus2, FileText, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { templateService } from '@/lib/services/templateService';
-import type { TemplateResponse } from '@/lib/types';
+import { templateParamService } from '@/lib/services/templateParamService';
+import type { TemplateParamResponse, TemplateResponse } from '@/lib/types';
 import { ApiError } from '@/lib/api';
 import { useToastStore } from '@/store/useToastStore';
 
 export default function TemplateManagement() {
   const [templates, setTemplates] = useState<TemplateResponse[]>([]);
+  const [templateParams, setTemplateParams] = useState<TemplateParamResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingParams, setIsLoadingParams] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [paramsError, setParamsError] = useState<string | null>(null);
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [isSavingMetadata, setIsSavingMetadata] = useState(false);
+  const [busyTemplateId, setBusyTemplateId] = useState<string | null>(null);
+  const [busyTemplateParamId, setBusyTemplateParamId] = useState<string | null>(null);
 
   const { addToast } = useToastStore();
 
-  const activeTemplatesByType = useMemo(() => {
+  const defaultTemplateByType = useMemo(() => {
     return new Map(
       templates
-        .filter((t) => t.isActive)
-        .map((t) => [t.templateType, t.id]),
-    );
-  }, [templates]);
-
-  const activeTemplateByType = useMemo(() => {
-    return new Map(
-      templates
-        .filter((template) => template.isActive)
+        .filter((template) => template.isDefault)
         .map((template) => [template.templateType, template]),
     );
   }, [templates]);
 
-  const activeMemoriaTemplate = activeTemplateByType.get('MemoriaTecnica');
-  let activeMemoriaTemplateSummary = 'No hay plantilla activa (se usará el exportador estándar).';
+  const availableTemplates = useMemo(
+    () => templates.filter((template) => template.isAvailable),
+    [templates],
+  );
+
+  const activeTemplateParams = useMemo(
+    () => templateParams.filter((templateParam) => templateParam.isActive),
+    [templateParams],
+  );
+
+  const defaultMemoriaTemplate = defaultTemplateByType.get('MemoriaTecnica');
+  let defaultMemoriaTemplateSummary = 'No hay plantilla predeterminada (se usará el exportador estándar).';
   if (isLoading) {
-    activeMemoriaTemplateSummary = 'Cargando…';
-  } else if (activeMemoriaTemplate) {
-    activeMemoriaTemplateSummary = `${activeMemoriaTemplate.name} · v${activeMemoriaTemplate.version}`;
+    defaultMemoriaTemplateSummary = 'Cargando…';
+  } else if (defaultMemoriaTemplate) {
+    defaultMemoriaTemplateSummary = `${defaultMemoriaTemplate.name} · v${defaultMemoriaTemplate.version}`;
   }
 
   useEffect(() => {
     loadTemplates();
+    loadTemplateParams();
   }, []);
 
   async function loadTemplates() {
@@ -58,11 +71,70 @@ export default function TemplateManagement() {
     }
   }
 
-  async function handleToggleStatus(template: TemplateResponse) {
+  async function loadTemplateParams() {
+    setIsLoadingParams(true);
+    setParamsError(null);
     try {
-      await templateService.toggleStatus(template.id, !template.isActive);
+      const data = await templateParamService.list();
+      setTemplateParams(data);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setParamsError(err.message);
+      } else {
+        setParamsError('No se pudieron cargar los parámetros globales.');
+      }
+    } finally {
+      setIsLoadingParams(false);
+    }
+  }
+
+  function beginEdit(template: TemplateResponse) {
+    setEditingTemplateId(template.id);
+    setEditName(template.name);
+    setEditDescription(template.description ?? '');
+  }
+
+  function cancelEdit() {
+    setEditingTemplateId(null);
+    setEditName('');
+    setEditDescription('');
+  }
+
+  async function handleUpdateMetadata() {
+    if (!editingTemplateId) return;
+
+    const name = editName.trim();
+    if (!name) {
+      addToast('El nombre de la plantilla es obligatorio', 'error');
+      return;
+    }
+
+    setIsSavingMetadata(true);
+    try {
+      await templateService.updateMetadata(editingTemplateId, {
+        name,
+        description: editDescription.trim() || undefined,
+      });
+      addToast('Plantilla actualizada', 'success');
+      cancelEdit();
+      await loadTemplates();
+    } catch (err) {
+      if (err instanceof ApiError) {
+        addToast(err.message, 'error');
+      } else {
+        addToast('No se pudo actualizar la plantilla', 'error');
+      }
+    } finally {
+      setIsSavingMetadata(false);
+    }
+  }
+
+  async function handleSetAvailability(template: TemplateResponse) {
+    setBusyTemplateId(template.id);
+    try {
+      await templateService.setAvailability(template.id, !template.isAvailable);
       addToast(
-        template.isActive ? 'Plantilla desactivada' : 'Plantilla activada',
+        template.isAvailable ? 'Plantilla marcada como no disponible' : 'Plantilla marcada como disponible',
         'success',
       );
       await loadTemplates();
@@ -70,15 +142,84 @@ export default function TemplateManagement() {
       if (err instanceof ApiError) {
         addToast(err.message, 'error');
       } else {
-        addToast('No se pudo actualizar el estado de la plantilla', 'error');
+        addToast('No se pudo actualizar la disponibilidad de la plantilla', 'error');
       }
+    } finally {
+      setBusyTemplateId(null);
+    }
+  }
+
+  async function handleSetDefault(template: TemplateResponse) {
+    setBusyTemplateId(template.id);
+    try {
+      await templateService.setDefault(template.id, true);
+      addToast('Plantilla marcada como predeterminada', 'success');
+      await loadTemplates();
+    } catch (err) {
+      if (err instanceof ApiError) {
+        addToast(err.message, 'error');
+      } else {
+        addToast('No se pudo marcar la plantilla como predeterminada', 'error');
+      }
+    } finally {
+      setBusyTemplateId(null);
+    }
+  }
+
+  async function handleDelete(template: TemplateResponse) {
+    const shouldDelete = globalThis.confirm(
+      `¿Eliminar la plantilla "${template.name}"? Esta acción no se puede deshacer.`,
+    );
+
+    if (!shouldDelete) {
+      return;
+    }
+
+    setBusyTemplateId(template.id);
+    try {
+      await templateService.delete(template.id);
+      addToast('Plantilla eliminada', 'success');
+      if (editingTemplateId === template.id) {
+        cancelEdit();
+      }
+      await loadTemplates();
+    } catch (err) {
+      if (err instanceof ApiError) {
+        addToast(err.message, 'error');
+      } else {
+        addToast('No se pudo eliminar la plantilla', 'error');
+      }
+    } finally {
+      setBusyTemplateId(null);
+    }
+  }
+
+  async function handleToggleTemplateParam(templateParam: TemplateParamResponse) {
+    setBusyTemplateParamId(templateParam.id);
+    try {
+      await templateParamService.setActivation(templateParam.id, !templateParam.isActive);
+      addToast(
+        templateParam.isActive
+          ? 'Parámetro desactivado'
+          : 'Parámetro activado',
+        'success',
+      );
+      await loadTemplateParams();
+    } catch (err) {
+      if (err instanceof ApiError) {
+        addToast(err.message, 'error');
+      } else {
+        addToast('No se pudo actualizar el estado del parámetro', 'error');
+      }
+    } finally {
+      setBusyTemplateParamId(null);
     }
   }
 
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-white tracking-tight">Plantillas .dotx</h1>
+        <h1 className="text-3xl font-bold text-white tracking-tight">Plantillas de documento</h1>
         <p className="text-gray-400 mt-1">Sube y gestiona plantillas para la exportación de documentos.</p>
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <a href="/admin/templates/new" className="inline-flex">
@@ -88,10 +229,10 @@ export default function TemplateManagement() {
             </Button>
           </a>
           <a
-            href="/ayuda/guia-definicion-plantillas-dotx"
+            href="/ayuda/guia-definicion-plantillas-documento"
             className="text-sm text-brand-primary hover:text-brand-primary/80 underline underline-offset-2"
           >
-            Guía de definición .dotx
+            Guía de definición de plantillas
           </a>
         </div>
       </div>
@@ -103,19 +244,107 @@ export default function TemplateManagement() {
             <p className="text-xs uppercase tracking-wider text-gray-400">Plantillas cargadas</p>
             <p className="mt-1 text-2xl font-semibold text-white">{isLoading ? '…' : templates.length}</p>
           </div>
-          <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 md:col-span-2">
-            <p className="text-xs uppercase tracking-wider text-gray-400">Activa para exportación (`MemoriaTecnica`)</p>
-            <p className="mt-1 text-sm text-white">{activeMemoriaTemplateSummary}</p>
+          <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+            <p className="text-xs uppercase tracking-wider text-gray-400">Plantillas disponibles</p>
+            <p className="mt-1 text-2xl font-semibold text-white">{isLoading ? '…' : availableTemplates.length}</p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+            <p className="text-xs uppercase tracking-wider text-gray-400">Predeterminada MemoriaTecnica</p>
+            <p className="mt-1 text-sm text-white">{defaultMemoriaTemplateSummary}</p>
           </div>
         </div>
 
         <div className="mt-4 rounded-xl border border-brand-primary/25 bg-brand-primary/10 px-4 py-3 text-sm text-gray-200">
           <p className="font-medium text-white">Cómo se asignan las plantillas</p>
           <p className="mt-1">
-            La asignación es <strong>global por tipo</strong>: al exportar, el backend usa automáticamente la plantilla <strong>activa</strong> de{' '}
-            <strong>MemoriaTecnica</strong>. No se asigna plantilla por proyecto de forma manual.
+            Marca las plantillas como <strong>disponibles</strong> para poder seleccionarlas en exportación y define una plantilla{' '}
+            <strong>predeterminada</strong> por tipo para cubrir los casos en los que no se indica una selección explícita.
           </p>
         </div>
+      </div>
+
+      <div className="bg-dark-card border border-white/5 rounded-2xl p-6">
+        <h2 className="text-base font-semibold text-white mb-4">Parámetros globales de plantilla</h2>
+
+        <div className="mb-4 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-gray-200">
+          Catálogo gobernado: los parámetros y sus orígenes se definen por sistema. Desde este panel solo se permite activar o desactivar su uso en exportación.
+        </div>
+
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+            <p className="text-xs uppercase tracking-wider text-gray-400">Parámetros configurados</p>
+            <p className="mt-1 text-2xl font-semibold text-white">{isLoadingParams ? '…' : templateParams.length}</p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+            <p className="text-xs uppercase tracking-wider text-gray-400">Parámetros activos</p>
+            <p className="mt-1 text-2xl font-semibold text-white">{isLoadingParams ? '…' : activeTemplateParams.length}</p>
+          </div>
+        </div>
+
+        {isLoadingParams && (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 text-brand-primary animate-spin" />
+            <span className="ml-3 text-gray-400">Cargando parámetros…</span>
+          </div>
+        )}
+
+        {!isLoadingParams && paramsError && (
+          <div className="flex items-center gap-2 text-red-400 py-4">
+            <AlertCircle size={18} />
+            <span>{paramsError}</span>
+          </div>
+        )}
+
+        {!isLoadingParams && !paramsError && templateParams.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-8 text-gray-400">
+            <FileText size={28} className="mb-2" />
+            <span>No hay parámetros configurados.</span>
+          </div>
+        )}
+
+        {!isLoadingParams && !paramsError && templateParams.length > 0 && (
+          <div className="mt-4 space-y-3">
+            {templateParams.map((templateParam) => {
+              const isBusy = busyTemplateParamId === templateParam.id;
+
+              return (
+                <div
+                  key={templateParam.id}
+                  className="rounded-xl border border-white/5 bg-white/5 px-4 py-3"
+                >
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="text-white font-medium">{templateParam.displayName}</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Clave: <code>{templateParam.key}</code> · Source: <code>{templateParam.sourceCode}</code>
+                        {templateParam.formatter ? <> · Formatter: <code>{templateParam.formatter}</code></> : null}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={templateParam.isActive
+                          ? 'text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-300'
+                          : 'text-xs px-2 py-1 rounded-full bg-gray-500/20 text-gray-300'}
+                      >
+                        {templateParam.isActive ? 'Activo' : 'Inactivo'}
+                      </span>
+
+                      <Button
+                        size="sm"
+                        variant={templateParam.isActive ? 'outline' : 'primary'}
+                        onClick={() => handleToggleTemplateParam(templateParam)}
+                        disabled={isBusy}
+                      >
+                        {templateParam.isActive ? 'Desactivar' : 'Activar'}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div className="bg-dark-card border border-white/5 rounded-2xl p-6">
@@ -144,41 +373,130 @@ export default function TemplateManagement() {
         {!isLoading && !error && templates.length > 0 && (
           <div className="space-y-3">
             {templates.map((template) => {
-              const hasAnotherActive =
-                activeTemplatesByType.has(template.templateType) &&
-                activeTemplatesByType.get(template.templateType) !== template.id;
+              const isEditing = editingTemplateId === template.id;
+              const isBusy = busyTemplateId === template.id;
+              const defaultButtonTitle = template.isAvailable
+                ? undefined
+                : 'Solo las plantillas disponibles pueden marcarse como predeterminadas';
 
               return (
                 <div
                   key={template.id}
-                  className="flex flex-col md:flex-row md:items-center justify-between gap-3 rounded-xl border border-white/5 bg-white/5 px-4 py-3"
+                  className="rounded-xl border border-white/5 bg-white/5 px-4 py-3"
                 >
-                  <div>
-                    <p className="text-white font-medium">{template.name}</p>
-                    <p className="text-xs text-gray-400">
-                      {template.templateType} · v{template.version} · {template.originalFileName}
-                    </p>
-                    {template.description && (
-                      <p className="text-xs text-gray-500 mt-1">{template.description}</p>
-                    )}
+                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                    <div>
+                      <p className="text-white font-medium">{template.name}</p>
+                      <p className="text-xs text-gray-400">
+                        {template.templateType} · v{template.version} · {template.originalFileName}
+                      </p>
+                      {template.description && (
+                        <p className="text-xs text-gray-500 mt-1">{template.description}</p>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={template.isAvailable
+                          ? 'text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-300'
+                          : 'text-xs px-2 py-1 rounded-full bg-gray-500/20 text-gray-300'}
+                      >
+                        {template.isAvailable ? 'Disponible' : 'No disponible'}
+                      </span>
+                      <span
+                        className={template.isDefault
+                          ? 'text-xs px-2 py-1 rounded-full bg-brand-primary/20 text-brand-primary'
+                          : 'text-xs px-2 py-1 rounded-full bg-white/10 text-gray-300'}
+                      >
+                        {template.isDefault ? 'Predeterminada' : 'No predeterminada'}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={template.isActive
-                        ? 'text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-300'
-                        : 'text-xs px-2 py-1 rounded-full bg-gray-500/20 text-gray-300'}
-                    >
-                      {template.isActive ? 'Activa' : 'Inactiva'}
-                    </span>
+                  {isEditing ? (
+                    <div className="mt-4 rounded-lg border border-white/10 bg-black/20 p-3 space-y-3">
+                      <div className="space-y-1">
+                        <label htmlFor={`template-name-${template.id}`} className="text-xs text-gray-400 uppercase tracking-wider">
+                          Nombre
+                        </label>
+                        <input
+                          id={`template-name-${template.id}`}
+                          aria-label="Nombre de plantilla"
+                          type="text"
+                          value={editName}
+                          onChange={(event) => setEditName(event.target.value)}
+                          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-brand-primary"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label htmlFor={`template-description-${template.id}`} className="text-xs text-gray-400 uppercase tracking-wider">
+                          Descripción
+                        </label>
+                        <textarea
+                          id={`template-description-${template.id}`}
+                          aria-label="Descripción de plantilla"
+                          value={editDescription}
+                          onChange={(event) => setEditDescription(event.target.value)}
+                          rows={3}
+                          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-brand-primary"
+                        />
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button size="sm" onClick={handleUpdateMetadata} isLoading={isSavingMetadata}>
+                          Guardar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={cancelEdit}
+                          disabled={isSavingMetadata}
+                        >
+                          Cancelar
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="mt-4 flex flex-wrap items-center gap-2">
                     <Button
                       size="sm"
-                      variant={template.isActive ? 'outline' : 'primary'}
-                      onClick={() => handleToggleStatus(template)}
-                      disabled={!template.isActive && hasAnotherActive}
-                      title={!template.isActive && hasAnotherActive ? 'Ya existe otra plantilla activa del mismo tipo' : undefined}
+                      variant="outline"
+                      onClick={() => beginEdit(template)}
+                      disabled={isBusy || Boolean(editingTemplateId)}
                     >
-                      {template.isActive ? 'Desactivar' : 'Activar'}
+                      <Pencil size={14} className="mr-1" />
+                      Editar
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDelete(template)}
+                      disabled={isBusy || isSavingMetadata}
+                    >
+                      <Trash2 size={14} className="mr-1" />
+                      Eliminar
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      variant={template.isAvailable ? 'outline' : 'primary'}
+                      onClick={() => handleSetAvailability(template)}
+                      disabled={isBusy || isSavingMetadata}
+                    >
+                      {template.isAvailable ? 'Marcar no disponible' : 'Marcar disponible'}
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      variant={template.isDefault ? 'primary' : 'outline'}
+                      onClick={() => handleSetDefault(template)}
+                      disabled={template.isDefault || !template.isAvailable || isBusy || isSavingMetadata}
+                      title={defaultButtonTitle}
+                    >
+                      {template.isDefault ? 'Predeterminada' : 'Marcar predeterminada'}
                     </Button>
                   </div>
                 </div>
