@@ -36,7 +36,7 @@
           "conditions": [
             {
               "id": "cond-auth-valid",
-              "leftValue": "={{ $json.isValid }}",
+              "leftValue": "={{ Boolean($json.isValid) }}",
               "rightValue": "",
               "operator": {
                 "type": "boolean",
@@ -120,7 +120,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Decodifica el contenido base64 de la plantilla y lo prepara como dato binario\n// para que el nodo de Google Drive pueda subirlo.\nconst item = $input.first();\nconst payload = item.json.payload;\n\nif (!payload || !payload.contentBase64) {\n  throw new Error('payload.contentBase64 es obligatorio para UPLOAD_TEMPLATE.');\n}\nif (!payload.fileName) {\n  throw new Error('payload.fileName es obligatorio para UPLOAD_TEMPLATE.');\n}\n\nconst buffer = Buffer.from(payload.contentBase64, 'base64');\nconst mimeType = payload.mimeType || 'application/vnd.openxmlformats-officedocument.wordprocessingml.template';\n\nreturn [{\n  json: item.json,\n  binary: {\n    data: await this.helpers.prepareBinaryData(buffer, payload.fileName, mimeType)\n  }\n}];"
+        "jsCode": "// Decodifica el contenido base64 de la plantilla y lo prepara como dato binario\n// para que el nodo de Google Drive pueda subirlo.\n// Nota: folderId se resuelve aquí desde $env para evitar el bug de n8n v3\n// donde $env en campos __rl Resource Locator incluye el '=' del marcador de expresión.\nconst item = $input.first();\nconst payload = item.json.payload;\n\nif (!payload || !payload.contentBase64) {\n  throw new Error('payload.contentBase64 es obligatorio para UPLOAD_TEMPLATE.');\n}\nif (!payload.fileName) {\n  throw new Error('payload.fileName es obligatorio para UPLOAD_TEMPLATE.');\n}\n\nconst folderId = $env.GDRIVE_TEMPLATES_FOLDER_ID;\nif (!folderId) {\n  throw new Error('GDRIVE_TEMPLATES_FOLDER_ID environment variable is not configured in n8n.');\n}\n\nconst buffer = Buffer.from(payload.contentBase64, 'base64');\nconst mimeType = payload.mimeType || 'application/vnd.openxmlformats-officedocument.wordprocessingml.template';\n\nreturn [{\n  json: { ...item.json, _folderId: folderId },\n  binary: {\n    data: await this.helpers.prepareBinaryData(buffer, payload.fileName, mimeType)\n  }\n}];"
       },
       "id": "ts-dec-0001-0000-0000-000000000006",
       "name": "Decode Binary",
@@ -140,7 +140,7 @@
         "folderId": {
           "__rl": true,
           "mode": "id",
-          "value": "={{ $env.GDRIVE_TEMPLATES_FOLDER_ID }}"
+          "value": "={{ $json._folderId }}"
         },
         "inputDataFieldName": "data",
         "options": {}
