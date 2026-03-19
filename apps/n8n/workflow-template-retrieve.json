@@ -36,7 +36,7 @@
           "conditions": [
             {
               "id": "cond-auth-valid",
-              "leftValue": "={{ $json.isValid }}",
+              "leftValue": "={{ Boolean($json.isValid) }}",
               "rightValue": "",
               "operator": {
                 "type": "boolean",
@@ -92,7 +92,7 @@
           "conditions": [
             {
               "id": "cond-req-valid",
-              "leftValue": "={{ $json.isValid }}",
+              "leftValue": "={{ Boolean($json.isValid) }}",
               "rightValue": "",
               "operator": {
                 "type": "boolean",
