@@ -1,0 +1,301 @@
+{
+  "name": "EDIFICIA - Template Storage (Store)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "template-store",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "ts-wh-0001-0000-0000-000000000001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 340],
+      "webhookId": "template-store"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Valida X-Edificia-Auth contra la variable de entorno EDIFICIA_API_SECRET.\n// Extrae y expone el body para los nodos siguientes.\nconst items = $input.all();\nconst headers = items[0].json.headers;\nconst expectedSecret = $env.EDIFICIA_API_SECRET;\nconst receivedSecret = headers['x-edificia-auth'];\n\nif (!expectedSecret) {\n  throw new Error('EDIFICIA_API_SECRET environment variable is not configured in n8n.');\n}\n\nif (!receivedSecret || receivedSecret !== expectedSecret) {\n  return [{ json: { isValid: false } }];\n}\n\nconst body = items[0].json.body;\nreturn [{ json: { isValid: true, ...body } }];"
+      },
+      "id": "ts-auth-0001-0000-0000-000000000002",
+      "name": "Validate Auth",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 340]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-auth-valid",
+              "leftValue": "={{ $json.isValid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ts-if-000001-0000-0000-000000000003",
+      "name": "Auth Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 340]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ apiVersion: '1.0', operation: $json.operation ?? 'UNKNOWN', operationId: $json.operationId ?? '', success: false, code: 'AUTH_INVALID', message: 'Invalid or missing X-Edificia-Auth header', timestampUtc: new Date().toISOString() }) }}",
+        "options": {
+          "responseCode": 401,
+          "responseHeaders": {
+            "entries": [{ "name": "Content-Type", "value": "application/json" }]
+          }
+        }
+      },
+      "id": "ts-403-0001-0000-0000-000000000004",
+      "name": "Respond 401",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 500]
+    },
+    {
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+                "conditions": [
+                  {
+                    "id": "cond-upload",
+                    "leftValue": "={{ $json.operation }}",
+                    "rightValue": "UPLOAD_TEMPLATE",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "upload"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+                "conditions": [
+                  {
+                    "id": "cond-delete",
+                    "leftValue": "={{ $json.operation }}",
+                    "rightValue": "DELETE_TEMPLATE",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "delete"
+            }
+          ]
+        },
+        "options": { "fallbackOutput": "extra" }
+      },
+      "id": "ts-sw-000001-0000-0000-000000000005",
+      "name": "Route Operation",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [900, 180]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Decodifica el contenido base64 de la plantilla y lo prepara como dato binario\n// para que el nodo de Google Drive pueda subirlo.\nconst item = $input.first();\nconst payload = item.json.payload;\n\nif (!payload || !payload.contentBase64) {\n  throw new Error('payload.contentBase64 es obligatorio para UPLOAD_TEMPLATE.');\n}\nif (!payload.fileName) {\n  throw new Error('payload.fileName es obligatorio para UPLOAD_TEMPLATE.');\n}\n\nconst buffer = Buffer.from(payload.contentBase64, 'base64');\nconst mimeType = payload.mimeType || 'application/vnd.openxmlformats-officedocument.wordprocessingml.template';\n\nreturn [{\n  json: item.json,\n  binary: {\n    data: await this.helpers.prepareBinaryData(buffer, payload.fileName, mimeType)\n  }\n}];"
+      },
+      "id": "ts-dec-0001-0000-0000-000000000006",
+      "name": "Decode Binary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 80]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "name": "={{ $json.payload.fileName }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $env.GDRIVE_TEMPLATES_FOLDER_ID }}"
+        },
+        "inputDataFieldName": "data",
+        "options": {}
+      },
+      "id": "ts-gdu-0001-0000-0000-000000000007",
+      "name": "Upload to Google Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [1340, 80],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "name": "Google Drive — EdificIA"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Construye la respuesta de éxito para UPLOAD_TEMPLATE.\n// storageKey = ID del fichero en Google Drive (opaco para la API).\nconst input = $input.first();\nconst original = $('Route Operation').first().json;\nconst driveFile = input.json;\n\nreturn [{\n  json: {\n    apiVersion: '1.0',\n    operation: 'UPLOAD_TEMPLATE',\n    operationId: original.operationId,\n    success: true,\n    code: 'TEMPLATE_STORAGE_OK',\n    message: 'Plantilla subida correctamente',\n    provider: 'google-drive',\n    timestampUtc: new Date().toISOString(),\n    data: {\n      storageKey: driveFile.id,\n      fileName: driveFile.name,\n      fileSizeBytes: original.payload?.fileSizeBytes ?? null,\n      sha256: null,\n      version: 1\n    }\n  }\n}];"
+      },
+      "id": "ts-ru-000001-0000-0000-000000000008",
+      "name": "Build Upload Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 80]
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [{ "name": "Content-Type", "value": "application/json" }]
+          }
+        }
+      },
+      "id": "ts-200u-001-0000-0000-000000000009",
+      "name": "Respond 200 Upload",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1780, 80]
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.payload.storageKey }}"
+        },
+        "options": {}
+      },
+      "id": "ts-gdd-0001-0000-0000-000000000010",
+      "name": "Delete from Google Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [1120, 280],
+      "continueOnFail": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "name": "Google Drive — EdificIA"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Construye la respuesta para DELETE_TEMPLATE.\n// Si el nodo de Drive devolvió error, responde TEMPLATE_NOT_FOUND (404 lógico).\nconst input = $input.first();\nconst original = $('Route Operation').first().json;\nconst hasError = !!input.json.error;\n\nif (hasError) {\n  return [{\n    json: {\n      apiVersion: '1.0',\n      operation: 'DELETE_TEMPLATE',\n      operationId: original.operationId,\n      success: false,\n      code: 'TEMPLATE_NOT_FOUND',\n      message: 'La plantilla no existe en el almacenamiento',\n      provider: 'google-drive',\n      timestampUtc: new Date().toISOString(),\n      data: { storageKey: original.payload?.storageKey, deleted: false }\n    },\n    _httpStatus: 404\n  }];\n}\n\nreturn [{\n  json: {\n    apiVersion: '1.0',\n    operation: 'DELETE_TEMPLATE',\n    operationId: original.operationId,\n    success: true,\n    code: 'TEMPLATE_STORAGE_OK',\n    message: 'Plantilla eliminada correctamente',\n    provider: 'google-drive',\n    timestampUtc: new Date().toISOString(),\n    data: { storageKey: original.payload?.storageKey, deleted: true }\n  },\n  _httpStatus: 200\n}];"
+      },
+      "id": "ts-rd-000001-0000-0000-000000000011",
+      "name": "Build Delete Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 280]
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {
+          "responseCode": "={{ $json._httpStatus ?? 200 }}",
+          "responseHeaders": {
+            "entries": [{ "name": "Content-Type", "value": "application/json" }]
+          }
+        }
+      },
+      "id": "ts-200d-001-0000-0000-000000000012",
+      "name": "Respond Delete",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1560, 280]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ apiVersion: '1.0', operation: $json.operation ?? 'UNKNOWN', operationId: $json.operationId ?? '', success: false, code: 'UNSUPPORTED_OPERATION', message: 'Operación no soportada en este webhook. Use UPLOAD_TEMPLATE o DELETE_TEMPLATE.', timestampUtc: new Date().toISOString() }) }}",
+        "options": {
+          "responseCode": 400,
+          "responseHeaders": {
+            "entries": [{ "name": "Content-Type", "value": "application/json" }]
+          }
+        }
+      },
+      "id": "ts-400-0001-0000-0000-000000000013",
+      "name": "Respond 400 Unsupported",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1120, 480]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Validate Auth", "type": "main", "index": 0 }]]
+    },
+    "Validate Auth": {
+      "main": [[{ "node": "Auth Valid?", "type": "main", "index": 0 }]]
+    },
+    "Auth Valid?": {
+      "main": [
+        [{ "node": "Route Operation", "type": "main", "index": 0 }],
+        [{ "node": "Respond 401", "type": "main", "index": 0 }]
+      ]
+    },
+    "Route Operation": {
+      "main": [
+        [{ "node": "Decode Binary", "type": "main", "index": 0 }],
+        [{ "node": "Delete from Google Drive", "type": "main", "index": 0 }],
+        [{ "node": "Respond 400 Unsupported", "type": "main", "index": 0 }]
+      ]
+    },
+    "Decode Binary": {
+      "main": [[{ "node": "Upload to Google Drive", "type": "main", "index": 0 }]]
+    },
+    "Upload to Google Drive": {
+      "main": [[{ "node": "Build Upload Response", "type": "main", "index": 0 }]]
+    },
+    "Build Upload Response": {
+      "main": [[{ "node": "Respond 200 Upload", "type": "main", "index": 0 }]]
+    },
+    "Delete from Google Drive": {
+      "main": [[{ "node": "Build Delete Response", "type": "main", "index": 0 }]]
+    },
+    "Build Delete Response": {
+      "main": [[{ "node": "Respond Delete", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "edificia-template-store-v1",
+  "meta": {
+    "instanceId": "edificia",
+    "templateCredsSetupCompleted": false
+  },
+  "tags": [
+    { "name": "edificia" },
+    { "name": "templates" },
+    { "name": "google-drive" }
+  ]
+}
