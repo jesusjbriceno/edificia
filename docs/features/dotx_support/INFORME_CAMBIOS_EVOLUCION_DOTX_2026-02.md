@@ -125,13 +125,20 @@ Evolucionar de un modelo de plantilla única activa por tipo hacia un modelo esc
 
 ---
 
-## 6. Estado real a 2026-03 (feature/dotx_placeholders_core)
+## 6. Estado real a 2026-03 (feature/dotx_placeholders_core + feature/n8n-template-storage-gdrive)
 
 ### Implementado y operativo
 
 - **Formato de plantilla**: aceptados `.docx` y `.dotx` en upload y exportación.
 - **Estados de plantilla**: `IsAvailable` + `IsDefault` (máx. 1 por tipo). Migrado de `IsActive` único.
 - **Selector de plantilla**: `ExportDocxModal` con selector de plantilla disponible y nombre de archivo editable.
+- **Almacenamiento delegado vía n8n (Google Drive)**:
+  - `N8nTemplateStorageService` implementa `IFileStorageService` con tres operaciones: `UPLOAD_TEMPLATE`, `GET_TEMPLATE`, `DELETE_TEMPLATE`.
+  - Split de webhooks n8n: `/webhook/template-store` (escritura/borrado) y `/webhook/template-retrieve` (lectura).
+  - `storageKey` = File ID opaco de Google Drive (persistido en `AppTemplate.StoragePath`).
+  - `LocalFileStorageService` como proveedor de desarrollo (`Provider=local`).
+  - Selección de proveedor por configuración (`TemplateStorage__Provider`).
+  - Secret compartido con servicio de IA (`N8N_API_SECRET`).
 - **Resolución de placeholders**: `TemplatePlaceholderService` + `TemplateParameterResolver` — resuelve metadatos del proyecto (`PROJECT_TITLE`, `PROJECT_ADDRESS`, `EXPORT_DATE`, etc.) antes de exportar.
 - **Catálogo `TemplateParam`**: administrado en `/admin/template-params`. Gobernanza de activación/desactivación.
 - **Exportación híbrida mejorada**:

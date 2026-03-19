@@ -8,10 +8,25 @@ Documento rector obligatorio durante toda la ejecución: `AGENTS.md`.
 
 ## 1.1 Estado real a 2026-03 (baseline)
 
-- Upload de plantillas `.dotx` implementado con validación avanzada (extensión/MIME/tamaño/OpenXML/tags).
+**Implementado y operativo (Fases 0–9 completadas):**
+
+- Contrato API↔n8n v1.0 cerrado con split de webhooks (`template-store` / `template-retrieve`).
+- `N8nTemplateStorageService` implementado: `UPLOAD_TEMPLATE`, `GET_TEMPLATE`, `DELETE_TEMPLATE` vía Google Drive.
+- `LocalFileStorageService` implementado como fallback de desarrollo (`Provider=local`).
+- `TemplateStorageSettings` con selección de proveedor por configuración (`local` / `n8n`).
+- Upload de plantillas `.dotx` / `.docx` con validación avanzada (extensión/MIME/tamaño/OpenXML/tags).
 - Gestión admin implementada en `/admin/templates` (alta, listado, edición, eliminación, disponibilidad y predeterminada).
+- Modelo `IsAvailable` + `IsDefault` (máx. 1 por tipo). Migrado de `IsActive` único.
 - Exportación híbrida implementada con fallback al motor estándar.
 - Selección de plantilla operativa desde UI de exportación (`templateId`) y nombre de archivo configurable (`outputFileName`).
+- `TemplatePlaceholderService` + `TemplateParameterResolver`: resolución de placeholders del proyecto.
+- Catálogo `TemplateParam` con gobernanza admin (`/admin/template-params`).
+
+**Pendiente (Fases 10–11):**
+
+- Catálogo dinámico de tipos de plantilla (de hardcoded `"MemoriaTecnica"` a tabla `template_types`).
+- Tests de integración end-to-end de resolución de placeholders.
+- Cierre documental integral (Fase 11).
 
 ---
 
@@ -380,6 +395,10 @@ Objetivo: cerrar administración UI, observabilidad y preparación de release.
 ## 9. Dependencias de entrada
 
 1. Servidor n8n accesible desde API.
-2. Secreto compartido configurado en ambos lados.
-3. Workflow `template-storage` desplegado.
-4. Backend de storage elegido y credenciales válidas en n8n.
+2. Secreto compartido (`N8N_API_SECRET`) configurado en ambos lados (API y n8n). Compartido también con el servicio de IA.
+3. Dos workflows n8n desplegados:
+   - `workflow-template-store.json` → webhook `/webhook/template-store` (operaciones `UPLOAD_TEMPLATE` + `DELETE_TEMPLATE`)
+   - `workflow-template-retrieve.json` → webhook `/webhook/template-retrieve` (operación `GET_TEMPLATE`)
+4. Credenciales Google Drive OAuth2 (`Google Drive — EdificIA`) configuradas en n8n.
+5. Variable de entorno `GDRIVE_TEMPLATES_FOLDER_ID` con el ID de la carpeta de destino en Google Drive.
+6. Variables `TemplateStorage__N8nStoreWebhookUrl` y `TemplateStorage__N8nRetrieveWebhookUrl` configuradas en la API.
