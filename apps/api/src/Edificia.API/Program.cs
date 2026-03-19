@@ -208,7 +208,7 @@ static void MapEnvironmentVariables()
     MapEnv("TEMPLATE_PROVIDER",              "TemplateStorage__Provider");
     MapEnv("TEMPLATE_STORE_WEBHOOK_URL",     "TemplateStorage__N8nStoreWebhookUrl");
     MapEnv("TEMPLATE_RETRIEVE_WEBHOOK_URL",  "TemplateStorage__N8nRetrieveWebhookUrl");
-    MapEnv("TEMPLATE_API_SECRET",            "TemplateStorage__N8nApiSecret");
+    MapEnv("N8N_API_SECRET",                 "TemplateStorage__N8nApiSecret"); // mismo secreto que IA
     MapEnv("TEMPLATE_TIMEOUT",               "TemplateStorage__TimeoutSeconds");
 
     // ── Helpers ──
