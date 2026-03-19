@@ -45,7 +45,8 @@ public class N8nTemplateStorageServiceTests
         var settings = Options.Create(new TemplateStorageSettings
         {
             Provider = "n8n",
-            N8nWebhookUrl = "http://localhost:5678/webhook/template-storage",
+            N8nStoreWebhookUrl = "http://localhost:5678/webhook/template-store",
+            N8nRetrieveWebhookUrl = "http://localhost:5678/webhook/template-retrieve",
             N8nApiSecret = "secret",
             TimeoutSeconds = 30
         });
@@ -95,7 +96,8 @@ public class N8nTemplateStorageServiceTests
         var settings = Options.Create(new TemplateStorageSettings
         {
             Provider = "n8n",
-            N8nWebhookUrl = "http://localhost:5678/webhook/template-storage",
+            N8nStoreWebhookUrl = "http://localhost:5678/webhook/template-store",
+            N8nRetrieveWebhookUrl = "http://localhost:5678/webhook/template-retrieve",
             N8nApiSecret = "secret",
             TimeoutSeconds = 30
         });
