@@ -27,19 +27,29 @@ Modelo de integración:
 
 ---
 
-## 3. Endpoint y versionado
+## 3. Endpoints y versionado
 
-- Método: `POST`
-- URL recomendada: `/webhook/template-storage`
-- Versionado en payload: `apiVersion`
+La implementación usa **dos webhooks separados** para aislar responsabilidades y simplificar los flujos n8n:
 
-Ejemplo URL completa:
+| Webhook | Método | Operaciones |
+|---|---|---|
+| `/webhook/template-store` | `POST` | `UPLOAD_TEMPLATE`, `DELETE_TEMPLATE` |
+| `/webhook/template-retrieve` | `POST` | `GET_TEMPLATE` |
 
-`https://n8n.tudominio.com/webhook/template-storage`
+Ejemplos URL completas:
+
+```
+https://n8n.tudominio.com/webhook/template-store
+https://n8n.tudominio.com/webhook/template-retrieve
+```
+
+Versionado en payload: `apiVersion`
 
 Versión inicial del contrato:
 
 - `apiVersion: "1.0"`
+
+> **Nota:** El diseño original contemplaba un único endpoint `/webhook/template-storage`. La implementación final dividió las operaciones en dos webhooks para simplificar el routing interno de n8n y separar las credenciales de escritura (Google Drive upload/delete) de las de lectura (download).
 
 ---
 
@@ -111,15 +121,17 @@ Validaciones mínimas:
 
 ```json
 {
-  "storageKey": "templates/memoria/2026/02/plantilla-v3.dotx"
+  "storageKey": "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms"
 }
 ```
+
+> **Nota:** `storageKey` es el **File ID de Google Drive** (string opaco). No es una ruta de fichero. Se obtiene como retorno de `UPLOAD_TEMPLATE` y se persiste en la columna `storage_key` de la entidad `AppTemplate`.
 
 ### C) `DELETE_TEMPLATE`
 
 ```json
 {
-  "storageKey": "templates/memoria/2026/02/plantilla-v3.dotx",
+  "storageKey": "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms",
   "hardDelete": false
 }
 ```
@@ -138,11 +150,12 @@ Validaciones mínimas:
   "success": true,
   "code": "TEMPLATE_STORAGE_OK",
   "message": "Operation completed",
-  "provider": "s3",
-  "timestampUtc": "2026-02-24T18:10:01Z",
+  "provider": "google-drive",
   "data": {}
 }
 ```
+
+> **Nota:** El campo `timestampUtc` en la respuesta era parte del diseño original. Los flujos n8n actuales no lo incluyen. El campo `provider` indica el backend de almacenamiento activo (`google-drive` en la implementación actual).
 
 Campos:
 
@@ -158,23 +171,21 @@ Campos:
 
 ```json
 {
-  "storageKey": "templates/memoria/2026/02/plantilla-v3.dotx",
+  "storageKey": "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms",
   "fileName": "Plantilla_Memoria_v3.dotx",
   "fileSizeBytes": 245781,
-  "sha256": "8f11ef4f5f3d4c99...",
-  "version": 3,
-  "metadata": {
-    "bucket": "edificia-templates",
-    "region": "eu-west-1"
-  }
+  "version": 1
 }
 ```
+
+> `storageKey` es el **File ID de Google Drive** devuelto tras el upload. La API lo persiste en DB para usarlo en `GET_TEMPLATE` y `DELETE_TEMPLATE`.
+> Los campos `sha256` y `metadata` (bucket/region) eran parte del diseño original orientado a S3; la implementación Google Drive no los incluye.
 
 ### B) Respuesta `GET_TEMPLATE`
 
 ```json
 {
-  "storageKey": "templates/memoria/2026/02/plantilla-v3.dotx",
+  "storageKey": "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms",
   "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.template",
   "fileSizeBytes": 245781,
   "contentBase64": "UEsDBBQABgAIAAAAIQ..."
@@ -185,7 +196,6 @@ Campos:
 
 ```json
 {
-  "storageKey": "templates/memoria/2026/02/plantilla-v3.dotx",
   "deleted": true
 }
 ```
@@ -257,21 +267,21 @@ Requisito de diseño:
 
 ## 11. Ejemplos rápidos (curl)
 
-## 11.1. Upload
+## 11.1. Upload → `/webhook/template-store`
 
 ```bash
-curl -X POST "https://n8n.tudominio.com/webhook/template-storage" \
+curl -X POST "https://n8n.tudominio.com/webhook/template-store" \
   -H "Content-Type: application/json" \
   -H "X-Edificia-Auth: <SECRET>" \
   -H "X-Request-Id: 95e3de87-213e-4f49-a99f-d2cb3dfe6b62" \
-  -H "X-Idempotency-Key: upload-memoria-v3-20260224" \
+  -H "X-Idempotency-Key: upload-95e3de87-213e-4f49-a99f-d2cb3dfe6b62" \
   -d '{
     "apiVersion":"1.0",
     "operation":"UPLOAD_TEMPLATE",
     "operationId":"95e3de87-213e-4f49-a99f-d2cb3dfe6b62",
     "timestampUtc":"2026-02-24T18:10:00Z",
     "tenantId":"default",
-    "requestedBy":"admin@edificia.dev",
+    "requestedBy":"api-edificia",
     "payload":{
       "templateType":"MemoriaTecnica",
       "fileName":"Plantilla_Memoria_v3.dotx",
@@ -282,10 +292,10 @@ curl -X POST "https://n8n.tudominio.com/webhook/template-storage" \
   }'
 ```
 
-## 11.2. Get
+## 11.2. Get → `/webhook/template-retrieve`
 
 ```bash
-curl -X POST "https://n8n.tudominio.com/webhook/template-storage" \
+curl -X POST "https://n8n.tudominio.com/webhook/template-retrieve" \
   -H "Content-Type: application/json" \
   -H "X-Edificia-Auth: <SECRET>" \
   -H "X-Request-Id: 15fe0da2-a872-4f24-b7bf-8fcb14926c24" \
@@ -297,7 +307,29 @@ curl -X POST "https://n8n.tudominio.com/webhook/template-storage" \
     "tenantId":"default",
     "requestedBy":"api-edificia",
     "payload":{
-      "storageKey":"templates/memoria/2026/02/plantilla-v3.dotx"
+      "storageKey":"1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms"
+    }
+  }'
+```
+
+## 11.3. Delete → `/webhook/template-store`
+
+```bash
+curl -X POST "https://n8n.tudominio.com/webhook/template-store" \
+  -H "Content-Type: application/json" \
+  -H "X-Edificia-Auth: <SECRET>" \
+  -H "X-Request-Id: 3fa85f64-5717-4562-b3fc-2c963f66afa6" \
+  -H "X-Idempotency-Key: delete-3fa85f64-5717-4562-b3fc-2c963f66afa6" \
+  -d '{
+    "apiVersion":"1.0",
+    "operation":"DELETE_TEMPLATE",
+    "operationId":"3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "timestampUtc":"2026-02-24T18:15:00Z",
+    "tenantId":"default",
+    "requestedBy":"api-edificia",
+    "payload":{
+      "storageKey":"1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms",
+      "hardDelete":false
     }
   }'
 ```

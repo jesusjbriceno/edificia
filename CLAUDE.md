@@ -231,8 +231,12 @@ const { register, handleSubmit } = useForm<ProjectFormData>({
 ### Estado actual (2026-03)
 
 **Implementado y operativo:**
-- Upload `.dotx` con validación avanzada (extensión, MIME, tamaño, OpenXML, tags obligatorios)
+- Upload `.dotx` / `.docx` con validación avanzada (extensión, MIME, tamaño, OpenXML, tags obligatorios)
 - Gestión admin en `/admin/templates` (alta, listado, disponibilidad, predeterminada)
+- **Almacenamiento delegado vía n8n → Google Drive** (`N8nTemplateStorageService`):
+  - Webhook `template-store` → `UPLOAD_TEMPLATE` + `DELETE_TEMPLATE`
+  - Webhook `template-retrieve` → `GET_TEMPLATE`
+  - Proveedor local (`LocalFileStorageService`) para desarrollo
 - Exportación híbrida con fallback al motor estándar
 - `ExportDocxModal` con selector de plantilla y nombre de archivo editable
 - Catálogo de `TemplateParam` con `SourceCode` y `Formatter`
@@ -240,10 +244,9 @@ const { register, handleSubmit } = useForm<ProjectFormData>({
 - `TemplateParamsController` con gobernanza: activar/desactivar parámetros
 
 **Próximos pasos (roadmap):**
-1. Integrar `TemplatePlaceholderService` en `ExportProjectHandler` para resolver placeholders en tiempo de exportación
-2. Separar estados `IsAvailable` / `IsDefault` (migrar de `IsActive` único)
-3. Catálogo dinámico de tipos de plantilla (de hardcoded a tabla `template_types`)
-4. Tests de integración de resolución de placeholders
+1. Catálogo dinámico de tipos de plantilla (de hardcoded `"MemoriaTecnica"` a tabla `template_types`)
+2. Tests de integración end-to-end de resolución de placeholders
+3. Cierre documental integral (Fase 11 del roadmap)
 
 ### Servicios de resolución de placeholders
 
