@@ -71,6 +71,12 @@ services:
       # ── Root Admin (seed inicial) ──
       ROOT_EMAIL: ${ROOT_EMAIL:-}
       ROOT_PASSWORD: ${ROOT_PASSWORD:-}
+      # ── Template Storage (n8n → Google Drive) ──
+      TEMPLATE_PROVIDER: ${TEMPLATE_PROVIDER:-local}
+      TEMPLATE_STORE_WEBHOOK_URL: ${TEMPLATE_STORE_WEBHOOK_URL:-}
+      TEMPLATE_RETRIEVE_WEBHOOK_URL: ${TEMPLATE_RETRIEVE_WEBHOOK_URL:-}
+      TEMPLATE_API_SECRET: ${TEMPLATE_API_SECRET:-}
+      TEMPLATE_TIMEOUT: ${TEMPLATE_TIMEOUT:-60}
 
   # ── Frontend Web ──
   web:

@@ -205,6 +205,11 @@ static void MapEnvironmentVariables()
     MapEnv("SMTP_USE_SSL",       "Email__SmtpUseSsl");
     MapEnv("ROOT_EMAIL",      "Security__RootEmail");
     MapEnv("ROOT_PASSWORD",   "Security__RootInitialPassword");
+    MapEnv("TEMPLATE_PROVIDER",              "TemplateStorage__Provider");
+    MapEnv("TEMPLATE_STORE_WEBHOOK_URL",     "TemplateStorage__N8nStoreWebhookUrl");
+    MapEnv("TEMPLATE_RETRIEVE_WEBHOOK_URL",  "TemplateStorage__N8nRetrieveWebhookUrl");
+    MapEnv("TEMPLATE_API_SECRET",            "TemplateStorage__N8nApiSecret");
+    MapEnv("TEMPLATE_TIMEOUT",               "TemplateStorage__TimeoutSeconds");
 
     // ── Helpers ──
 
