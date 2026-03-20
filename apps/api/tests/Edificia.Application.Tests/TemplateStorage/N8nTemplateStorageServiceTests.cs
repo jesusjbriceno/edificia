@@ -12,6 +12,51 @@ namespace Edificia.Application.Tests.TemplateStorage;
 public class N8nTemplateStorageServiceTests
 {
     [Fact]
+    public async Task SaveFileAsync_ShouldSupportCamelCaseResponseContract_FromN8nWorkflow()
+    {
+        var responseBody = """
+                           {
+                             "apiVersion": "1.0",
+                             "operation": "UPLOAD_TEMPLATE",
+                             "operationId": "ad21f203-70f4-44d8-bf93-630a5d1896c4",
+                             "success": true,
+                             "code": "TEMPLATE_STORAGE_OK",
+                             "message": "ok",
+                             "provider": "google-drive",
+                             "timestampUtc": "2026-03-20T10:30:00Z",
+                             "data": {
+                               "storageKey": "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms",
+                               "fileName": "plantilla.dotx",
+                               "fileSizeBytes": 100,
+                               "version": 1
+                             }
+                           }
+                           """;
+
+        var handler = new FakeHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseBody, Encoding.UTF8, "application/json")
+        });
+
+        var httpClient = new HttpClient(handler);
+        var settings = Options.Create(new TemplateStorageSettings
+        {
+            Provider = "n8n",
+            N8nStoreWebhookUrl = "http://localhost:5678/webhook/template-store",
+            N8nRetrieveWebhookUrl = "http://localhost:5678/webhook/template-retrieve",
+            N8nApiSecret = "secret",
+            TimeoutSeconds = 30
+        });
+
+        var service = new N8nTemplateStorageService(httpClient, settings, Mock.Of<ILogger<N8nTemplateStorageService>>());
+
+        await using var stream = new MemoryStream(new byte[] { 10, 11, 12 });
+        var storageKey = await service.SaveFileAsync(stream, "plantilla.dotx", "MemoriaTecnica");
+
+        storageKey.Should().Be("1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms");
+    }
+
+    [Fact]
     public async Task SaveFileAsync_ShouldReturnStorageKey_WhenN8nRespondsSuccess()
     {
         var handler = new FakeHttpMessageHandler(_ =>
