@@ -8,6 +8,11 @@ namespace Edificia.Infrastructure.TemplateStorage;
 
 public sealed class N8nTemplateStorageService : IFileStorageService
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
     private readonly HttpClient _httpClient;
     private readonly TemplateStorageSettings _settings;
     private readonly ILogger<N8nTemplateStorageService> _logger;
@@ -158,7 +163,7 @@ public sealed class N8nTemplateStorageService : IFileStorageService
                 $"n8n template storage returned HTTP {(int)response.StatusCode}.");
         }
 
-        var parsed = JsonSerializer.Deserialize<N8nTemplateStorageResponse>(body);
+        var parsed = JsonSerializer.Deserialize<N8nTemplateStorageResponse>(body, JsonOptions);
 
         return parsed ?? throw new InvalidOperationException("Respuesta n8n inválida para template storage.");
     }
