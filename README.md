@@ -58,13 +58,13 @@
 
 ### **1) Usuario administrador**
 
-- **Email:** support@jesusjbriceno.dev
-- **Pass:** lUEGo#g&3%dR
+- ~**Email:** support@jesusjbriceno.dev~
+- ~**Pass:** lUEGo#g&3%dR~
 
 ### **2) Usuario pruebas**
 
-- **Email:** demo@jesusjbriceno.dev
-- **Pass:** Huwy9V*v!!4N
+- ~**Email:** demo@jesusjbriceno.dev~
+- ~**Pass:** Huwy9V*v!!4N~
 
 ---
 
